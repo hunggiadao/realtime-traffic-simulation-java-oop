@@ -7,5 +7,9 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/TraaS.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/libtraci-1.24.0.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/libsumo-1.24.0.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/lisum-core.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/lisum-gui.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
