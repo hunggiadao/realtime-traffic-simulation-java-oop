@@ -1,5 +1,6 @@
 import de.tudresden.sumo.cmd.Vehicle; 
 import it.polito.appeal.traci.SumoTraciConnection;
+import org.eclipse.sumo.libtraci.*;
 
 public class Main {
 
@@ -16,26 +17,33 @@ public class Main {
 		SumoTraciConnection conn = new SumoTraciConnection(sumoBinary, configFile);
 		conn.addOption("start", "true"); // Start simulation automatically
 
-		try {
-			// 4. Start SUMO
-			conn.runServer(); // <-- Corrected (no 'true')
+//		try {
+//			// 4. Start SUMO
+//			conn.runServer(); // <-- Corrected (no 'true')
+//
+//			// 5. Run the simulation for 1000 steps
+//			for (int i = 0; i < 1000; i++) {
+//				conn.do_timestep();
+//
+//				// You can add your code here, for example:
+//				int vehicleCount = (int) conn.do_job_get(Vehicle.getIDCount()); // <-- Corrected
+//				System.out.println("Step " + i + ": Vehicles = " + vehicleCount);
+//			}
+//
+//			// 6. Close the connection
+//			conn.close();
+//			System.out.println("Simulation finished.");
+//
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 
-			// 5. Run the simulation for 1000 steps
-			for (int i = 0; i < 1000; i++) {
-				conn.do_timestep();
-
-				// You can add your code here, for example:
-				int vehicleCount = (int) conn.do_job_get(Vehicle.getIDCount()); // <-- Corrected
-				System.out.println("Step " + i + ": Vehicles = " + vehicleCount);
-			}
-
-			// 6. Close the connection
-			conn.close();
-			System.out.println("Simulation finished.");
-
-		} catch (Exception e) {
-			e.printStackTrace();
+		Simulation.preloadLibraries();
+		Simulation.start(new StringVector(new String[] {"sumo", "-n", "test1.net.xml"}));
+		for (int i = 0; i < 5; i++) {
+			Simulation.step();
 		}
+		Simulation.close();
 	}
 
 }
