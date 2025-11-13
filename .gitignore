@@ -1,0 +1,15 @@
+# Ignore Latex build files in `/report` directory
+/report/*.aux
+/report/*.log
+/report/*.out
+/report/*.toc
+/report/*.synctex.gz
+/report/*.bbl
+/report/*.blg
+/report/*.fls
+/report/*.fdb_latexmk
+/report/*.bcf
+/report/*.run.xml
+/report/*.glo
+/report/*.ist
+/report/*.acn
