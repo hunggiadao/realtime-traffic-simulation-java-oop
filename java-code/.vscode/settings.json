@@ -1,0 +1,11 @@
+{
+  "java.project.referencedLibraries": [
+    "${workspaceFolder}/lib/javafx25/*.jar"
+    ,
+    "C:/Program Files (x86)/Eclipse/Sumo/bin/*.jar"
+  ],
+  "java.project.sourcePaths": [
+    "src"
+  ],
+  "java.errors.incompleteClasspath.severity": "ignore"
+}

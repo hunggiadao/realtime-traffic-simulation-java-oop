@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Launch JavaFX App",
+      "request": "launch",
+      "mainClass": "Main",
+      "vmArgs": "--module-path \"${workspaceFolder}/lib/javafx25\" --add-modules javafx.controls,javafx.fxml -Djava.library.path=\"C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\"",
+      "env": {
+        "PATH": "${env:PATH};C:/Program Files (x86)/Eclipse/Sumo/bin"
+      }
+    }
+  ]
+}
