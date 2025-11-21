@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2025-11-20 15:06:24 by Eclipse SUMO netedit Version 1.24.0
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <!-- VTypes -->
+    <vType id="t_0"/>
+    <vType id="t_1" vClass="bus"/>
+    <vType id="t_2"/>
+    <!-- Routes -->
+    <route id="bus_r_39_0" edges="E37 E34 E27 E28 E31 E42 E43" color="0,230,223,240">
+        <stop busStop="bs_5" duration="30.00"/>
+        <stop busStop="bs_4" duration="30.00"/>
+    </route>
+    <route id="bus_r_64_0" edges="E37 E33 E36 -E20 E22 E50">
+        <stop busStop="bs_0" duration="30.00"/>
+        <stop busStop="bs_2" duration="30.00"/>
+    </route>
+    <route id="bus_r_64_1" edges="-E23 -E5 E4 E29 E30 E46 E47">
+        <stop busStop="bs_1" duration="30.00"/>
+        <stop busStop="bs_3" duration="30.00"/>
+    </route>
+    <route id="r_4" edges="-E50 -E21 -E11 -E10 -E0 E1 E2 E4 E29 E30 E42 E44 E52" color="128,0,128"/>
+    <route id="r_7" edges="E37 E34 E27 E28 E32" color="magenta"/>
+    <!-- Vehicles, persons and containers (sorted by depart) -->
+    <vehicle id="bus_39_0_0" type="t_1" depart="0.00" color="0,255,231,225" route="bus_r_39_0"/>
+    <vehicle id="bus_39_1_1" type="t_1" depart="0.00" color="0,255,231,225" route="bus_r_39_0"/>
+    <vehicle id="bus_64_0_0" type="t_1" depart="0.00" color="0,255,231,225" route="bus_r_64_0"/>
+    <vehicle id="bus_64_0_1" type="t_1" depart="0.00" color="0,255,231,225" route="bus_r_64_0"/>
+    <vehicle id="bus_64_1_0" type="t_1" depart="0.00" color="0,255,231,225" route="bus_r_64_1"/>
+    <vehicle id="bus_64_1_1" type="t_1" depart="0.00" color="0,255,231,225" route="bus_r_64_1"/>
+    <vehicle id="v_13" depart="0.00" route="r_4"/>
+    <vehicle id="v_15" depart="0.00" route="r_7"/>
+    <vehicle id="v_18" depart="0.00" route="r_7"/>
+    <vehicle id="v_2" depart="0.00" color="cyan" route="r_7"/>
+    <vehicle id="v_3" depart="0.00" color="cyan" route="r_7"/>
+    <vehicle id="v_6" depart="0.00" color="44,255,0" route="r_4"/>
+    <vehicle id="v_7" depart="0.00" color="blue" route="r_4"/>
+    <person id="p_0" depart="0.00" color="cyan">
+        <personTrip from="-E12" to="E10"/>
+    </person>
+    <person id="p_1" depart="0.00" color="magenta">
+        <personTrip from="E6" to="E1"/>
+    </person>
+</routes>
