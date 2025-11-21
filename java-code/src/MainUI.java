@@ -1,8 +1,8 @@
 import javafx.fxml.FXML;
 
-public class MainController {
+public class MainUI {
 
-    public MainController() {
+    public MainUI() {
         // constructor - called when FXML is loaded
     }
 
