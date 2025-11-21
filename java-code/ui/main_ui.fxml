@@ -14,15 +14,65 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="600.0" minWidth="800.0" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainController">
+   <center>
+      <StackPane minHeight="300.0" minWidth="400.0" BorderPane.alignment="CENTER">
+         <children>
+            <Label text="MAP VIEW (SUMO network &amp; vehicles)" />
+         </children>
+      </StackPane>
+   </center>
+   <bottom>
+      <VBox BorderPane.alignment="CENTER">
+         <children>
+            <HBox prefHeight="33.0" prefWidth="1200.0" spacing="12.0">
+               <padding>
+                  <Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
+               </padding>
+               <children>
+                  <Label prefHeight="39.0" prefWidth="37.0" text="Step: 0" />
+                  <Label prefHeight="44.0" prefWidth="97.0" text="Sim time: 00:00:00" />
+                  <Label prefHeight="44.0" prefWidth="56.0" text="Vehicles: 0" />
+                  <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
+                  <Label prefHeight="46.0" prefWidth="110.0" text="Status: Disconnected" />
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+   </bottom>
+   <top>
+      <VBox BorderPane.alignment="CENTER">
+         <children>
+            <HBox prefHeight="30.0" prefWidth="1200.0" spacing="8.0">
+               <children>
+                  <Button mnemonicParsing="false" text="Open Config" />
+                  <Button mnemonicParsing="false" text="Connect" />
+                  <Button mnemonicParsing="false" text="Start" />
+                  <Button mnemonicParsing="false" text="Pause" />
+                  <Button mnemonicParsing="false" text="Step" />
+                  <Label prefHeight="52.0" prefWidth="34.0" text="Speed" />
+                  <Slider prefHeight="43.0" prefWidth="140.0" />
+                  <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
+                  <MenuButton mnemonicParsing="false" text="Export">
+                    <items>
+                      <MenuItem mnemonicParsing="false" text="Action 1" />
+                      <MenuItem mnemonicParsing="false" text="Action 2" />
+                    </items>
+                  </MenuButton>
+               </children>
+               <padding>
+                  <Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
+               </padding>
+            </HBox>
+         </children>
+      </VBox>
+   </top>
    <left>
-      <TabPane maxWidth="400.0" minWidth="220.0" prefHeight="200.0" prefWidth="280.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
+      <TabPane minWidth="220.0" prefHeight="200.0" prefWidth="280.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
         <tabs>
           <Tab text="Simulation">
             <content>
@@ -53,7 +103,7 @@
             <content>
               <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                      <children>
-                        <VBox prefHeight="381.0" prefWidth="280.0" spacing="8.0">
+                        <VBox prefHeight="357.0" prefWidth="280.0" spacing="8.0">
                            <padding>
                               <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                            </padding>
@@ -63,7 +113,7 @@
                               <Label text="Batch size:" />
                               <TextField text="10" />
                               <Label text="Vehicle color:" />
-                              <ColorPicker />
+                              <ColorPicker prefWidth="125.0" />
                               <Label text="Max speed (m/s):" />
                               <TextField />
                               <Button mnemonicParsing="false" text="Inject vehicles" />
@@ -86,15 +136,8 @@
         </tabs>
       </TabPane>
    </left>
-   <center>
-      <StackPane minHeight="400.0" minWidth="400.0" BorderPane.alignment="CENTER">
-         <children>
-            <Label text="MAP VIEW (SUMO network &amp; vehicles)" />
-         </children>
-      </StackPane>
-   </center>
    <right>
-      <TabPane maxWidth="400.0" minWidth="260.0" prefHeight="200.0" prefWidth="320.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
+      <TabPane minWidth="260.0" prefHeight="200.0" prefWidth="320.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
         <tabs>
           <Tab text="Charts">
             <content>
@@ -109,41 +152,4 @@
         </tabs>
       </TabPane>
    </right>
-   <bottom>
-      <HBox prefHeight="33.0" prefWidth="1200.0" spacing="12.0" BorderPane.alignment="CENTER">
-         <padding>
-            <Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
-         </padding>
-         <children>
-            <Label text="Step: 0" />
-            <Label text="Sim time: 00:00:00" />
-            <Label text="Vehicles: 0" />
-            <Pane prefHeight="22.0" prefWidth="810.0" HBox.hgrow="ALWAYS" />
-            <Label text="Status: Disconnected" />
-         </children>
-      </HBox>
-   </bottom>
-   <top>
-      <HBox prefHeight="30.0" prefWidth="1200.0" spacing="8.0" BorderPane.alignment="CENTER">
-         <children>
-            <Button mnemonicParsing="false" text="Open Config" />
-            <Button mnemonicParsing="false" text="Connect" />
-            <Button mnemonicParsing="false" text="Start" />
-            <Button mnemonicParsing="false" text="Pause" />
-            <Button mnemonicParsing="false" text="Step" />
-            <Label text="Speed" />
-            <Slider />
-            <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
-            <MenuButton mnemonicParsing="false" text="Export">
-              <items>
-                <MenuItem mnemonicParsing="false" text="Action 1" />
-                <MenuItem mnemonicParsing="false" text="Action 2" />
-              </items>
-            </MenuButton>
-         </children>
-         <padding>
-            <Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
-         </padding>
-      </HBox>
-   </top>
 </BorderPane>
