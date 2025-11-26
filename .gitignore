@@ -13,3 +13,8 @@
 /report/*.glo
 /report/*.ist
 /report/*.acn
+
+# from IntelliJ
+.idea
+*.iml
+out
