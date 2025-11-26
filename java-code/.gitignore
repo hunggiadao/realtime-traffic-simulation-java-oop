@@ -1,6 +1,0 @@
-# Eclipse artifacts (keep local, do not track)
-.project
-.classpath
-.settings/
-**Zone.Identifier
-bin
