@@ -18,3 +18,10 @@
 .idea
 *.iml
 out
+
+# Eclipse artifacts (keep local, do not track)
+/java-code/.project
+/java-code/.classpath
+/java-code/.settings/
+/java-code/**Zone.Identifier
+/java-code/bin
