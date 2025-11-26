@@ -1,6 +1,9 @@
-import de.tudresden.sumo.cmd.Vehicle; 
+import de.tudresden.sumo.cmd.Trafficlight;
+import de.tudresden.sumo.cmd.Vehicle;
+import de.tudresden.sumo.cmd.*;
 import it.polito.appeal.traci.SumoTraciConnection;
 import org.eclipse.sumo.libtraci.*;
+import java.lang.Math;
 
 public class Main {
 
@@ -11,8 +14,8 @@ public class Main {
 		String sumoBinary = "C:/Program Files (x86)/Eclipse/Sumo/bin/sumo-gui.exe"; // <-- FIXED
 
 		// 2. Path to your SUMO configuration file
-		String configFile = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\quickstart\\data\\quickstart.sumocfg"; // <-- FIXED
-
+//		String configFile = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\quickstart\\data\\quickstart.sumocfg"; // <-- FIXED
+        String configFile = "C:\\Users\\raees\\realtime-traffic-simulation-java-oop\\SumoConfig\\G.sumocfg"; // Traffic Network Raees
 //		String configFile = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\quickstart\\data\\quickstart.sumocfg";
 
 		// TraaS syntax, we'll use this for this project
@@ -26,13 +29,19 @@ public class Main {
 			// 4. Start SUMO
 			conn.runServer(); // <-- Corrected (no 'true')
 
-			// 5. Run the simulation for 1000 steps
+			// 5. Run the simulation for 10000 steps
 			for (int i = 0; i < 10000; i++) {
 				conn.do_timestep();
 
 				// You can add your code here, for example:
 				int vehicleCount = (int) conn.do_job_get(Vehicle.getIDCount()); // <-- Corrected
-				System.out.println("Step " + i + ": Vehicles = " + vehicleCount);
+                int trafficlightCount = (int) conn.do_job_get(Trafficlight.getIDCount()); //
+                String trafficlightState = (String) conn.do_job_get(Trafficlight.getRedYellowGreenState("J37")); //
+                //int busStopCount =  (int) BusStop.getVehicleCount("bs_4");
+                double currentSpeed = (double) conn.do_job_get(Vehicle.getSpeed("bus_64_0_0")); // gets the current Speed of x vehicle
+				System.out.println("Step " + i + ": Vehicles = " + vehicleCount +  ", TrafficLights = " + trafficlightCount
+                + " Current Lights-Color of J37: " + trafficlightState + " Current Bus-64-0-0 Speed: " + Math.round(currentSpeed) + " km/h"); // " BusStopCount: " + busStopCount
+
 			}
 
 			// 6. Close the connection
