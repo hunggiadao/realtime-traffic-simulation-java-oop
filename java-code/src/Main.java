@@ -27,7 +27,7 @@ public class Main {
 		conn.addOption("step-length", "0.1");
 
 		try {
-			// 4. Start SUMO
+			// 4. Start SUMO	
 			conn.runServer(); // <-- Corrected (no 'true')
 
 			// 5. Run the simulation for 10000 steps
