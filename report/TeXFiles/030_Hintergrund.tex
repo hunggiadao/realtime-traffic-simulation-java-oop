@@ -1,3 +1,10 @@
 \chapter{Hintergrund}
 \label{ch:Hintergrund}
 
+\noindent
+In more detail, the surface of the application is a GUI that is rendered using JavaFX graphical library, which is a Java library that allows for the creation of interface elements like buttons, dropdown menus, and alert boxes. Such elements send command signals to a SUMO instance to initialize and control a running SUMO traffic network. The communication between the GUI frontend and the SUMO simulator is facilitated by SUMO's TraaS library, which provides functions for retrieving traffic data like vehicle statistics, traffic light states, road data, etc., and functions for commanding the network like cycling traffic lights, spawning vehicles, etc. 
+\medskip
+
+\noindent
+When a SUMO instance finishes running, its simulation results are exported in the comma separated values (CSV) format for further inspection and improvement of the application. Our documentation and project report include information about the application's features, usability, architecture diagrams, class design diagrams, and a summary of our development process. 
+\medskip

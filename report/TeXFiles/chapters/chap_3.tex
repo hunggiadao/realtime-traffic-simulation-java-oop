@@ -1,0 +1,146 @@
+\chapter{Application Features}
+\label{ch:ApplicationFeatures}
+
+%%%%%%%%%%%%%
+\section{Graphical User Interface (GUI)}
+
+\noindent
+For Milestone 1, we designed the graphical user interface of the application using JavaFX and Scene Builder. The goal at this stage was to establish the complete visual structure of the program, without yet integrating SUMO or implementing any simulation logic.
+\medskip
+
+\noindent
+The interface is built around a \texttt{BorderPane} layout, dividing the window into clear functional regions. At the top of the application, a responsive toolbar provides the essential simulation controls, including opening a SUMO configuration file, connecting to the simulation backend, starting or pausing the simulation, executing single simulation steps, and adjusting the simulation speed. This layout remains clean and stable when the window is resized.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.65\textwidth]{../assets/main_ui_milestone_1.png}
+    \caption{Graphical User Interface designed for Milestone 1}
+    \label{fig:milestone1-ui}
+\end{figure}
+
+\noindent
+On the left side, a \texttt{TabPane} organizes input settings into four tabs: \textit{Simulation}, \textit{Vehicles}, \textit{Traffic Lights}, and \textit{Filters}. As shown in the interface preview, the Simulation tab includes fields for selecting a configuration file, enabling real-time stepping, and adjusting the step interval. This structure keeps related parameters grouped and easy to navigate.
+\medskip
+
+\noindent
+The central region is reserved for the map view. In this milestone, it contains a placeholder label indicating where the SUMO network visualization will later appear. The map area is fully resizable and positioned as the main visual focus of the interface.
+\medskip
+
+\noindent
+On the right side, a second \texttt{TabPane} is prepared for simulation metrics. The \textit{Vehicle Table} tab includes a JavaFX \texttt{TableView} with predefined columns (ID, Speed, Edge), ready to display live data once SUMO integration is implemented.
+\medskip
+
+\noindent
+Finally, a status bar at the bottom of the interface displays key runtime information, such as the current simulation step, simulation time, vehicle count, and connection status. This ensures that essential system feedback remains visible at all times.
+\medskip
+
+\noindent
+Overall, the GUI developed in Milestone 1 provides a clear, organized, and fully resizable framework for the simulation application. It establishes the necessary structure for future milestones in which SUMO communication, map rendering, and real-time traffic data will be integrated.
+\medskip
+
+%%%%%%%%%%%%%
+\section{Class Diagram Overview}
+
+\noindent
+Figure~\ref{fig:classdiagram} shows the simplified class structure implemented for Milestone~1. 
+The architecture is intentionally minimal, as the purpose of this stage is to establish clear responsibilities before full SUMO integration is added.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/class_diagram.png}
+    \caption{Class diagram used in Milestone~1.}
+    \label{fig:classdiagram}
+\end{figure}
+
+\noindent
+The \texttt{TraCIConnector} class forms the core of the system, responsible for establishing a connection to SUMO, tracking the simulation step, and providing basic operations such as \texttt{connect()}, \texttt{step()}, and obtaining simple vehicle counts. The \texttt{VehicleWrapper} and \texttt{TrafficLightWrapper} classes each hold a reference to this connector and serve as early abstractions for accessing SUMO vehicle data and traffic light information. The \texttt{Main} class simply launches the application. This structure creates a clean separation of concerns and prepares the system for more advanced TraCI functions in future milestones.
+\medskip
+
+%%%%%%%%%%%%%%
+\section{Traffic Network Preparation}
+
+\noindent
+To test the SUMO setup during Milestone~1, we constructed a small traffic network based on a real street layout in Frankfurt. 
+The area was selected for its moderate size and clear road geometry, making it ideal for early simulation testing. 
+Figure~\ref{fig:mapreference} shows the reference map used during the process.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/map_sample.png}
+    \caption{Reference street layout used for building the SUMO network.}
+    \label{fig:mapreference}
+\end{figure}
+
+\noindent
+Using SUMO's NETEDIT tool, the roads, intersections, and lane connections were recreated manually. 
+This allowed the team to produce a valid \texttt{.net.xml} file that could be loaded into SUMO for simulation.
+\medskip
+
+%%%%%%%%%
+\section{SUMO Network and Initial Simulation Test}
+
+\noindent
+Once the road geometry was created in NETEDIT, the network was paired with a basic route file and loaded into SUMO for testing. 
+Figure~\ref{fig:sumosimulation} shows the SUMO GUI rendering of the test network.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/Sumo_Demo_Connection.png}
+    \caption{SUMO network used for the initial simulation test.}
+    \label{fig:sumosimulation}
+\end{figure}
+
+\noindent
+This simulation confirmed that lane connections, turning paths, and traffic flow behaved as expected. 
+The successful run ensured that the SUMO environment, map setup, and route files were correctly prepared for Java integration in later phases.
+\medskip
+
+\pagebreak
+
+%%%%%%%%%%%%%%
+\section{TraCI Connection Test}
+
+\noindent
+During Milestone~1, we performed a small integration test to verify that a Java application could successfully communicate with SUMO via TraCI. 
+\medskip
+
+\noindent
+The connector established a SUMO process, stepped the simulation once, and retrieved a simple vehicle count, confirming a working communication pipeline. Figure~\ref{fig:tracitest} illustrates the demo used during testing.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/sumo_connection_test.png}
+    \caption{Demo of the Java--SUMO TraCI connection during Milestone~1.}
+    \label{fig:tracitest}
+\end{figure}
+
+\noindent
+This confirms that the communication layer works and can be expanded with more detailed functions in the next milestones.
+\medskip
+
+%%%%%%%%%%%%%%
+\section{Use Case Diagram}
+
+\noindent
+Figure~\ref{fig:usecasediagram} presents the simplified use case diagram created for Milestone~1.
+\medskip
+
+\noindent
+Since the full system logic is not yet implemented, the current use cases focus on core interactions: running the SUMO simulation, stepping the simulation manually, obtaining simple vehicle counts, and displaying results either in the GUI or console.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.65\textwidth]{../assets/usecase_diagram.png}
+    \caption{Use case diagram for the early-stage traffic simulation application.}
+    \label{fig:usecasediagram}
+\end{figure}
+
+\noindent
+These use cases provide a clear overview of what functionality is available at this stage and what interactions will be expanded in Milestone~2.
+\medskip

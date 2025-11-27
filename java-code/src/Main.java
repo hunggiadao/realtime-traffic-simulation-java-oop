@@ -14,9 +14,10 @@ public class Main {
 		String sumoBinary = "C:/Program Files (x86)/Eclipse/Sumo/bin/sumo-gui.exe"; // <-- FIXED
 
 		// 2. Path to your SUMO configuration file
-//		String configFile = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\quickstart\\data\\quickstart.sumocfg"; // <-- FIXED
-        String configFile = "C:\\Users\\raees\\realtime-traffic-simulation-java-oop\\SumoConfig\\G.sumocfg"; // Traffic Network Raees
-//		String configFile = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\quickstart\\data\\quickstart.sumocfg";
+		// String configFile = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\quickstart\\data\\quickstart.sumocfg"; // <-- FIXED
+        // String configFile = "C:\\Users\\raees\\realtime-traffic-simulation-java-oop\\SumoConfig\\G.sumocfg"; // Traffic Network Raees (@harshfeudal: this absolute path makes the code not runable on other machines)
+		String configFile = "..\\SumoConfig\\G.sumocfg";
+		// String configFile = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\quickstart\\data\\quickstart.sumocfg";
 
 		// TraaS syntax, we'll use this for this project
 		// 3. Create the connection
