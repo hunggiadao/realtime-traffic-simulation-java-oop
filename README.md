@@ -70,6 +70,8 @@ The interface is built around a `BorderPane` layout, dividing the window into cl
 
 ### Use Case Diagram
 
+To be added
+
 <!-- ![alt text](<to be added>) -->
 
 ## Testing and Results
@@ -93,6 +95,8 @@ To be added
 -- Benefit: Preserves pre-trained knowledge while adapting to new tasks. -->
 
 ### Evaluation:
+
+To be added
 
 <!-- ![alt text]() -->
 
