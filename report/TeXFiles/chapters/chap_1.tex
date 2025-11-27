@@ -1,0 +1,55 @@
+\chapter{Project Overview}
+\label{ch:ProjectOverview}
+
+%%%%%%%%%%%%%
+\section{Introduction}
+\noindent
+This project aims to build a real-time traffic simulation application using Java as the main programming language and its various libraries, such as JavaFX, TraCI as a Service (TraaS), etc. It also utilizes functionalities of the Simulation of Urban Mobility (SUMO) software package to visualize traffic network and traffic flows. The application is designed to provide some basic mobility control functionalities and allows for user's interactive control, enabling its use for teaching, learning, and researching urban mobility.
+\medskip
+
+\noindent
+The concentration of the project is a wrapper runner application that calls functions and accesses objects from external libraries to simulate real-time traffic, resembling a bird's eye view of a complex apparatus with independent components. This is the essence of object-oriented programming (OOP) design. 
+\medskip
+
+\noindent
+Working development and documentation of the project can be found in our GitHub repository: 
+
+\url{https://github.com/hunggiadao/realtime-traffic-simulation-java-oop}
+\medskip
+
+%%%%%%%%%%%%%
+\section{Background}
+
+\noindent
+In more detail, the surface of the application is a GUI that is rendered using JavaFX graphical library, which is a Java library that allows for the creation of interface elements like buttons, dropdown menus, and alert boxes. Such elements send command signals to a SUMO instance to initialize and control a running SUMO traffic network. The communication between the GUI frontend and the SUMO simulator is facilitated by SUMO's TraaS library, which provides functions for retrieving traffic data like vehicle statistics, traffic light states, road data, etc., and functions for commanding the network like cycling traffic lights, spawning vehicles, etc. 
+\medskip
+
+\noindent
+When a SUMO instance finishes running, its simulation results are exported in the comma separated values (CSV) format for further inspection and improvement of the application. Our documentation and project report include information about the application's features, usability, architecture diagrams, class design diagrams, and a summary of our development process.
+\medskip
+
+%%%%%%%%%%%%%
+\section{Objective}
+
+\noindent
+The primary objective of this project is to develop a comprehensive real-time traffic simulation application that demonstrates practical implementation of object-oriented programming principles in Java. Specifically, we aim to create an interactive platform that integrates multiple technologies—JavaFX for the graphical user interface, SUMO for traffic simulation, and TraaS for inter-process communication—into a cohesive system that can be used for educational and research purposes in urban mobility studies.
+\medskip
+
+\noindent
+Beyond the technical implementation, we seek to gain hands-on experience with software engineering practices, including collaborative development using version control systems, systematic documentation of design decisions and development processes, and the creation of modular, maintainable code that follows industry best practices. The project also serves as an opportunity to explore real-world challenges in traffic simulation and control systems.
+\medskip
+
+%%%%%%%%%%%%%
+\section{Technology Stack}
+
+\noindent
+To familiarize ourselves with the necessary programs, we watched various tutorial videos and read documentation on SUMO, Netedit, and JavaFX. We then shared these resources within our team so that everyone could make use of them. 
+\medskip
+
+\noindent
+At first, we focused on learning Netedit. We watched road simulation videos and studied documentation to gradually understand how the program works. We created different simulations, added traffic lights, stop signs, pedestrian paths, and bicycle lanes, and tested their behavior. In the beginning, it was difficult to understand Netedit, but over time we became more confident in using it. 
+\medskip
+
+\noindent
+After we became familiar with Netedit and SUMO, we started assigning roles within the team and defining who would be responsible for which tasks. 
+\medskip
