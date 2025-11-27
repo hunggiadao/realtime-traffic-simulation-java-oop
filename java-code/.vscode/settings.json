@@ -1,8 +1,21 @@
 {
   "java.project.referencedLibraries": [
-    "${workspaceFolder}/lib/javafx25/*.jar"
-    ,
-    "C:/Program Files (x86)/Eclipse/Sumo/bin/*.jar"
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\jfx.incubator.richtext.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.web.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\jfx.incubator.input.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.media.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.controls.jar",
+    "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\lisum-core.jar",
+    "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\TraaS.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.base.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\jdk.jsobject.jar",
+    "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\lisum-gui.jar",
+    "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\libtraci-1.24.0.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx-swt.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.fxml.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.swing.jar",
+    "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\libsumo-1.24.0.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.graphics.jar"
   ],
   "java.project.sourcePaths": [
     "src"
