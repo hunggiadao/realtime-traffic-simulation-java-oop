@@ -17,7 +17,7 @@ The project utilizes the following tools:
 - **JavaFX**: software platform used to create graphical interfaces for desktop and internet applications
 - **TraCI as a Service (TraaS)**: SUMO TraCI API for enabling external access to a running SUMO simulation
 - **Dia**: free and open-source diagramming software, for creating UML, class, and use case diagrams
-- **$\text{\LaTeX}$**: powerful, high-quality document preparation system built on the $\text{\TeX}$ typesetting program, used to create technical documents, books, articles, mathematical and scientific notation
+- **LaTeX**: powerful, high-quality document preparation system built on the TeX typesetting program, used to create technical documents, books, articles, mathematical and scientific notation
 - **Notion**: all-in-one workspace application for managing knowledge, projects, and tasks
 
 <!-- **Note:** this project requires Git Large File Storage (LFS) tracking for transfering files larger than 50MB. -->
@@ -56,19 +56,21 @@ The provided `.gitignore` includes all telemetry and miscellaneous types that ar
 
 <!-- ![alt text](https://github.com/hunggiadao/human_age_detection/blob/main/Presentation/data_collection.png) -->
 
-### Application Features:
+## Application Feature
 
-#### Graphical User Interface (GUI)
+### Graphical User Interface (GUI)
 
 The interface is built around a `BorderPane` layout, dividing the window into clear functional regions. At the top of the application, a responsive toolbar provides the essential simulation controls, including opening a SUMO configuration file, connecting to the simulation backend, starting or pausing the simulation, executing single simulation steps, and adjusting the simulation speed. This layout remains clean and stable when the window is resized.
 
 ![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png)
 
-#### Architecture Diagram
+### Architecture Diagram
 
 ![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/architecture_diagram.png)
 
-#### Use Case Diagram
+### Use Case Diagram
+
+To be added
 
 <!-- ![alt text](<to be added>) -->
 
@@ -93,6 +95,8 @@ To be added
 -- Benefit: Preserves pre-trained knowledge while adapting to new tasks. -->
 
 ### Evaluation:
+
+To be added
 
 <!-- ![alt text]() -->
 
