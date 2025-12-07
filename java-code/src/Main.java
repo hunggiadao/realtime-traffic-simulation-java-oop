@@ -1,63 +1,99 @@
-import de.tudresden.sumo.cmd.Trafficlight;
-import de.tudresden.sumo.cmd.Vehicle;
-import de.tudresden.sumo.cmd.*;
-import it.polito.appeal.traci.SumoTraciConnection;
-import org.eclipse.sumo.libtraci.*;
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+import java.io.File;
+import java.net.URL;
 import java.lang.Math;
 
-public class Main {
+public class Main extends Application {
 
-	public static void main(String[] args) {
-		// Path to your SUMO executable
-		// String sumoBinary = "C:/Program Files (x86)/Eclipse/Sumo/bin/sumo-gui.exe";
-		String sumoBinary = "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo-gui.exe"; // <-- FIXED
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        // Load the FXML file
+        // Note: We are in src/, and fxml is in ui/main_ui.fxml relative to project root.
+        // When running from compiled classes, we need to find the resource.
+        
+        // If running from IDE or command line where 'ui' folder is preserved:
+        File fxmlFile = new File("ui/main_ui.fxml");
+        URL fxmlUrl;
+        if (fxmlFile.exists()) {
+            fxmlUrl = fxmlFile.toURI().toURL();
+        } else {
+            // Fallback: try to load from classpath if packaged
+            fxmlUrl = getClass().getResource("/ui/main_ui.fxml");
+            if (fxmlUrl == null) {
+                fxmlUrl = getClass().getResource("/main_ui.fxml");
+            }
+        }
 
-		// Path to your SUMO configuration file
-		// String configFile = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\quickstart\\data\\quickstart.sumocfg"; // <-- FIXED
-		// String configFile = "C:\\Users\\raees\\realtime-traffic-simulation-java-oop\\SumoConfig\\G.sumocfg"; // Traffic Network Raees (@harshfeudal: this absolute path makes the code not runable on other machines)
-		String configFile = ".\\SumoConfig\\G.sumocfg";
+        if (fxmlUrl == null) {
+            throw new java.io.FileNotFoundException("Could not find ui/main_ui.fxml");
+        }
 
-		// TraaS syntax, we'll use this for this project
-		// Create the connection
-		SumoTraciConnection conn = new SumoTraciConnection(sumoBinary, configFile);
-		conn.addOption("start", "true"); // Start simulation automatically
-		conn.addOption("delay", "50");
-		conn.addOption("step-length", "0.1");
+        FXMLLoader loader = new FXMLLoader(fxmlUrl);
+        Parent root = loader.load();
 
-		try {
-			// Start SUMO
-			conn.runServer();
+        primaryStage.setTitle("Real-time Traffic Simulation");
+        primaryStage.setScene(new Scene(root));
+        primaryStage.show();
+    }
 
-			// Run the simulation for 10000 steps, or until finished
-			for (int i = 0; i < 10000; i++) {
-				conn.do_timestep();
+    public static void main(String[] args) {
+        // If "cli" argument is passed, run the console simulation
+        if (args.length > 0 && args[0].equalsIgnoreCase("cli")) {
+            runConsoleSimulation();
+        } else {
+            launch(args);
+        }
+    }
 
-				// You can add your code here, for example:
-				int vehicleCount = (int) conn.do_job_get(Vehicle.getIDCount()); // <-- Corrected
-				int trafficlightCount = (int) conn.do_job_get(Trafficlight.getIDCount()); //
-				String trafficlightState = (String) conn.do_job_get(Trafficlight.getRedYellowGreenState("J37"));
-				// int busStopCount =  (int) BusStop.getVehicleCount("bs_4");
-				double currentSpeed = (double) conn.do_job_get(Vehicle.getSpeed("bus_64_0_0")); // gets the current Speed of x vehicle
-				System.out.println("Step " + i + ": Vehicles = " + vehicleCount +  ", TrafficLights = " + trafficlightCount);
-				System.out.println("\tCurrent Lights-Color of J37: " + trafficlightState + " Current Bus-64-0-0 Speed: " + Math.round(currentSpeed) + " km/h"); // " BusStopCount: " + busStopCount
+    /**
+     * Old console-based simulation logic.
+     * Kept for future implementation/reference.
+     */
+    public static void runConsoleSimulation() {
+        // Path to your SUMO executable
+        // String sumoBinary = "C:/Program Files (x86)/Eclipse/Sumo/bin/sumo-gui.exe";
+        String sumoBinary = "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo-gui.exe"; 
 
-			}
+        // Path to your SUMO configuration file
+        String configFile = ".\\SumoConfig\\G.sumocfg";
 
-			// Close the connection
-			conn.close();
-			System.out.println("Simulation finished.");
+        // TraaS syntax, we'll use this for this project
+        // Create the connection wrapper
+        TraCIConnector conn = new TraCIConnector(sumoBinary, configFile, 0.1);
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+        if (conn.connect()) {
+            VehicleWrapper vehicleWrapper = new VehicleWrapper(conn);
+            TrafficLightWrapper trafficLightWrapper = new TrafficLightWrapper(conn);
 
-		// TraCI syntax, not used for this project
-		//		Simulation.preloadLibraries();
-		//		Simulation.start(new StringVector(new String[] {"sumo", "-n", "test1.net.xml"}));
-		//		for (int i = 0; i < 5; i++) {
-		//			Simulation.step();
-		//		}
-		//		Simulation.close();
-	}
+            // Run the simulation for 10000 steps, or until finished
+            for (int i = 0; i < 10000; i++) {
+                if (!conn.simulationStep()) {
+                    break;
+                }
 
+                // You can add your code here, for example:
+                int vehicleCount = conn.getVehicleCount();
+                int trafficlightCount = trafficLightWrapper.getTrafficLightIds().size();
+                String trafficlightState = trafficLightWrapper.getTrafficLightState("J37");
+                // int busStopCount =  (int) BusStop.getVehicleCount("bs_4");
+                double currentSpeed = vehicleWrapper.getSpeed("bus_64_0_0"); // gets the current Speed of x vehicle
+                
+                System.out.println("Step " + i + ": Vehicles = " + vehicleCount +  ", TrafficLights = " + trafficlightCount);
+                System.out.println("\tCurrent Lights-Color of J37: " + trafficlightState + " Current Bus-64-0-0 Speed: " + Math.round(currentSpeed) + " km/h"); 
+
+            }
+
+            // Close the connection
+            conn.disconnect();
+            System.out.println("Simulation finished.");
+
+        } else {
+            System.out.println("Could not connect to SUMO.");
+        }
+    }
 }
