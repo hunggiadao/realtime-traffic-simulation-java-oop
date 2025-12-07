@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.chart.CategoryAxis?>
 <?import javafx.scene.chart.LineChart?>
 <?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.Button?>
@@ -24,9 +23,9 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="600.0" minWidth="800.0" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="MainController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="600.0" minWidth="800.0" prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SimulationController">
    <center>
-      <StackPane minHeight="300.0" minWidth="400.0" BorderPane.alignment="CENTER">
+      <StackPane fx:id="mapPane" minHeight="300.0" minWidth="400.0" BorderPane.alignment="CENTER">
          <children>
             <Label text="MAP VIEW (SUMO network &amp; vehicles)" />
          </children>
@@ -40,11 +39,11 @@
                   <Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
                </padding>
                <children>
-                  <Label prefHeight="39.0" prefWidth="37.0" text="Step: 0" />
-                  <Label prefHeight="44.0" prefWidth="97.0" text="Sim time: 00:00:00" />
-                  <Label prefHeight="44.0" prefWidth="56.0" text="Vehicles: 0" />
+                  <Label fx:id="lblStep" prefHeight="39.0" prefWidth="80.0" text="Step: 0" />
+                  <Label fx:id="lblSimTime" prefHeight="44.0" prefWidth="140.0" text="Sim time: 0.0 s" />
+                  <Label fx:id="lblVehicles" prefHeight="44.0" prefWidth="90.0" text="Vehicles: 0" />
                   <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
-                  <Label prefHeight="46.0" prefWidth="110.0" text="Status: Disconnected" />
+                  <Label fx:id="lblStatus" prefHeight="46.0" prefWidth="160.0" text="Status: Disconnected" />
                </children>
             </HBox>
          </children>
@@ -55,13 +54,13 @@
          <children>
             <HBox prefHeight="30.0" prefWidth="1200.0" spacing="8.0">
                <children>
-                  <Button mnemonicParsing="false" text="Open Config" />
-                  <Button mnemonicParsing="false" text="Connect" />
-                  <Button mnemonicParsing="false" text="Start" />
-                  <Button mnemonicParsing="false" text="Pause" />
-                  <Button mnemonicParsing="false" text="Step" />
-                  <Label prefHeight="52.0" prefWidth="34.0" text="Speed" />
-                  <Slider prefHeight="43.0" prefWidth="140.0" />
+                  <Button fx:id="btnOpenConfig" mnemonicParsing="false" onAction="#onOpenConfig" text="Open Config" />
+                  <Button fx:id="btnConnect" mnemonicParsing="false" onAction="#onConnect" text="Connect" />
+                  <Button fx:id="btnStart" mnemonicParsing="false" onAction="#onStart" text="Start" />
+                  <Button fx:id="btnPause" mnemonicParsing="false" onAction="#onPause" text="Pause" />
+                  <Button fx:id="btnStep" mnemonicParsing="false" onAction="#onStep" text="Step" />
+                  <Label prefHeight="52.0" prefWidth="44.0" text="Speed" />
+                  <Slider fx:id="sliderSpeed" prefHeight="43.0" prefWidth="140.0" />
                   <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
                   <MenuButton mnemonicParsing="false" text="Export">
                     <items>
@@ -90,13 +89,13 @@
                            </padding>
                            <children>
                               <Label text="Simulation config" />
-                              <TextField text="simulation.sumocfg" />
-                              <Button mnemonicParsing="false" text="Browse ..." />
+                              <TextField fx:id="txtConfigPath" text=".\\SumoConfig\\G.sumocfg" />
+                              <Button mnemonicParsing="false" onAction="#onOpenConfig" text="Browse ..." />
                               <CheckBox mnemonicParsing="false" text="Real-time stepping" />
                               <HBox prefHeight="100.0" prefWidth="200.0" spacing="6.0">
                                  <children>
                                     <Label text="Step (ms)" />
-                                    <TextField text="100" />
+                                    <TextField fx:id="txtStepMs" text="100" />
                                  </children>
                               </HBox>
                            </children>
@@ -115,14 +114,14 @@
                            </padding>
                            <children>
                               <Label text="Edge" />
-                              <TextField text="edge id (e.g. E1)" />
+                              <TextField fx:id="txtInjectEdge" text="edge id (e.g. E1)" />
                               <Label text="Batch size" />
-                              <TextField text="10" />
+                              <TextField fx:id="txtInjectCount" text="1" />
                               <Label text="Vehicle color" />
-                              <ColorPicker minHeight="28.0" prefWidth="125.0" />
+                              <ColorPicker fx:id="cpInjectColor" minHeight="28.0" prefWidth="125.0" />
                               <Label text="Max speed (m/s)" />
-                              <TextField />
-                              <Button mnemonicParsing="false" text="Inject" />
+                              <TextField fx:id="txtInjectSpeed" text="10.0" />
+                              <Button fx:id="btnInject" mnemonicParsing="false" onAction="#onInject" text="Inject" />
                            </children>
                         </VBox>
                      </children>
@@ -140,8 +139,8 @@
                               <Label text="Phase" />
                               <HBox prefHeight="16.0" prefWidth="259.0" spacing="6.0">
                                  <children>
-                                    <Button mnemonicParsing="false" text="◀" />
-                                    <Button mnemonicParsing="false" text="▶" />
+                                    <Button mnemonicParsing="false" text="&lt;" />
+                                    <Button mnemonicParsing="false" text="&gt;" />
                                  </children>
                               </HBox>
                               <Label text="Phase duration (s)" />
@@ -188,20 +187,12 @@
                               <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                            </padding>
                            <children>
-                              <LineChart title="Average Speed">
-                                <xAxis>
-                                  <CategoryAxis side="BOTTOM" />
-                                </xAxis>
-                                <yAxis>
-                                  <NumberAxis side="LEFT" />
-                                </yAxis>
-                              </LineChart>
-                              <LineChart title="Vehicle Count">
+                              <LineChart fx:id="vehicleCountChart" animated="false" title="Vehicle Count">
                                  <xAxis>
-                                    <CategoryAxis side="BOTTOM" />
+                                    <NumberAxis fx:id="vehicleCountChartXAxis" label="Step" side="BOTTOM" />
                                  </xAxis>
                                  <yAxis>
-                                    <NumberAxis side="LEFT" />
+                                    <NumberAxis fx:id="vehicleCountChartYAxis" label="Vehicles" side="LEFT" />
                                  </yAxis>
                               </LineChart>
                            </children>
@@ -213,11 +204,11 @@
             <content>
               <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                      <children>
-                        <TableView prefHeight="255.0" prefWidth="320.0">
+                        <TableView fx:id="vehicleTable" prefHeight="255.0" prefWidth="320.0">
                           <columns>
-                            <TableColumn prefWidth="75.0" text="ID" />
-                            <TableColumn prefWidth="75.0" text="Speed" />
-                              <TableColumn prefWidth="75.0" text="Edge" />
+                            <TableColumn fx:id="colId" prefWidth="90.0" text="ID" />
+                            <TableColumn fx:id="colSpeed" prefWidth="90.0" text="Speed" />
+                              <TableColumn fx:id="colEdge" prefWidth="90.0" text="Edge" />
                           </columns>
                         </TableView>
                      </children></AnchorPane>
