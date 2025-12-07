@@ -56,7 +56,7 @@ The provided `.gitignore` includes all telemetry and miscellaneous types that ar
 
 <!-- ![alt text](https://github.com/hunggiadao/human_age_detection/blob/main/Presentation/data_collection.png) -->
 
-## Application Feature
+## Application Features
 
 ### Graphical User Interface (GUI)
 

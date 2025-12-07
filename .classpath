@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="java-code/src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk-25">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/libsumo-1.25.0.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/libsumo-1.25.0-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/libtraci-1.25.0.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/libtraci-1.25.0-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/lisum-core.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/lisum-gui.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/Eclipse/Sumo/bin/TraaS.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/javafx.base.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/javafx.controls.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/javafx.fxml.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/javafx.graphics.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/javafx.media.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/javafx.swing.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/javafx.web.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/javafx-swt.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/jdk.jsobject.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/jfx.incubator.input.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hungg/eclipse-workspace/java-oop-proj/java-code/lib/javafx25/jfx.incubator.richtext.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
