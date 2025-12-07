@@ -3,6 +3,9 @@ import de.tudresden.sumo.cmd.Route;
 import de.tudresden.sumo.objects.SumoStringList;
 import de.tudresden.sumo.objects.SumoColor;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 
 public class VehicleWrapper {
     private final TraCIConnector connector;
@@ -18,18 +21,18 @@ public class VehicleWrapper {
     /**
      * Fetch current vehicle rows (id, speed, edge) from SUMO.
      */
-    public java.util.List<VehicleRow> getVehicleRows() {
-        java.util.List<VehicleRow> rows = new java.util.ArrayList<>();
+    public List<VehicleRow> getVehicleRows() {
+        List<VehicleRow> rows = new ArrayList<>();
         if (!connector.isConnected() || connector.getConnection() == null) {
             return rows;
         }
         try {
             Object idsObj = connector.getConnection().do_job_get(de.tudresden.sumo.cmd.Vehicle.getIDList());
-            java.util.List<String> ids = new java.util.ArrayList<>();
+            List<String> ids = new ArrayList<>();
             if (idsObj instanceof String[]) {
                 for (String s : (String[]) idsObj) ids.add(s);
-            } else if (idsObj instanceof java.util.List<?>) {
-                for (Object o : (java.util.List<?>) idsObj) ids.add(String.valueOf(o));
+            } else if (idsObj instanceof List<?>) {
+                for (Object o : (List<?>) idsObj) ids.add(String.valueOf(o));
             }
 
             for (String id : ids) {
@@ -64,18 +67,18 @@ public class VehicleWrapper {
     /**
      * Fetch current vehicle positions from SUMO.
      */
-    public java.util.Map<String, javafx.geometry.Point2D> getVehiclePositions() {
-        java.util.Map<String, javafx.geometry.Point2D> out = new java.util.HashMap<>();
+    public Map<String, javafx.geometry.Point2D> getVehiclePositions() {
+        Map<String, javafx.geometry.Point2D> out = new HashMap<>();
         if (!connector.isConnected() || connector.getConnection() == null) {
             return out;
         }
         try {
             Object idsObj = connector.getConnection().do_job_get(de.tudresden.sumo.cmd.Vehicle.getIDList());
-            java.util.List<String> ids = new java.util.ArrayList<>();
+            List<String> ids = new ArrayList<>();
             if (idsObj instanceof String[]) {
                 for (String s : (String[]) idsObj) ids.add(s);
-            } else if (idsObj instanceof java.util.List<?>) {
-                for (Object o : (java.util.List<?>) idsObj) {
+            } else if (idsObj instanceof List<?>) {
+                for (Object o : (List<?>) idsObj) {
                     ids.add(String.valueOf(o));
                 }
             }
@@ -97,8 +100,8 @@ public class VehicleWrapper {
             double[] arr = (double[]) posObj;
             if (arr.length >= 2) return new javafx.geometry.Point2D(arr[0], arr[1]);
         }
-        if (posObj instanceof java.util.List<?>) {
-            java.util.List<?> list = (java.util.List<?>) posObj;
+        if (posObj instanceof List<?>) {
+            List<?> list = (List<?>) posObj;
             if (list.size() >= 2) {
                 try {
                     double x = Double.parseDouble(list.get(0).toString());
