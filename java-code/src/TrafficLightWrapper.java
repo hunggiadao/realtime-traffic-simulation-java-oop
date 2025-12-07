@@ -1,5 +1,7 @@
+import de.tudresden.sumo.cmd.Trafficlight;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Wrapper class for Traffic Lights in SUMO.
@@ -16,16 +18,30 @@ public class TrafficLightWrapper {
      * Gets a list of all traffic light IDs in the map.
      */
     public List<String> getTrafficLightIds() {
-        //  TO DO: Retrieve the list of traffic light IDs from SUMO
-        return new ArrayList<String>();
+        if (!connector.isConnected()) return new ArrayList<>();
+        try {
+            Object response = connector.getConnection().do_job_get(Trafficlight.getIDList());
+            if (response instanceof String[]) {
+                return Arrays.asList((String[]) response);
+            } else if (response instanceof List) {
+                return (List<String>) response;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
     }
 
     /**
      * Gets the current state (Red/Green/Yellow) of a traffic light.
-     * @param tlids The ID of the traffic light.
      */
-    public List<String> getTrafficLightState(String tlids) {
-        //  TO DO: Retrieve the state of a specific traffic light
-        return new ArrayList<String>();
+    public String getTrafficLightState(String id) {
+        if (!connector.isConnected()) return "N/A";
+        try {
+            return (String) connector.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(id));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "Error";
     }
 }
