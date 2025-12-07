@@ -263,7 +263,7 @@ public class UI {
             setStatusText("Status: Not connected");
             return;
         }
-        boolean ok = connector.simulationStep();
+        boolean ok = connector.step();
         if (!ok) {
             setStatusText("Status: Step failed");
             return;
@@ -380,7 +380,7 @@ public class UI {
             setConnectedUI();
             return;
         }
-        boolean ok = connector.simulationStep();
+        boolean ok = connector.step();
         if (!ok) {
             stopLoop();
             setStatusText("Status: Step failed");
