@@ -15,7 +15,7 @@ public class Main extends Application {
         // Load the FXML file
         // Note: We are in src/, and fxml is in ui/main_ui.fxml relative to project root.
         // When running from compiled classes, we need to find the resource.
-        
+
         // If running from IDE or command line where 'ui' folder is preserved:
         File fxmlFile = new File("ui/main_ui.fxml");
         URL fxmlUrl;
@@ -82,7 +82,7 @@ public class Main extends Application {
                 String trafficlightState = trafficLightWrapper.getTrafficLightState("J37");
                 // int busStopCount =  (int) BusStop.getVehicleCount("bs_4");
                 double currentSpeed = vehicleWrapper.getSpeed("bus_64_0_0"); // gets the current Speed of x vehicle
-                
+
                 System.out.println("Step " + i + ": Vehicles = " + vehicleCount +  ", TrafficLights = " + trafficlightCount);
                 System.out.println("\tCurrent Lights-Color of J37: " + trafficlightState + " Current Bus-64-0-0 Speed: " + Math.round(currentSpeed) + " km/h"); 
 

@@ -1,7 +1,6 @@
 import it.polito.appeal.traci.SumoTraciConnection;
 import de.tudresden.sumo.cmd.Vehicle;
 
-
 /**
  * Wrapper class for managing the TraCI connection to SUMO.
  * Handles connection lifecycle and basic simulation stepping.
@@ -71,8 +70,7 @@ public class TraCIConnector {
             e.printStackTrace();
             return 0;
         }
-        
-    } 
+    }
 
     public void disconnect() {
         //  TO DO: Close connection

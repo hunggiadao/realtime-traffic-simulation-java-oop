@@ -26,7 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import javafx.animation.AnimationTimer;
 
-public class SimulationController {
+public class UI {
 
     // Top toolbar
     @FXML private Button btnOpenConfig;
@@ -78,13 +78,13 @@ public class SimulationController {
     private boolean running = false;
     private long lastStepNs = 0;
 
-    public SimulationController() {
+    public UI() {
         // called when FXML is loaded
     }
 
     @FXML
     private void initialize() {
-        System.out.println("SimulationController initialized");
+        System.out.println("UI initialized");
 
         // Table setup
         if (colId != null && colSpeed != null && colEdge != null) {
@@ -397,7 +397,7 @@ public class SimulationController {
             setStatusText("Status: Not connected");
             return;
         }
-        
+
         String edge = (txtInjectEdge != null) ? txtInjectEdge.getText().trim() : "";
         if (edge.isEmpty()) {
             setStatusText("Status: Edge ID required");
@@ -408,17 +408,17 @@ public class SimulationController {
         try {
             if (txtInjectCount != null) count = Integer.parseInt(txtInjectCount.getText().trim());
         } catch (NumberFormatException e) {}
-        
+
         double speed = -1;
         try {
             if (txtInjectSpeed != null) speed = Double.parseDouble(txtInjectSpeed.getText().trim());
         } catch (NumberFormatException e) {}
-        
+
         javafx.scene.paint.Color color = (cpInjectColor != null) ? cpInjectColor.getValue() : javafx.scene.paint.Color.YELLOW;
-        
+
         // Use edge as route ID for now
         String routeId = edge; 
-        
+
         for (int i = 0; i < count; i++) {
             String vehId = "inj_" + System.currentTimeMillis() + "_" + i;
             vehicleWrapper.addVehicle(vehId, routeId, speed, color);
