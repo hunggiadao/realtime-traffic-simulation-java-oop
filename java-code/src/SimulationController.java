@@ -212,7 +212,7 @@ public class SimulationController {
             }
         } catch (NumberFormatException e) {
             stepLengthMs = 100;
-            if (txtStepMs != null) txtStepMs.setText("100");
+            txtStepMs.setText("100");
         }
 
         stepLengthSeconds = stepLengthMs / 1000.0;
@@ -276,6 +276,7 @@ public class SimulationController {
      * Called from the JavaFX Application stop() hook to close resources.
      */
     public void shutdown() {
+        stopLoop();
         if (connector != null) {
             connector.disconnect();
         }
