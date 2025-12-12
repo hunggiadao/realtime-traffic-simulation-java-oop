@@ -1,7 +1,5 @@
 {
   "java.project.referencedLibraries": [
-    "${workspaceFolder}/lib/javafx25/*.jar",
-    "C:/Program Files (x86)/Eclipse/Sumo/bin/*.jar",
     "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\jfx.incubator.richtext.jar",
     "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.web.jar",
     "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\jfx.incubator.input.jar",
@@ -17,7 +15,7 @@
     "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.fxml.jar",
     "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.swing.jar",
     "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\libsumo-1.24.0.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.graphics.jar",
+    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.graphics.jar"
   ],
   "java.project.sourcePaths": [
     "src"
