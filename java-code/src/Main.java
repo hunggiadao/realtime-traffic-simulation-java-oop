@@ -39,7 +39,7 @@ public class Main extends Application {
 		// If running from IDE or command line where 'ui' folder is preserved:
 //		File fxmlFile = new File("ui/main_ui.fxml");
 		System.out.println(System.getProperty("user.dir"));
-		String location = "main_ui.fxml";
+		String location = "/ui/main_ui.fxml";
 		URL fxmlUrl = getClass().getResource(location);
 //		URL fxmlUrl;
 //		if (!fxmlFile.exists()) {

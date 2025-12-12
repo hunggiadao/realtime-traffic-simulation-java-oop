@@ -17,6 +17,7 @@ public class TrafficLightWrapper {
     /**
      * Gets a list of all traffic light IDs in the map.
      */
+    @SuppressWarnings("unchecked")
     public List<String> getTrafficLightIds() {
         if (!connector.isConnected()) return new ArrayList<>();
         try {
