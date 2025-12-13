@@ -89,7 +89,7 @@ public class Main extends Application {
 		TraCIConnector conn = new TraCIConnector(sumoBinary, configFile, 50, 0.1);
 
 		if (conn.connect()) {
-			VehicleWrapper vehicleWrapper = new VehicleWrapper(conn);
+//			VehicleWrapper vehicleWrapper = new VehicleWrapper(conn);
 //			TrafficLightWrapper trafficLightWrapper = new TrafficLightWrapper(conn);
 
 			// Run the simulation for 10000 steps, or until finished
@@ -99,15 +99,16 @@ public class Main extends Application {
 				}
 
 				// You can add your code here, for example:
-				int vehicleCount = conn.getVehicleCount();
+				int vehicleCount = ((VehicleWrapper)conn).getVehicleCount();
 				int trafficlightCount = ((TrafficLightWrapper)conn).getTrafficLightIds().size();
 				String trafficlightState = ((TrafficLightWrapper)conn).getTrafficLightState("J37");
 				// int busStopCount =  (int) BusStop.getVehicleCount("bs_4");
-				double currentSpeed = vehicleWrapper.getSpeed("bus_64_0_0"); // gets the current Speed of x vehicle
+				double currentSpeed = ((VehicleWrapper)conn).getSpeed("bus_64_0_0"); // gets the current Speed of x vehicle
 
-				System.out.println("Step " + i + ": Vehicles = " + vehicleCount +  ", TrafficLights = " + trafficlightCount);
-				System.out.println("\tCurrent Lights-Color of J37: " + trafficlightState + " Current Bus-64-0-0 Speed: " + Math.round(currentSpeed) + " km/h");
-
+				System.out.println("Step " + i + ": Vehicles = " + vehicleCount +
+					", TrafficLights = " + trafficlightCount);
+				System.out.println("\tCurrent Lights-Color of J37: " + trafficlightState +
+					" Current Bus-64-0-0 Speed: " + Math.round(currentSpeed) + " m/s");
 			}
 
 			// Close the connection

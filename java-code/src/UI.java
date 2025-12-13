@@ -71,7 +71,7 @@ public class UI {
 
     // SUMO / TraCI
     private TraCIConnector connector;
-    private VehicleWrapper vehicleWrapper;
+    private VehicleWrapper vehicleWrapper; // unused type, don't use
     private int stepLengthMs = 100;
     private double stepLengthSeconds = 0.1;
     private AnimationTimer loopTimer;
@@ -163,11 +163,11 @@ public class UI {
 
     // Update after each step
     private void updateAfterStep() {
-        if (connector == null || vehicleWrapper == null) return;
+        if (connector == null) return;
 
         int step = connector.getCurrentStep();
         double simTime = connector.getSimTimeSeconds();
-        int vehicleCount = vehicleWrapper.getVehicleCount();
+        int vehicleCount = ((VehicleWrapper)connector).getVehicleCount();
 
         if (lblStep != null) {
             lblStep.setText("Step: " + step);
@@ -232,7 +232,7 @@ public class UI {
             return;
         }
 
-        vehicleWrapper = new VehicleWrapper(connector);
+//        vehicleWrapper = new VehicleWrapper(connector);
         int lanes = loadNetworkForMap(cfgFile.getPath());
         if (lanes <= 0) {
             setStatusText("Loaded SUMO, but net file missing/empty");
@@ -322,10 +322,10 @@ public class UI {
     }
 
     private void updateMapView() {
-        if (mapView == null || vehicleWrapper == null) return;
-        mapView.updateVehicles(vehicleWrapper.getVehiclePositions());
+        if (mapView == null || connector == null) return;
+        mapView.updateVehicles(((VehicleWrapper)connector).getVehiclePositions());
         // Update table with live vehicles
-        vehicleData.setAll(vehicleWrapper.getVehicleRows());
+        vehicleData.setAll(((VehicleWrapper)connector).getVehicleRows());
         if (vehicleTable != null) {
             vehicleTable.refresh();
         }
@@ -421,7 +421,7 @@ public class UI {
 
         for (int i = 0; i < count; i++) {
             String vehId = "inj_" + System.currentTimeMillis() + "_" + i;
-            vehicleWrapper.addVehicle(vehId, routeId, speed, color);
+            ((VehicleWrapper)connector).addVehicle(vehId, routeId, speed, color);
         }
         setStatusText("Status: Injected " + count + " vehicles");
     }
