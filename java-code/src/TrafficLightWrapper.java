@@ -1,4 +1,3 @@
-import de.tudresden.sumo.*;
 import de.tudresden.sumo.cmd.*;
 import de.tudresden.sumo.cmd.Trafficlight;
 
@@ -186,8 +185,11 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     		Object response = this.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_BLOCKING_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
-    		if (response instanceof String[]) return (List<String>) response;
-    		return new ArrayList<String>(); // error
+    		if (response instanceof String[]) {
+                return Arrays.asList((String[]) response);
+            } else if (response instanceof List) {
+                return (List<String>) response;
+            }
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
@@ -208,8 +210,11 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     		Object response = this.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_RIVAL_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
-    		if (response instanceof String[]) return (List<String>) response;
-    		return new ArrayList<String>(); // error
+    		if (response instanceof String[]) {
+                return Arrays.asList((String[]) response);
+            } else if (response instanceof List) {
+                return (List<String>) response;
+            }
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
@@ -230,8 +235,11 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     		Object response = this.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_PRIORITY_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
-    		if (response instanceof String[]) return (List<String>) response;
-    		return new ArrayList<String>(); // error
+    		if (response instanceof String[]) {
+                return Arrays.asList((String[]) response);
+            } else if (response instanceof List) {
+                return (List<String>) response;
+            }
     	} catch (Exception e) {
     		e.printStackTrace();
     	}

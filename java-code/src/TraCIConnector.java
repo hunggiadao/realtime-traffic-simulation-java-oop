@@ -126,38 +126,6 @@ public class TraCIConnector {
 
 		return true;
 	}
-
-	/**
-	 * update the vehicles list and return its size
-	 * 
-	 * @return the number of vehicles in the simulation
-	 */
-	public int getVehicleCount() {
-		//  Retrieve the vehicle count from SUMO
-		if (connection == null || !this.isConnected) {
-			return 0;
-		}
-		//		int vehicleCount = 0;
-		//		try {
-		//			@SuppressWarnings("unchecked")
-		//			List<String> vehicle_ids = (ArrayList<String>)connection.do_job_get(Vehicle.getIDList());
-		//			vehicleCount = vehicle_ids.size();
-		//		} catch (Exception e) {
-		//			e.printStackTrace();
-		//		}
-		//		if (vehicleCount == (int) connection.do_job_get(Vehicle.getIDCount())) {
-		//			return vehicleCount;
-		//		} else {
-		//			return (int) connection.do_job_get(Vehicle.getIDCount());
-		//		}
-
-		try {
-			return (int) connection.do_job_get(Vehicle.getIDCount());
-		} catch (Exception e) {
-			e.printStackTrace();
-			return 0;
-		}
-	}
 	
 	/**
 	 * Get current SUMO step count
