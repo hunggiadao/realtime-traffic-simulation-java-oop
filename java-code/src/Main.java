@@ -38,9 +38,12 @@ public class Main extends Application {
 
 		// If running from IDE or command line where 'ui' folder is preserved:
 //		File fxmlFile = new File("ui/main_ui.fxml");
-		System.out.println(System.getProperty("user.dir"));
-		String location = "/ui/main_ui.fxml";
+		System.out.println("Current working dir: " + System.getProperty("user.dir"));
+		
+//		String location = "/ui/main_ui.fxml"; // for VS Code
+		String location = "main_ui.fxml"; // for Eclipse
 		URL fxmlUrl = getClass().getResource(location);
+		
 //		URL fxmlUrl;
 //		if (!fxmlFile.exists()) {
 //			// try to find the location of the file
@@ -87,7 +90,7 @@ public class Main extends Application {
 
 		if (conn.connect()) {
 			VehicleWrapper vehicleWrapper = new VehicleWrapper(conn);
-			TrafficLightWrapper trafficLightWrapper = new TrafficLightWrapper(conn);
+//			TrafficLightWrapper trafficLightWrapper = new TrafficLightWrapper(conn);
 
 			// Run the simulation for 10000 steps, or until finished
 			for (int i = 0; i < 10000; i++) {
@@ -97,8 +100,8 @@ public class Main extends Application {
 
 				// You can add your code here, for example:
 				int vehicleCount = conn.getVehicleCount();
-				int trafficlightCount = trafficLightWrapper.getTrafficLightIds().size();
-				String trafficlightState = trafficLightWrapper.getTrafficLightState("J37");
+				int trafficlightCount = ((TrafficLightWrapper)conn).getTrafficLightIds().size();
+				String trafficlightState = ((TrafficLightWrapper)conn).getTrafficLightState("J37");
 				// int busStopCount =  (int) BusStop.getVehicleCount("bs_4");
 				double currentSpeed = vehicleWrapper.getSpeed("bus_64_0_0"); // gets the current Speed of x vehicle
 

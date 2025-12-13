@@ -14,6 +14,7 @@ import java.util.*; // for using List interfaces
  * Members include: SUMO connection var, list of vehicles, list of traffic lights (junctions)
  */
 public class TraCIConnector {
+	// member fields
 	private static String sumoBinary; // same across all objects
 
 	private final String configFile;
@@ -23,13 +24,28 @@ public class TraCIConnector {
 	private boolean isConnected;
 	private int currentStep;
 	// currently unused members, can implement later
-	//	private List<VehicleWrapper> vehicles;
-	//	private List<TrafficLightWrapper> trafficLights;
-	//	private List<BusStop> busStops;
-
-	// constructor with default data
+	
+	/**
+	 * Constructor with no data, for static subclass implementation, never used
+	 * Unused
+	 */
+	public TraCIConnector() {
+		// Initialize constructor
+		TraCIConnector.sumoBinary = null;
+		this.configFile = null;
+		this.connection = null;
+		this.stepLengthSeconds = 0;
+		this.delay = 0;
+		this.isConnected = false;
+		this.currentStep = 0;
+	}
+	/**
+	 * Constructor with default data
+	 * @param sumoBinary
+	 * @param configFile
+	 */
 	public TraCIConnector(String sumoBinary, String configFile) {
-		//  Initialize constructor
+		// Initialize constructor
 		TraCIConnector.sumoBinary = sumoBinary;
 		this.configFile = configFile;
 		this.connection = new SumoTraciConnection(sumoBinary, configFile);
@@ -38,25 +54,38 @@ public class TraCIConnector {
 		this.isConnected = false;
 		this.currentStep = 0;
 		// currently unused members, can implement later
-		//		this.vehicles = new ArrayList<VehicleWrapper>();
-		//		this.trafficLights = new ArrayList<TrafficLightWrapper>();
 	}
-	// constructor with custom stepLength
+	/**
+	 * Constructor with custom stepLength
+	 * @param sumoBinary
+	 * @param configFile
+	 * @param stepLengthSeconds
+	 */
 	public TraCIConnector(String sumoBinary, String configFile, double stepLengthSeconds) {
-		//  Initialize constructor
+		// Initialize constructor
 		// call the default constructor, then change values we want
 		this(sumoBinary, configFile);
 		this.stepLengthSeconds = stepLengthSeconds;
 	}
-	// constructor with custom delay and stepLength
+	/**
+	 * Constructor with custom delay and stepLength
+	 * @param sumoBinary
+	 * @param configFile
+	 * @param delay
+	 * @param stepLengthSeconds
+	 */
 	public TraCIConnector(String sumoBinary, String configFile, int delay, double stepLengthSeconds) {
-		//  Initialize constructor
+		// Initialize constructor
 		// call the default constructor, then change values we want
 		this(sumoBinary, configFile);
 		this.delay = delay;
 		this.stepLengthSeconds = stepLengthSeconds;
 	}
-
+	
+	/**
+	 * Connect this TraCIConnector to a live SUMO simulation
+	 * @return True on successful connection, False otherwise
+	 */
 	public boolean connect() {
 		if (connection == null) {
 			return false;
@@ -77,7 +106,11 @@ public class TraCIConnector {
 
 		return true;
 	}
-
+	
+	/**
+	 * Advance the SUMO sim by 1 step
+	 * @return True on successful step, False otherwise
+	 */
 	public boolean step() {
 		//  Advance simulation by one step
 		if (connection == null || !this.isConnected) {
@@ -125,44 +158,21 @@ public class TraCIConnector {
 			return 0;
 		}
 	}
-
+	
 	/**
-	 * return the size of the traffic light list
-	 * 
-	 * @return the number of traffic lights in the simulation
+	 * Get current SUMO step count
+	 * @return current step of the simulation
 	 */
-	public int getTrafficLightCount() {
-		//  Retrieve the traffic light count from SUMO
-		if (connection == null || !this.isConnected) {
-			return 0;
-		}
-		int lightCount = 0;
-		try {
-			@SuppressWarnings("unchecked")
-			List<String> light_ids = (ArrayList<String>)connection.do_job_get(Trafficlight.getIDList());
-			lightCount = light_ids.size();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		try {
-			if (lightCount == (int) connection.do_job_get(Trafficlight.getIDCount())) {
-				return lightCount;
-			} else {
-				return (int) connection.do_job_get(Trafficlight.getIDCount());
-			}
-		} catch (Exception e) {
-			return 0;
-		}
-
-	}
-
 	public int getCurrentStep() {
 		if (connection == null || !this.isConnected) {
 			return 0;
 		}
 		return this.currentStep;
 	}
-
+	
+	/**
+	 * Disconnect from a SUMO simulation, do nothing if SUMO is not connected
+	 */
 	public void disconnect() {
 		//  Close connection
 		if (connection == null || !this.isConnected) {
@@ -177,7 +187,11 @@ public class TraCIConnector {
 			this.isConnected = false;
 		}
 	}
-
+	
+	/**
+	 * Check if TraCIConnector is connected to a live SUMO sim
+	 * @return True if connected, False otherwise
+	 */
 	public boolean isConnected() {
 		// Return connection status
 		if (connection == null) {
@@ -185,14 +199,22 @@ public class TraCIConnector {
 		}
 		return this.isConnected;
 	}
-
+	
+	/**
+	 * Internal function for debugging, not meant to be used by the user
+	 * @return number of elapsed seconds in the simulation
+	 */
 	public double getSimTimeSeconds() {
 		if (connection == null || !this.isConnected) {
 			return 0;
 		}
 		return this.currentStep * this.stepLengthSeconds;
 	}
-
+	
+	/**
+	 * Return a SumoTraciConnection object, the one directly used to invoke SUMO commands
+	 * @return SumoTraciConnection object
+	 */
 	public SumoTraciConnection getConnection() {
 		return connection; // null if connection doesn't exist
 	}
