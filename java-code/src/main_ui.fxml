@@ -114,7 +114,7 @@
                            </padding>
                            <children>
                               <Label text="Edge" />
-                              <TextField fx:id="txtInjectEdge" text="edge id (e.g. E1)" />
+                              <ComboBox fx:id="cmbInjectEdge" prefWidth="260.0" promptText="Select an edge" editable="true" />
                               <Label text="Batch size" />
                               <TextField fx:id="txtInjectCount" text="1" />
                               <Label text="Vehicle color" />
@@ -135,17 +135,17 @@
                         <VBox prefHeight="200.0" prefWidth="280.0" spacing="8.0">
                            <children>
                               <Label text="Traffic light" />
-                              <ComboBox prefWidth="150.0" />
-                              <Label text="Phase" />
+                              <ComboBox fx:id="cmbTrafficLight" prefWidth="150.0" />
+                              <Label fx:id="lblPhaseInfo" text="Phase" />
                               <HBox prefHeight="16.0" prefWidth="259.0" spacing="6.0">
                                  <children>
-                                    <Button mnemonicParsing="false" text="&lt;" />
-                                    <Button mnemonicParsing="false" text="&gt;" />
+                                    <Button mnemonicParsing="false" onAction="#onTrafficLightPrevPhase" text="&lt;" />
+                                    <Button mnemonicParsing="false" onAction="#onTrafficLightNextPhase" text="&gt;" />
                                  </children>
                               </HBox>
                               <Label text="Phase duration (s)" />
-                              <TextField />
-                              <Button mnemonicParsing="false" text="Apply" />
+                              <TextField fx:id="txtPhaseDuration" />
+                              <Button mnemonicParsing="false" onAction="#onTrafficLightApply" text="Apply" />
                            </children>
                            <padding>
                               <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
@@ -161,9 +161,9 @@
                         <VBox prefHeight="34.0" prefWidth="280.0" spacing="8.0">
                            <children>
                               <Label text="Filters" />
-                              <CheckBox mnemonicParsing="false" text="Only red vehicles" />
-                              <CheckBox mnemonicParsing="false" text="Speed &gt; 10 m/s" />
-                              <CheckBox mnemonicParsing="false" text="Only congested edges" />
+                              <CheckBox fx:id="chkFilterRed" mnemonicParsing="false" text="Only red vehicles" />
+                              <CheckBox fx:id="chkFilterSpeed" mnemonicParsing="false" text="Speed &gt; 10 m/s" />
+                              <CheckBox fx:id="chkFilterCongested" mnemonicParsing="false" text="Only congested edges" />
                            </children>
                            <padding>
                               <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />

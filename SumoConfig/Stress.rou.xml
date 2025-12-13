@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2025-12-13 19:31:55 by Eclipse SUMO netedit Version 1.24.0
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <!-- Routes -->
+    <route id="r_0" edges="E47 E48 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 -E46 E47 E48 E34 E35 E36 E37 -E46 E47 E48 E34 E35 E36 E37 -E46 E47 E48 E34 E35 E36 E37 -E46 E47 E48 E79 -E77 -E75 -E56 E59 E58 E57 E61 E60 E56 E75 E77 -E79 E34 E35 E36 E37 -E46 E47 E48 E79 -E77 -E75 -E56 E59 E58 E57 E61 E60 E56 E75 E77 -E79 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E9 E0 E31 E62 E63 E26 E66 -E54 E57 E61 E60 E59 E58 E54 E67 E68 -E69 -E70 -E55 E58 E57 E61 E60 E56 E75 E77 -E79 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E9 E0 E32 E24 E61 E60 E56 E75 E77 -E79 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E9 E0 E32 E25 -E63 -E62 -E31 -E0 E8 E12 E11 E10 E9 E0 E31 E81" color="cyan">
+        <stop lane="E66_0" startPos="127.96" endPos="137.96" duration="60.00"/>
+        <stop lane="-E54_0" startPos="30.49" endPos="40.49" duration="60.00"/>
+        <stop busStop="bs_3" duration="60.00"/>
+        <stop busStop="bs_4" duration="60.00"/>
+        <stop busStop="bs_6" duration="60.00"/>
+        <stop busStop="bs_5" duration="60.00"/>
+    </route>
+    <route id="r_1" edges="-E51 E19 E20 E20.133 E20.300 E21 E21.61 E22 E23 E24 E61 E60 E59 E58 E57 E61 E60 E59 E58 E57 E61 E60 E59 E58 E57 E61 E60 E56 E75 E77 -E79 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E9 E8 E12 E11 E2 E39 E40 E41 E20.133 E44 -E3 E11 E2 -E17 -E16 -E15 -E14 E45 E46 E38 E16 E17 -E2 E10 E9 E8 E12 E11 E2 -E17 -E16 -E15 -E14 E45" color="magenta">
+        <stop busStop="bs_0" duration="60.00"/>
+    </route>
+    <route id="r_2" edges="E82 E73" color="yellow"/>
+    <route id="r_4" edges="E1 E33 E34 E35 E36 E37 E38 E16 E17 -E2 E10 E9 E0 E31 E64 E30 E24 E61 E60 E56 E76 E78" color="0,128,0">
+        <stop lane="E37_0" startPos="71.19" endPos="81.19" duration="60.00"/>
+    </route>
+    <route id="r_5" edges="E44 -E3 E11 E10 E9 E8 E3 -E43 E21.61 E29 -E62 -E22 E29 -E62 E64 E30 E24 E61 E60 E59 E55 E70 E69 -E68" color="blue">
+        <stop lane="-E68_0" startPos="72.61" endPos="82.61" duration="60.00"/>
+    </route>
+    <!-- Vehicles, persons and containers (sorted by depart) -->
+    <vehicle id="v_0" depart="0.00" route="r_1"/>
+    <vehicle id="v_1" depart="0.00" route="r_1"/>
+    <vehicle id="v_10" depart="0.00" color="128,0,128" route="r_1"/>
+    <vehicle id="v_11" depart="0.00" color="cyan" route="r_1"/>
+    <vehicle id="v_12" depart="0.00" color="cyan" route="r_1"/>
+    <vehicle id="v_13" depart="0.00" color="cyan" route="r_1"/>
+    <vehicle id="v_14" depart="0.00" color="cyan" route="r_1"/>
+    <vehicle id="v_15" depart="0.00" color="cyan" route="r_4"/>
+    <vehicle id="v_16" depart="0.00" color="cyan" route="r_2"/>
+    <vehicle id="v_17" depart="0.00" color="cyan" route="r_2"/>
+    <vehicle id="v_18" depart="0.00" color="cyan" route="r_2"/>
+    <vehicle id="v_19" depart="0.00" color="cyan" route="r_2"/>
+    <vehicle id="v_2" depart="0.00" route="r_1"/>
+    <vehicle id="v_20" depart="0.00" color="cyan" route="r_2"/>
+    <vehicle id="v_21" depart="0.00" color="cyan" route="r_2"/>
+    <vehicle id="v_22" depart="0.00" color="cyan" route="r_2"/>
+    <vehicle id="v_23" depart="0.00" color="128,0,0" route="r_0"/>
+    <vehicle id="v_24" depart="0.00" color="128,0,0" route="r_1"/>
+    <vehicle id="v_25" depart="0.00" color="128,0,0" route="r_1"/>
+    <vehicle id="v_26" depart="0.00" color="128,0,0" route="r_1"/>
+    <vehicle id="v_27" depart="0.00" color="128,0,0" route="r_1"/>
+    <vehicle id="v_28" depart="0.00" color="128,0,0" route="r_1"/>
+    <vehicle id="v_29" depart="0.00" color="128,0,0" route="r_5"/>
+    <vehicle id="v_3" depart="0.00" route="r_1"/>
+    <vehicle id="v_30" depart="0.00" color="128,0,0" route="r_5"/>
+    <vehicle id="v_31" depart="0.00" color="128,0,0" route="r_5"/>
+    <vehicle id="v_32" depart="0.00" color="128,0,0" route="r_5"/>
+    <vehicle id="v_33" depart="0.00" color="128,0,0" route="r_5"/>
+    <vehicle id="v_34" depart="0.00" color="128,0,0" route="r_5"/>
+    <vehicle id="v_35" depart="0.00" color="128,0,0" route="r_5"/>
+    <vehicle id="v_36" depart="0.00" color="128,0,0" route="r_0"/>
+    <vehicle id="v_37" depart="0.00" color="128,0,0" route="r_0"/>
+    <vehicle id="v_38" depart="0.00" color="128,0,0" route="r_0"/>
+    <vehicle id="v_39" depart="0.00" color="128,0,0" route="r_0"/>
+    <vehicle id="v_4" depart="0.00" route="r_1"/>
+    <vehicle id="v_40" depart="0.00" color="128,0,0" route="r_0"/>
+    <vehicle id="v_41" depart="0.00" color="128,0,0" route="r_0"/>
+    <vehicle id="v_42" depart="0.00" color="128,0,0" route="r_1"/>
+    <vehicle id="v_43" depart="0.00" color="128,0,0" route="r_5"/>
+    <vehicle id="v_44" depart="0.00" route="r_4"/>
+    <vehicle id="v_45" depart="0.00" route="r_1"/>
+    <vehicle id="v_5" depart="0.00" route="r_1"/>
+    <vehicle id="v_6" depart="0.00" route="r_1"/>
+    <vehicle id="v_7" depart="0.00" color="128,0,128" route="r_1"/>
+    <vehicle id="v_8" depart="0.00" color="128,0,128" route="r_1"/>
+    <vehicle id="v_9" depart="0.00" color="128,0,128" route="r_1"/>
+</routes>

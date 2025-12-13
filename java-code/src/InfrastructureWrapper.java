@@ -4,6 +4,8 @@ import de.tudresden.sumo.cmd.Edge;
 import de.tudresden.sumo.cmd.Lane;
 import de.tudresden.sumo.cmd.Route;
 import de.tudresden.sumo.objects.SumoStringList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -12,6 +14,7 @@ import de.tudresden.sumo.objects.SumoStringList;
  * Implements defensive programming to ensure connection stability.
  */
 public class InfrastructureWrapper {
+    private static final Logger LOGGER = Logger.getLogger(InfrastructureWrapper.class.getName());
 
     private final TraCIConnector connector;
 
@@ -57,7 +60,7 @@ public class InfrastructureWrapper {
             }
         }
         catch(Exception ex){
-            System.err.println("[Infra] Bus stop IDs could not be retrieved: " + ex.getMessage());
+			LOGGER.log(Level.FINE, "[Infra] Bus stop IDs could not be retrieved", ex);
         }
         return IDList;
     }
@@ -79,7 +82,7 @@ public class InfrastructureWrapper {
         }
     }
 
-    
+
     public int getBusStopPersonCount(String busStopId) {
         if (isReady() == false) return 0;
         if( busStopId.isEmpty() || busStopId == null) return 0;
@@ -105,7 +108,7 @@ public class InfrastructureWrapper {
             edgeList.addAll(list);
         } 
         catch(Exception ex) {
-            System.err.println("[Infra] Error retrieving edge IDs: " + ex.getMessage());
+			LOGGER.log(Level.FINE, "[Infra] Error retrieving edge IDs", ex);
         }
 
         return edgeList;
@@ -135,7 +138,7 @@ public class InfrastructureWrapper {
             lanes.addAll(list);
         } 
         catch(Exception ex) {
-            System.err.println("[Infra] Error fetching lanesID: " + ex.getMessage());
+			LOGGER.log(Level.FINE, "[Infra] Error fetching lanesID", ex);
         }
 
         return lanes;
@@ -166,7 +169,7 @@ public class InfrastructureWrapper {
             return (double) connector.getConnection().do_job_get(Lane.getLength(laneID));
         } 
         catch(Exception ex) {
-            System.err.println("Lane's length error for " + laneID);
+			LOGGER.log(Level.FINE, "Lane length error for laneID=" + laneID, ex);
             return 0.0;
         }
     }
@@ -175,7 +178,7 @@ public class InfrastructureWrapper {
      * Checks if a route with the given ID exists.
      * @param routeID The ID of the route to check.
      * @return true if the route exists, false otherwise.
-     */    
+     */
 
     // ============================================================
     // 4. ROUTE LOGIC
@@ -192,12 +195,12 @@ public class InfrastructureWrapper {
             }
 
             connector.getConnection().do_job_set(Route.add(routeID, list));
-            System.out.println("[Infra] Created route: " + routeID);
+			LOGGER.fine("[Infra] Created route: " + routeID);
             return true;
 
         } 
         catch(Exception e) {
-            System.err.println("[Infra] Create route error: " + e.getMessage());
+			LOGGER.log(Level.FINE, "[Infra] Create route error", e);
             return false;
         }
     }
@@ -211,7 +214,7 @@ public class InfrastructureWrapper {
             return list.contains(routeID);
         } 
         catch(Exception ex) {
-            System.err.println("[Infra] Unable to check the route existence: " + ex.getMessage());
+			LOGGER.log(Level.FINE, "[Infra] Unable to check the route existence", ex);
             return false;
         }
     }
