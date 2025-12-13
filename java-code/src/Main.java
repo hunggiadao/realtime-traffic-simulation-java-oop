@@ -66,11 +66,28 @@ public class Main extends Application {
 		}
 
 		try {
-			for (int i = 0; i < 200; i++) {
-				int vehicleCount = conn.getVehicleCount();
-				LOGGER.info("Step " + i + ": Vehicles=" + vehicleCount);
-				if (!conn.step()) break;
-			}
+//			VehicleWrapper vehicleWrapper = new VehicleWrapper(conn);
+//			TrafficLightWrapper trafficLightWrapper = new TrafficLightWrapper(conn);
+
+			// Run the simulation for 10000 steps, or until finished
+			for (int i = 0; i < 10000; i++) {
+				if (!conn.step()) {
+					break;
+				}
+
+				// You can add your code here, for example:
+				int vehicleCount = ((VehicleWrapper)conn).getVehicleCount();
+				int trafficlightCount = ((TrafficLightWrapper)conn).getTrafficLightIds().size();
+				String trafficlightState = ((TrafficLightWrapper)conn).getTrafficLightState("J37");
+				// int busStopCount =  (int) BusStop.getVehicleCount("bs_4");
+				double currentSpeed = ((VehicleWrapper)conn).getSpeed("bus_64_0_0"); // gets the current Speed of x vehicle
+        
+        LOGGER.info("Step " + i + ": Vehicles=" + vehicleCount);
+
+				System.out.println("Step " + i + ": Vehicles = " + vehicleCount +
+					", TrafficLights = " + trafficlightCount);
+				System.out.println("\tCurrent Lights-Color of J37: " + trafficlightState +
+					" Current Bus-64-0-0 Speed: " + Math.round(currentSpeed) + " m/s");
 		} finally {
 			conn.disconnect();
 			LOGGER.info("Console simulation finished");

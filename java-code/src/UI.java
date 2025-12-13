@@ -91,7 +91,7 @@ public class UI {
 
     // SUMO / TraCI
     private TraCIConnector connector;
-    private VehicleWrapper vehicleWrapper;
+    private VehicleWrapper vehicleWrapper; // unused type, don't use
     private int stepLengthMs = 100;
     private double stepLengthSeconds = 0.1;
     private AnimationTimer loopTimer;
@@ -228,11 +228,11 @@ public class UI {
 
     // Update after each step
     private void updateAfterStep() {
-        if (connector == null || vehicleWrapper == null) return;
+        if (connector == null) return;
 
         int step = connector.getCurrentStep();
         double simTime = connector.getSimTimeSeconds();
-        int vehicleCount = vehicleWrapper.getVehicleCount();
+        int vehicleCount = ((VehicleWrapper)connector).getVehicleCount();
 
         if (lblStep != null) {
             lblStep.setText("Step: " + step);
@@ -303,8 +303,8 @@ public class UI {
         }
 
         startConnectionMonitor();
-
-        vehicleWrapper = new VehicleWrapper(connector);
+      
+        // vehicleWrapper = new VehicleWrapper(connector);
         int lanes = loadNetworkForMap(cfgFile.getPath());
         if (lanes <= 0) {
             setStatusText("Loaded SUMO, but net file missing/empty");
@@ -432,10 +432,10 @@ public class UI {
     }
 
     private void updateMapView() {
-        if (mapView == null || vehicleWrapper == null) return;
+        if (mapView == null || connector == null) return;
         // Fetch latest positions and data
-        java.util.Map<String, Point2D> allPositions = vehicleWrapper.getVehiclePositions();
-        java.util.List<VehicleRow> allRows = vehicleWrapper.getVehicleRows();
+        java.util.Map<String, Point2D> allPositions = ((VehicleWrapper)connector).getVehiclePositions();
+        java.util.List<VehicleRow> allRows = ((VehicleWrapper)connector).getVehicleRows();
         java.util.Map<String, javafx.scene.paint.Color> colorMap = new java.util.HashMap<>();
         java.util.Map<String, Point2D> filteredPositions = new java.util.HashMap<>();
         java.util.List<VehicleRow> filteredRows = new java.util.ArrayList<>();
@@ -507,6 +507,9 @@ public class UI {
 
 		// Update table
 		vehicleData.setAll(filteredRows);
+        // mapView.updateVehicles(((VehicleWrapper)connector).getVehiclePositions());
+        // Update table with live vehicles
+        // vehicleData.setAll(((VehicleWrapper)connector).getVehicleRows());
         if (vehicleTable != null) {
             vehicleTable.refresh();
         }
@@ -732,7 +735,7 @@ public class UI {
 
         for (int i = 0; i < count; i++) {
             String vehId = "inj_" + System.currentTimeMillis() + "_" + i;
-            vehicleWrapper.addVehicle(vehId, routeId, speed, color);
+            ((VehicleWrapper)connector).addVehicle(vehId, routeId, speed, color);
         }
         setStatusText("Status: Injected " + count + " vehicles");
 
