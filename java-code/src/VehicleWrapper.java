@@ -330,6 +330,42 @@ Calling with speed=-1 hands the vehicle control back to SUMO.
             e.printStackTrace();
         }
     }
+    /**
+     * Configure an existing vehicle in SUMO.
+     * Sets max speed, actual speed (via ratio), and RGBA color.
+     * Values are validated and clamped before sending commands to SUMO.
+     *
+     * @param id the vehicle ID
+     * @param maxSpeed maximum speed of the vehicle in m/s
+     * @param speedRatio ratio of max speed to apply (0.0 to 1.0)
+     * @param r red component (0–255)
+     * @param g green component (0–255)
+     * @param b blue component (0–255)
+     * @param a alpha component (0–255)
+     */
+    public void configureVehicle(String vehId, double maxSpeed, double speedRatio,
+            int r, int g, int b, int a) {
+    	if (this.getConnection() == null) return; // Connection does not exist
+        if (vehId == null || vehId.isEmpty()) return;   // invalid vehicle ID
+        if (!isValidSpeed(maxSpeed)) return;      // invalid max speed
+
+        // Clamp speed ratio to [0.0, 1.0] and compute actual speed
+        double clampedRatio = clamp(speedRatio, 0.0, 1.0);
+        double actualSpeed = maxSpeed * clampedRatio;
+
+        // Prepare RGBA color string for TraCI
+        String color = r + "," + g + "," + b + "," + a;
+
+        try {
+            this.getConnection().do_job_set(Vehicle.setMaxSpeed(vehId, maxSpeed));   // set max speed
+            this.getConnection().do_job_set(Vehicle.setSpeed(vehId, actualSpeed));   // set current speed
+            this.setColor(vehId, new int[] {r, g, b, a});
+//            this.getConnection().do_job_set(Vehicle.setParameter(id, "color", color)); // set vehicle color
+        } catch (Exception e) {
+            System.err.println("VehicleFactory: failed to configure vehicle " + vehId);
+            e.printStackTrace();
+        }
+    }
     
     // ================= SNAPSHOT =================
     /**
@@ -371,6 +407,24 @@ Calling with speed=-1 hands the vehicle control back to SUMO.
             return new double[]{ toDouble(a[0], 0.0), toDouble(a[1], 0.0) };
         }
         return new double[] {0, 0};
+    }
+    /**
+     * Checks whether a speed value is valid (non-negative and not NaN).
+     * @param speed speed to validate
+     * @return true if speed is valid
+     */
+    private static boolean isValidSpeed(double speed) {
+        return !Double.isNaN(speed) && speed >= 0.0;
+    }
+    /**
+     * Clamps a value to the specified range [min, max].
+     * @param v value to clamp
+     * @param min minimum allowed value
+     * @param max maximum allowed value
+     * @return clamped value
+     */
+    private static double clamp(double v, double min, double max) {
+        return Math.max(min, Math.min(v, max));
     }
     
     // not yet implemented
