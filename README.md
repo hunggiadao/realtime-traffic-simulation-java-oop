@@ -132,11 +132,17 @@ To be added
 
 ## Testing and Results
 
-As of Milestone 2, we have implemented a stress test SUMO config:
+As of Milestone 2, we have implemented a stress test SUMO config: [Stress.sumocfg](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/SumoConfig/Stress.sumocfg) to test our vehicle injection and filtering logic. This facilitates a heavy simulation load with hundreds of vehicles present at once.
 
-[Stress.sumocfg](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/SumoConfig/Stress.sumocfg)
+<div style="display: flex; gap: 10px;">
+  <img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_inject.png" alt="Image 1" style="height: 300px; width: auto; max-width: 100%;">
+  
+  <img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_filter.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
 
-![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png)
+  <img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_table.png" alt="Image 3" style="height: 300px; width: auto; max-width: 100%;">
+</div>
+
+<!-- ![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress.png) -->
 
 <!-- ### Model design: -->
 
@@ -156,7 +162,9 @@ As of Milestone 2, we have implemented a stress test SUMO config:
 
 ### Evaluation:
 
-To be added
+Currently, the application causes the computer to spin up its fan quite a lot when there are more than 50 vehicles on the map.
+
+We can reduce the work load by updating the vehicle table less frequently, or increasing the `stepLength` of the simulation.
 
 <!-- ![alt text]() -->
 
