@@ -75,7 +75,7 @@ In the ***Vehicles*** tab, users can add new vehicles to the map with options fo
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 3: Vehicle Injection Menu
 	</p>
-	</div>
+</div>
 
 ### Filtering View
 
@@ -86,13 +86,27 @@ In the ***Filters*** tab, users can toggle to show only certain types of vehicle
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 4: Filter Menu
 	</p>
-	</div>
+</div>
 
 ### Metrics panel
 
 In the ***Charts*** tab of the right panel, users can inspect different metrics for the running simulation.
 
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_charts.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 5: Charts Menu
+	</p>
+</div>
+
 In the ***Vehicle Table*** tab, users can inspect all metadata and metrics of all vehicle instances in the simulation in tabular form.
+
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_vehicle_table.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 6: Vehicle Table Menu
+	</p>
+</div>
 
 ### Exporting results
 

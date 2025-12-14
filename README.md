@@ -182,9 +182,15 @@ As of Milestone 2, we have implemented a stress test SUMO config: [Stress.sumocf
 		</p>
 	</div>
 	<div style="flex: 1 1 0; max-width: 100%;">
+		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_charts.png" alt="Image 3" style="height: 300px; width: auto; max-width: 100%;">
+		<p style="text-align: center; font-style: italic; font-size: 1em;">
+			Figure 6: Charts Menu
+		</p>
+	</div>
+	<div style="flex: 1 1 0; max-width: 100%;">
 		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_table.png" alt="Image 3" style="height: 300px; width: auto; max-width: 100%;">
 		<p style="text-align: center; font-style: italic; font-size: 1em;">
-			Figure 6: Vehicle Table Menu
+			Figure 7: Vehicle Table Menu
 		</p>
 	</div>
 </div>
@@ -196,7 +202,7 @@ Below is a snapshot of the running stress test with about 50 vehicles present.
 <div style="flex: 1 1 0; max-width: 100%;">
 	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
-		Figure 7: Running Stress Test
+		Figure 8: Running Stress Test
 	</p>
 </div>
 
