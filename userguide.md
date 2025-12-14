@@ -2,29 +2,17 @@
 
 ## Introduction
 
-This project is the development of a real-time traffic simulation application using Java and other support tools, such as JavaFX and the Simulation of Urban Mobility (SUMO) traffic simulator. During Milestone 1, the primary objective was to design the graphical user interface that will serve as the foundation for future simulation control and visualization.
-
-Working development and documentation of the project can be found in our GitHub repository:
+This application is a real-time traffic simulation application using Java and other support tools. Working development and documentation of the project can be found in our GitHub repository:
 
 <!-- [link_format](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop) -->
 
 https://github.com/hunggiadao/realtime-traffic-simulation-java-oop
 
-The project utilizes the following tools:
-- **Eclipse IDE**: free, open-source Integrated Development Environment used for developing and testing applications in Java
-- **Visual Studio Code**: free, open-source code editor for general coding and editing of different text formats
-- **Simulation of Urban Mobility (SUMO)**: free, open-source, microscopic, multimodal traffic simulation Java package designed to handle road networks and various types of transportation, including cars, buses, bicycles, planes, and pedestrians (includes **netedit** for network creation and design)
-- **JavaFX**: software platform used to create graphical interfaces for desktop and internet applications
-- **TraCI as a Service (TraaS)**: SUMO TraCI API for enabling external access to a running SUMO simulation
-- **Dia**: free and open-source diagramming software, for creating UML, class, and use case diagrams
-- **LaTeX**: powerful, high-quality document preparation system built on the TeX typesetting program, used to create technical documents, books, articles, mathematical and scientific notation
-- **Notion**: all-in-one workspace application for managing knowledge, projects, and tasks
-
 <!-- **Note:** this project requires Git Large File Storage (LFS) tracking for transfering files larger than 50MB. -->
 
-## Setting up
+## Setting up and Running
 
-Clone the repository:
+Users can either download the latest source folder in [Releases](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/releases) or clone the repository directly using the following command:
 ```
 $ git clone git@github.com:hunggiadao/realtime-traffic-simulation-java-oop.git
 ```
@@ -45,62 +33,72 @@ The provided `.gitignore` includes all telemetry and miscellaneous types that ar
 
 `*` means all files of this type.
 
-## Description
+Once the download has finished, simply double-click the `run.bat` script file inside the `java-code/` folder to start the application. Once the full application's GUI is loaded, it looks as follows:
 
-### Task Distribution:
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 1: Main UI when first loaded
+	</p>
+</div>
 
-- **Traffic Network, Communication between Java and Sumo**: Raees Ashraf Shah, Gia Hung Dao
-- **GUI Mockups, User Interface Design**: Huu Trung Son Dang
-- **Wrapper Classes**: Huy Hoang Bui
-- **Architecture and UML Diagrams**: Khac Uy Pham
+## Application Usage
 
-<!-- ![alt text](https://github.com/hunggiadao/human_age_detection/blob/main/Presentation/data_collection.png) -->
+Please refer to *Figure 1*.
 
-## Application Features
+### Loading SumoConfig files
 
-### Graphical User Interface (GUI)
+In the ***Simulation*** tab, type in the path for a `.sumocfg` file or click ***Browse*** to find it in a File Explorer popup menu. Click ***Open*** to load the SumoConfig file into the application.
 
-The interface is built around a `BorderPane` layout, dividing the window into clear functional regions. At the top of the application, a responsive toolbar provides the essential simulation controls, including opening a SUMO configuration file, connecting to the simulation backend, starting or pausing the simulation, executing single simulation steps, and adjusting the simulation speed. This layout remains clean and stable when the window is resized.
+### Running a SUMO simulation
 
-![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png)
+Click the ***Connect*** button in the top row to initialize a connection. After which, you can either choose ***Start*** or ***Step*** to advance through the simulation.
 
-### Architecture Diagram
+- ***Start*** runs the simulation autonomously until the end. During which, you can click ***Pause*** to pause at any point.
+- ***Step*** advances by a single time step, allowing the user to inspect and monitor minute changes over time.
 
-![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/architecture_diagram.png)
+Users can also adjust the speed using the ***Speed*** slider, allowing them to speed up or slow down the simulation.
 
-### Use Case Diagram
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 2: Running Simulation Example
+	</p>
+</div>
+
+### Vehicle Injection
+
+In the ***Vehicles*** tab, users can add new vehicles to the map with options for which edge, vehicle color, how many vehicles to add, and maximum speed.
+
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_inject.png" alt="Image 1" style="height: 300px; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 3: Vehicle Injection Menu
+	</p>
+	</div>
+
+### Filtering View
+
+In the ***Filters*** tab, users can toggle to show only certain types of vehicles that meet specific criteria.
+
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_filter.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 4: Filter Menu
+	</p>
+	</div>
+
+### Metrics panel
+
+In the ***Charts*** tab of the right panel, users can inspect different metrics for the running simulation.
+
+In the ***Vehicle Table*** tab, users can inspect all metadata and metrics of all vehicle instances in the simulation in tabular form.
+
+### Exporting results
 
 To be added
 
-<!-- ![alt text](<to be added>) -->
-
-## Testing and Results
-
-To be added
-
-<!-- ### Model design: -->
-
-<!-- 1. Feature extraction:
--- Load the pretrained weights on IMDB (using `model_state_dict`) into our Resnet50 backbone layer.
-2. Shared Fully Connected Layers:
--- 1024 → 512 neurons: Gradual reduction of feature space for efficient representation.
--- Regularization: Batch normalization and 40% dropout to prevent overfitting.
--- Non-linearity: ReLU activation enables learning complex relationships.
-3. Age Prediction Head:
--- 512 → 128 → 1 neurons: Focuses on refining features for accurate regression output.
--- Final Output: Single continuous value for age prediction.
-4. Freeze Layers until layer2.0.conv1:
--- Purpose: Gradually unfreezes layers to fine-tune specific parts of the model.
--- Mechanism: Freezes parameters until freeze_until layer is reached, then allows training.
--- Benefit: Preserves pre-trained knowledge while adapting to new tasks. -->
-
-### Evaluation:
-
-To be added
-
-<!-- ![alt text]() -->
-
-## Conclusion
+## Notes
 
 To be added
 
