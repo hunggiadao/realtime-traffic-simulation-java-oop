@@ -131,7 +131,7 @@ public class TraCIConnector {
 			this.currentStep++;
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Step failed", e);
-			this.isConnected = false; // Mark as disconnected on error
+			handleConnectionError(e);
 			return false;
 		}
 
@@ -168,6 +168,20 @@ public class TraCIConnector {
 			this.isConnected = false;
 		}
 	}
+
+	/**
+	 * Mark the connector as disconnected after a TraCI failure.
+	 * SUMO may terminate on its own (simulation end) which closes the socket.
+	 */
+	public void handleConnectionError(Exception e) {
+		this.isConnected = false;
+		try {
+			if (this.connection != null) {
+				this.connection.close();
+			}
+		} catch (Exception ignored) {
+		}
+	}
 	
 	/**
 	 * Check if TraCIConnector is connected to a live SUMO sim
@@ -197,6 +211,7 @@ public class TraCIConnector {
 	 * @return SumoTraciConnection object
 	 */
 	public SumoTraciConnection getConnection() {
+		if (!this.isConnected) return null;
 		return connection; // null if connection doesn't exist
 	}
 

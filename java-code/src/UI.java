@@ -26,9 +26,16 @@ import org.w3c.dom.NodeList;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import javafx.animation.AnimationTimer;
 import de.tudresden.sumo.cmd.Trafficlight;
 import de.tudresden.sumo.cmd.Edge;
+import de.tudresden.sumo.objects.SumoLink;
 import javafx.application.Platform;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,13 +50,13 @@ public class UI {
 	@FXML private Button btnOpenConfig;
 	@FXML private Button btnConnect;
 	@FXML private Button btnStart;
-	@FXML private Button btnPause;
 	@FXML private Button btnStep;
 	@FXML private Slider sliderSpeed;
 
 	// Left Simulation tab
 	@FXML private TextField txtConfigPath;
 	@FXML private TextField txtStepMs;
+	@FXML private Button btnBrowseConfig;
 
 	// Inject tab
 	@FXML private ComboBox<String> cmbInjectEdge;
@@ -60,6 +67,7 @@ public class UI {
 
 	// Filter tab
 	@FXML private javafx.scene.control.CheckBox chkFilterRed;
+	@FXML private ColorPicker cpFilterColor;
 	@FXML private javafx.scene.control.CheckBox chkFilterSpeed;
 	@FXML private javafx.scene.control.CheckBox chkFilterCongested;
 
@@ -104,7 +112,8 @@ public class UI {
 	private ScheduledExecutorService monitorExecutor;
 
 	// Cache phase counts per traffic light (used to safely wrap phase +/-)
-	private final java.util.Map<String, Integer> trafficLightPhaseCountCache = new java.util.HashMap<>();
+	private final Map<String, Integer> trafficLightPhaseCountCache = new HashMap<>();
+	private final Map<String, List<SumoLink>> trafficLightLinksCache = new HashMap<>();
 
 	public UI() {
 		// called when FXML is loaded
@@ -120,6 +129,12 @@ public class UI {
 		// Make Filters + Traffic Lights UI reactive (no need to wait for a simulation step)
 		if (chkFilterRed != null) {
 			chkFilterRed.selectedProperty().addListener((obs, oldV, newV) -> updateMapView());
+		}
+		if (cpFilterColor != null) {
+			cpFilterColor.setValue(Color.RED);
+			cpFilterColor.valueProperty().addListener((obs, oldV, newV) -> {
+				if (chkFilterRed != null && chkFilterRed.isSelected()) updateMapView();
+			});
 		}
 		if (chkFilterSpeed != null) {
 			chkFilterSpeed.selectedProperty().addListener((obs, oldV, newV) -> updateMapView());
@@ -203,25 +218,79 @@ public class UI {
 	// UI state helpers
 	private void setDisconnectedUI() {
 		if (lblStatus != null) lblStatus.setText("Status: Disconnected");
-		if (btnConnect != null) btnConnect.setDisable(false);
-		if (btnStart != null) btnStart.setDisable(true);
-		if (btnPause != null) btnPause.setDisable(true);
+		if (btnConnect != null) {
+			btnConnect.setDisable(false);
+			btnConnect.setText("Connect");
+		}
+		if (btnOpenConfig != null) btnOpenConfig.setDisable(false);
+		if (btnBrowseConfig != null) btnBrowseConfig.setDisable(false);
+		if (txtConfigPath != null) txtConfigPath.setDisable(false);
+		if (txtStepMs != null) txtStepMs.setDisable(false);
+		if (btnStart != null) {
+			btnStart.setDisable(true);
+			btnStart.setText("Start");
+		}
 		if (btnStep != null) btnStep.setDisable(true);
 	}
 
 	private void setConnectedUI() {
 		if (lblStatus != null) lblStatus.setText("Status: Connected");
-		if (btnConnect != null) btnConnect.setDisable(true);
-		if (btnStart != null) btnStart.setDisable(false);
-		if (btnPause != null) btnPause.setDisable(true);
+		if (btnConnect != null) {
+			btnConnect.setDisable(false);
+			btnConnect.setText("Disconnect");
+		}
+		if (btnOpenConfig != null) btnOpenConfig.setDisable(true);
+		if (btnBrowseConfig != null) btnBrowseConfig.setDisable(true);
+		if (txtConfigPath != null) txtConfigPath.setDisable(true);
+		if (txtStepMs != null) txtStepMs.setDisable(true);
+		if (btnStart != null) {
+			btnStart.setDisable(false);
+			btnStart.setText("Start");
+		}
 		if (btnStep != null) btnStep.setDisable(false);
 	}
 
 	private void setRunningUI() {
 		if (lblStatus != null) lblStatus.setText("Status: Running");
-		if (btnStart != null) btnStart.setDisable(true);
-		if (btnPause != null) btnPause.setDisable(false);
+		if (btnConnect != null) {
+			btnConnect.setDisable(false);
+			btnConnect.setText("Disconnect");
+		}
+		if (btnStart != null) {
+			btnStart.setDisable(false);
+			btnStart.setText("Pause");
+		}
 		if (btnStep != null) btnStep.setDisable(true);
+	}
+
+	private void disconnectFromSumo() {
+		stopLoop();
+		stopConnectionMonitor();
+		if (connector != null) {
+			connector.disconnect();
+		}
+		connector = null;
+		vehicleWrapper = null;
+		if (cmbTrafficLight != null) {
+			cmbTrafficLight.getItems().clear();
+		}
+		if (lblPhaseInfo != null) {
+			lblPhaseInfo.setText("Phase: -");
+		}
+		if (txtPhaseDuration != null) {
+			txtPhaseDuration.setText("");
+		}
+		setDisconnectedUI();
+	}
+
+	private void resetSessionStats() {
+		if (vehicleSeries != null) {
+			vehicleSeries.getData().clear();
+		}
+		vehicleData.clear();
+		if (vehicleTable != null) {
+			vehicleTable.refresh();
+		}
 	}
 
 	public void setStatusText(String text) {
@@ -269,7 +338,13 @@ public class UI {
 	}
 
 	@FXML
-	private void onConnect() {
+	private void onConnectToggle() {
+		// If already connected, act as Disconnect
+		if (connector != null && connector.isConnected()) {
+			disconnectFromSumo();
+			return;
+		}
+
 		// Get config path and step length from UI
 		String configPath = (txtConfigPath != null) ? txtConfigPath.getText().trim() : "..\\SumoConfig\\G.sumocfg";
 
@@ -304,6 +379,9 @@ public class UI {
 			return;
 		}
 
+		// New session: clear old chart/table stats.
+		resetSessionStats();
+
 		vehicleWrapper = new VehicleWrapper(connector);
 
 		if (cpInjectColor != null) {
@@ -321,7 +399,7 @@ public class UI {
 		}
 
 		// Populate edge list
-		java.util.List<String> edges = connector.getEdgeIds();
+		List<String> edges = connector.getEdgeIds();
 		if (cmbInjectEdge != null) {
 			cmbInjectEdge.getItems().setAll(edges);
 			if (!edges.isEmpty()) cmbInjectEdge.getSelectionModel().select(0);
@@ -335,15 +413,13 @@ public class UI {
 	}
 
 	@FXML
-	private void onStart() {
-		// treat Start as "do one step" for now.
+	private void onStartPause() {
+		if (running) {
+			stopLoop();
+			setConnectedUI();
+			return;
+		}
 		startLoop();
-	}
-
-	@FXML
-	private void onPause() {
-		stopLoop();
-		setConnectedUI();
 	}
 
 	@FXML
@@ -434,7 +510,7 @@ public class UI {
 				if (alt.exists()) return alt;
 			}
 		} catch (Exception e) {
-			LOGGER.log(java.util.logging.Level.FINE, "Failed to resolve net-file from config", e);
+			LOGGER.log(Level.FINE, "Failed to resolve net-file from config", e);
 		}
 		return null;
 	}
@@ -442,25 +518,28 @@ public class UI {
 	private void updateMapView() {
 		if (mapView == null || connector == null || vehicleWrapper == null) return;
 		// Fetch latest positions and data
-		java.util.Map<String, Point2D> allPositions = vehicleWrapper.getVehiclePositions();
-		java.util.List<VehicleRow> allRows = vehicleWrapper.getVehicleRows();
-		java.util.Map<String, Color> colorMap = new java.util.HashMap<>();
-		java.util.Map<String, Point2D> filteredPositions = new java.util.HashMap<>();
-		java.util.List<VehicleRow> filteredRows = new java.util.ArrayList<>();
+		Map<String, Point2D> allPositions = vehicleWrapper.getVehiclePositions();
+		Map<String, String> allLaneIds = vehicleWrapper.getVehicleLaneIds();
+		List<VehicleRow> allRows = vehicleWrapper.getVehicleRows();
+		Map<String, Color> colorMap = new HashMap<>();
+		Map<String, Point2D> filteredPositions = new HashMap<>();
+		Map<String, String> filteredLaneIds = new HashMap<>();
+		List<VehicleRow> filteredRows = new ArrayList<>();
 
 		// Cache for edge mean speeds (only used when congestion filter enabled)
-		java.util.Map<String, Double> edgeMeanSpeedCache = new java.util.HashMap<>();
+		Map<String, Double> edgeMeanSpeedCache = new HashMap<>();
 
-		boolean filterRed = (chkFilterRed != null) && chkFilterRed.isSelected();
+		boolean filterColor = (chkFilterRed != null) && chkFilterRed.isSelected();
 		boolean filterSpeed = (chkFilterSpeed != null) && chkFilterSpeed.isSelected();
 		boolean filterCongested = (chkFilterCongested != null) && chkFilterCongested.isSelected();
+		Color targetColor = (cpFilterColor != null) ? cpFilterColor.getValue() : Color.RED;
+		if (targetColor == null) targetColor = Color.RED;
 
 		for (VehicleRow row : allRows) {
-			// Filter by color (Red)
-			if (filterRed) {
+			// Filter by color (user-selected)
+			if (filterColor) {
 				Color c = row.getColor();
-				// Simple check for "red-ish" color
-				if (c.getRed() < 0.8 || c.getGreen() > 0.2 || c.getBlue() > 0.2) {
+				if (!isSimilarColor(c, targetColor, 0.18)) {
 					continue;
 				}
 			}
@@ -508,15 +587,22 @@ public class UI {
 			if (pos != null) {
 				filteredPositions.put(row.getId(), pos);
 			}
+			String laneId = (allLaneIds != null) ? allLaneIds.get(row.getId()) : null;
+			if (laneId != null && !laneId.isEmpty()) {
+				filteredLaneIds.put(row.getId(), laneId);
+			}
 		}
 
 		// Update map (only filtered vehicles)
 		if (filteredPositions.isEmpty() && allRows.isEmpty() && allPositions != null && !allPositions.isEmpty()) {
 			// If row fetching fails for any reason, still render positions so vehicles remain visible.
-			mapView.updateVehicles(allPositions, java.util.Collections.emptyMap());
+			mapView.updateVehicles(allPositions, Collections.emptyMap(), allLaneIds);
 		} else {
-			mapView.updateVehicles(filteredPositions, colorMap);
+			mapView.updateVehicles(filteredPositions, colorMap, filteredLaneIds);
 		}
+
+		// Overlay traffic-light stop lines (R/Y/G) so it's obvious why vehicles stop.
+		mapView.updateTrafficSignals(buildLaneSignalColorMap());
 
 		// Update table
 		vehicleData.setAll(filteredRows);
@@ -526,6 +612,132 @@ public class UI {
 		if (vehicleTable != null) {
 			vehicleTable.refresh();
 		}
+	}
+
+	private Map<String, Color> buildLaneSignalColorMap() {
+		if (connector == null || !connector.isConnected() || connector.getConnection() == null) {
+			return Collections.emptyMap();
+		}
+		try {
+			Object idsObj = connector.getConnection().do_job_get(Trafficlight.getIDList());
+			List<String> ids = new ArrayList<>();
+			if (idsObj instanceof String[]) {
+				for (String s : (String[]) idsObj) ids.add(s);
+			} else if (idsObj instanceof List<?>) {
+				for (Object o : (List<?>) idsObj) ids.add(String.valueOf(o));
+			}
+			if (ids.isEmpty()) return Collections.emptyMap();
+
+			Map<String, Integer> lanePriority = new HashMap<>();
+			Map<String, Color> laneColor = new HashMap<>();
+			for (String tlId : ids) {
+				if (tlId == null || tlId.isEmpty()) continue;
+				String state = String.valueOf(connector.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(tlId)));
+				if (state == null || state.isEmpty()) continue;
+
+				List<SumoLink> links = trafficLightLinksCache.get(tlId);
+				if (links == null) {
+					links = fetchTrafficLightLinks(tlId);
+					trafficLightLinksCache.put(tlId, links);
+				}
+				if (links == null || links.isEmpty()) continue;
+
+				int limit = Math.min(state.length(), links.size());
+				for (int i = 0; i < limit; i++) {
+					SumoLink link = links.get(i);
+					if (link == null) continue;
+					String laneId = (link.notInternalLane != null && !link.notInternalLane.isEmpty())
+							? link.notInternalLane
+							: link.from;
+					if (laneId == null || laneId.isEmpty()) continue;
+
+					char ch = state.charAt(i);
+					int prio = signalPriority(ch);
+					Integer existing = lanePriority.get(laneId);
+					if (existing == null || prio > existing) {
+						lanePriority.put(laneId, prio);
+						laneColor.put(laneId, signalColorForState(ch));
+					}
+				}
+			}
+			return laneColor;
+		} catch (Exception e) {
+			return Collections.emptyMap();
+		}
+	}
+
+	private List<SumoLink> fetchTrafficLightLinks(String tlId) {
+		if (connector == null || !connector.isConnected() || connector.getConnection() == null) {
+			return Collections.emptyList();
+		}
+		try {
+			Object obj = connector.getConnection().do_job_get(Trafficlight.getControlledLinks(tlId));
+			List<SumoLink> out = new ArrayList<>();
+			flattenControlledLinks(obj, out);
+			return out;
+		} catch (Exception e) {
+			return Collections.emptyList();
+		}
+	}
+
+	private static void flattenControlledLinks(Object obj, List<SumoLink> out) {
+		if (obj == null) return;
+		if (obj instanceof SumoLink) {
+			out.add((SumoLink) obj);
+			return;
+		}
+		if (obj instanceof de.tudresden.sumo.objects.SumoLinkList) {
+			for (Object o : (de.tudresden.sumo.objects.SumoLinkList) obj) {
+				flattenControlledLinks(o, out);
+			}
+			return;
+		}
+		if (obj instanceof java.lang.Iterable<?>) {
+			for (Object o : (java.lang.Iterable<?>) obj) {
+				flattenControlledLinks(o, out);
+			}
+			return;
+		}
+		Class<?> c = obj.getClass();
+		if (c.isArray()) {
+			int n = java.lang.reflect.Array.getLength(obj);
+			for (int i = 0; i < n; i++) {
+				flattenControlledLinks(java.lang.reflect.Array.get(obj, i), out);
+			}
+		}
+	}
+
+	private static int signalPriority(char state) {
+		switch (Character.toLowerCase(state)) {
+			case 'r':
+				return 3;
+			case 'y':
+				return 2;
+			case 'g':
+				return 1;
+			default:
+				return 0;
+		}
+	}
+
+	private static Color signalColorForState(char state) {
+		switch (Character.toLowerCase(state)) {
+			case 'g':
+				return Color.LIMEGREEN;
+			case 'y':
+				return Color.GOLD;
+			case 'r':
+				return Color.RED;
+			default:
+				return Color.GRAY;
+		}
+	}
+
+	private static boolean isSimilarColor(Color actual, Color target, double tol) {
+		if (actual == null || target == null) return false;
+		return Math.abs(actual.getRed() - target.getRed()) <= tol
+				&& Math.abs(actual.getGreen() - target.getGreen()) <= tol
+				&& Math.abs(actual.getBlue() - target.getBlue()) <= tol;
 	}
 
 	private File resolveConfigFile(String path) {
@@ -574,14 +786,14 @@ public class UI {
 		if (connector == null || !connector.isConnected()) {
 			stopLoop();
 			setStatusText("Status: Not connected");
-			setConnectedUI();
+			setDisconnectedUI();
 			return;
 		}
 		boolean ok = connector.step();
 		if (!ok) {
 			stopLoop();
-			setStatusText("Status: Step failed");
-			setConnectedUI();
+			setStatusText("Status: Disconnected");
+			setDisconnectedUI();
 			return;
 		}
 		setStatusText("Status: Running");
@@ -597,11 +809,11 @@ public class UI {
 		try {
 			trafficLightPhaseCountCache.clear();
 			Object resp = connector.getConnection().do_job_get(Trafficlight.getIDList());
-			java.util.List<String> ids = new java.util.ArrayList<>();
+			List<String> ids = new ArrayList<>();
 			if (resp instanceof String[]) {
 				for (String s : (String[]) resp) ids.add(s);
-			} else if (resp instanceof java.util.List<?>) {
-				for (Object o : (java.util.List<?>) resp) ids.add(String.valueOf(o));
+			} else if (resp instanceof List<?>) {
+				for (Object o : (List<?>) resp) ids.add(String.valueOf(o));
 			}
 			cmbTrafficLight.getItems().setAll(ids);
 			if (!ids.isEmpty()) {
@@ -624,9 +836,9 @@ public class UI {
 			if (def instanceof de.tudresden.sumo.objects.SumoTLSProgram) {
 				de.tudresden.sumo.objects.SumoTLSProgram p = (de.tudresden.sumo.objects.SumoTLSProgram) def;
 				if (p.phases != null) count = p.phases.size();
-			} else if (def instanceof java.util.List<?>) {
+			} else if (def instanceof List<?>) {
 				// Some SUMO networks may return a list of programs; take the first one.
-				java.util.List<?> list = (java.util.List<?>) def;
+				List<?> list = (List<?>) def;
 				if (!list.isEmpty() && list.get(0) instanceof de.tudresden.sumo.objects.SumoTLSProgram) {
 					de.tudresden.sumo.objects.SumoTLSProgram p = (de.tudresden.sumo.objects.SumoTLSProgram) list.get(0);
 					if (p.phases != null) count = p.phases.size();
@@ -656,7 +868,7 @@ public class UI {
 				lblPhaseInfo.setText("Phase " + phase + ": " + state);
 			}
 			if (txtPhaseDuration != null) {
-				txtPhaseDuration.setText(String.format(java.util.Locale.US, "%.1f", dur));
+				txtPhaseDuration.setText(String.format(Locale.US, "%.1f", dur));
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.FINE, "Failed to update traffic light UI", e);
