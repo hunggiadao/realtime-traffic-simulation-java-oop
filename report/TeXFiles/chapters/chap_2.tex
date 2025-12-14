@@ -14,6 +14,7 @@ Milestone~2 focused on delivering a functional prototype with core features impl
     \item \textbf{Code Documentation:} Core classes contain Javadoc and inline comments (e.g., connection, vehicle, and map rendering components).
     \item \textbf{User Guide Draft:} A draft user guide is provided (\texttt{userguide.md}) describing setup and basic usage.
     \item \textbf{Test Scenario:} A stress scenario configuration (\texttt{Stress.sumocfg}) is provided to test high vehicle counts.
+    \item \textbf{Continuous Integration:} A CI pipeline was established to automate build and test processes, ensuring code stability.
     \item \textbf{Progress Summary:} Performance and UI-update frequency were identified as key bottlenecks under heavy load.
 \end{itemize}
 
@@ -51,4 +52,25 @@ Team roles were revisited and refined during Milestone~2 to match the implemente
     \item \textbf{Performance under load:} With many vehicles, frequent UI refreshes (map + table) can become CPU-intensive.
     \item \textbf{Update frequency trade-offs:} Increasing simulation step length or throttling table/map updates reduces load but lowers UI responsiveness.
     \item \textbf{Robust TraCI lifecycle:} SUMO may terminate or close the socket when a scenario ends; the application must handle disconnects gracefully.
+\end{itemize}
+
+\section{Milestone 2 Progress Summary}
+
+\noindent
+Milestone~2 focused on converting the Milestone~1 UI into a functional prototype with end-to-end SUMO integration. The following summary highlights the status and main outcomes.
+\medskip
+
+\begin{itemize}
+    \item \textbf{Status:} Core prototype features completed (live SUMO connection, in-app map rendering with moving vehicles, vehicle injection, and traffic light control).
+    \item \textbf{Key changes:} Added a real-time stepping loop, integrated vehicle state retrieval for the table and map, added injection controls (count/speed/color), and implemented traffic light phase switching and duration adjustments.
+    \item \textbf{Stress testing:} Used a dedicated stress configuration (\texttt{Stress.sumocfg}) to validate behavior at higher vehicle counts and to observe performance bottlenecks.
+    \item \textbf{Challenges:} Under load, UI updates (map redraw + table refresh) can be expensive; practical mitigation is to reduce refresh frequency or increase step length.
+\end{itemize}
+
+\subsection{Software Engineering Practices (Git)}
+
+\begin{itemize}
+    \item \textbf{Branching + PRs:} Development was performed on feature branches and merged via pull requests (e.g., simulation classes, traffic light wrapper updates, UI fixes).
+    \item \textbf{Commit messages:} Commits generally use action-oriented prefixes (e.g., \textit{feat}, \textit{fix}, \textit{update}) and describe the affected subsystem (UI, simulation, wrappers, build).
+    \item \textbf{Traceability:} Milestone~2 work is visible through incremental commits that introduce the simulator loop and vehicle-management abstractions, followed by bug fixes and UI integration improvements.
 \end{itemize}
