@@ -5,7 +5,7 @@
 \section{Graphical User Interface (GUI)}
 
 \noindent
-For Milestone 1, we designed the graphical user interface of the application using JavaFX and Scene Builder. The goal at this stage was to establish the complete visual structure of the program, without yet integrating SUMO or implementing any simulation logic.
+For Milestone~1, we designed the graphical user interface of the application using JavaFX and Scene Builder. In Milestone~2, we extended this UI into a functional prototype by integrating a live SUMO connection, real-time stepping, map rendering, vehicle injection, and traffic light control.
 \medskip
 
 \noindent
@@ -19,24 +19,114 @@ The interface is built around a \texttt{BorderPane} layout, dividing the window 
     \label{fig:milestone1-ui}
 \end{figure}
 
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_milestone_2.png}
+    \caption{Milestone 2 functional prototype: live map rendering and simulation controls in the JavaFX GUI.}
+    \label{fig:milestone2-ui}
+\end{figure}
+
 \noindent
-On the left side, a \texttt{TabPane} organizes input settings into four tabs: \textit{Simulation}, \textit{Vehicles}, \textit{Traffic Lights}, and \textit{Filters}. As shown in the interface preview, the Simulation tab includes fields for selecting a configuration file, enabling real-time stepping, and adjusting the step interval. This structure keeps related parameters grouped and easy to navigate.
+On the left side, a \texttt{TabPane} organizes settings into tabs such as \textit{Simulation}, \textit{Vehicles} (injection), \textit{Traffic Lights}, and \textit{Filters}. The Simulation tab supports selecting a \texttt{.sumocfg} file and adjusting the step interval, while the Vehicles tab provides controls for injecting vehicles into a selected edge.
 \medskip
 
 \noindent
-The central region is reserved for the map view. In this milestone, it contains a placeholder label indicating where the SUMO network visualization will later appear. The map area is fully resizable and positioned as the main visual focus of the interface.
+The central region contains the map view. In Milestone~2, this region renders the SUMO network (parsed from the network file referenced by the loaded \texttt{.sumocfg}) and draws moving vehicles based on TraCI position updates. The map supports zooming and panning to inspect local behavior around intersections.
 \medskip
 
 \noindent
-On the right side, a second \texttt{TabPane} is prepared for simulation metrics. The \textit{Vehicle Table} tab includes a JavaFX \texttt{TableView} with predefined columns (ID, Speed, Edge), ready to display live data once SUMO integration is implemented.
+On the right side, a second \texttt{TabPane} provides simulation metrics. The \textit{Vehicle Table} tab contains a JavaFX \texttt{TableView} that is populated with live data (vehicle ID, speed, and current edge). A simple line chart tracks vehicle count over time.
 \medskip
 
 \noindent
-Finally, a status bar at the bottom of the interface displays key runtime information, such as the current simulation step, simulation time, vehicle count, and connection status. This ensures that essential system feedback remains visible at all times.
+Finally, a status bar at the bottom displays key runtime information such as simulation step, simulation time, vehicle count, and connection status.
 \medskip
 
 \noindent
-Overall, the GUI developed in Milestone 1 provides a clear, organized, and fully resizable framework for the simulation application. It establishes the necessary structure for future milestones in which SUMO communication, map rendering, and real-time traffic data will be integrated.
+Overall, the UI now provides a complete workflow for Milestone~2: load a scenario, connect to SUMO, run or step the simulation, visualize the network with moving vehicles, inject vehicles interactively, and manipulate traffic light phases.
+\medskip
+
+%%%%%%%%%%%%%
+\section{Milestone 2: Core Functionalities}
+
+\subsection{Live SUMO Connection and Simulation Control}
+
+\noindent
+The application establishes a TraCI connection to SUMO and manages the simulation lifecycle (connect, disconnect, step, and run/pause). The simulation can run continuously with a configurable step length, and the GUI reflects the current state through a status bar (step number, simulation time, and vehicle count).
+\medskip
+
+\subsection{Map Visualization in the Application}
+
+\noindent
+The map renderer parses the SUMO network file (\texttt{.net.xml}) to extract lane polylines and junction shapes. During runtime, the renderer updates vehicle positions from TraCI and draws moving vehicles on top of the network. To improve interpretability at intersections, the map overlays traffic-light stop lines colored by the current signal state (red/yellow/green).
+\medskip
+
+\noindent
+	extbf{[image]} Screenshot: zoomed-in map view showing vehicles moving and traffic-light stop lines (red/yellow/green) near an intersection.
+\medskip
+
+\subsection{Vehicle Injection}
+
+\noindent
+Users can inject vehicles during a running simulation by selecting a target edge and specifying the number of vehicles, an optional speed, and a color. Injected vehicles are immediately reflected in the map rendering and vehicle table, enabling quick scenario exploration and load testing.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_stress_vehicle_inject.png}
+    \caption{Vehicle injection controls used during stress testing.}
+    \label{fig:stress-inject}
+\end{figure}
+
+\subsection{Traffic Light Control}
+
+\noindent
+The Traffic Lights tab provides direct control over signal behavior. Users can select a traffic light ID, switch to the previous/next phase, and adjust the current phase duration. This enables interactive experimentation with signal timings and their impact on traffic flow.
+\medskip
+
+\noindent
+	extbf{[image]} Screenshot: Traffic Lights tab showing a selected traffic light ID, the current phase/state string, and a modified phase duration.
+\medskip
+
+\subsection{Filtering and Diagnostics}
+
+\noindent
+To support debugging and analysis, the GUI provides optional vehicle filters based on (1) vehicle color, (2) speed threshold, and (3) a congestion heuristic (edge mean speed and/or vehicle speed). The vehicle table displays the filtered set, and a chart plots vehicle count over time.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_stress_filter.png}
+    \caption{Filter controls used to isolate vehicles by color, speed, and congestion heuristics.}
+    \label{fig:stress-filter}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_stress_vehicle_table.png}
+    \caption{Vehicle table populated with live simulation data (filtered view).}
+    \label{fig:stress-table}
+\end{figure}
+
+%%%%%%%%%%%%%
+\section{Stress Test Scenario and Results}
+
+\noindent
+To validate the prototype under load, we prepared a stress-test scenario (\texttt{Stress.sumocfg}) that generates a high number of vehicles to stress vehicle injection, filtering, and rendering performance. This scenario was used to identify CPU-intensive parts of the update loop (map redraw and table refresh) and to motivate throttling strategies (e.g., updating the table less frequently or increasing the simulation step length).
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_stress.png}
+    \caption{Stress test run of the application with a high vehicle count.}
+    \label{fig:stress-overview}
+\end{figure}
+
+%%%%%%%%%%%%%
+\section{Code Documentation and User Guide}
+
+\noindent
+Core components are documented using Javadoc and targeted inline comments, focusing on public APIs and non-trivial logic (e.g., TraCI connection lifecycle, map rendering, and vehicle state caching). A draft user guide (\texttt{userguide.md}) describes environment setup, launching the application, and the main UI workflows.
 \medskip
 
 %%%%%%%%%%%%%

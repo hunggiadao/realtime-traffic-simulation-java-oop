@@ -3,14 +3,18 @@
 
 %%%%%%%%%%%%%
 \section{Timeline}
-\subsection{Timeline for Next Milestone}
+\subsection{Milestone 2 Status (Due: 14.12.2025)}
+
+\noindent
+Milestone~2 focused on delivering a functional prototype with core features implemented. The current status is summarized below.
+\medskip
 
 \begin{itemize}
-    \item \textbf{Working Application:} Complete core functionality by 10th December
-    \item \textbf{Code Documentation:} Comprehensive Javadoc and inline comments by 12th December
-    \item \textbf{User Guide Draft:} Initial version by 13th December
-    \item \textbf{Test Scenario:} At least one stress test by 7th December
-    \item \textbf{Progress Summary:} Status report and challenges documentation by 10th December
+    \item \textbf{Working Application:} Live SUMO connection, map visualization inside the GUI, vehicle injection, and traffic light control are implemented.
+    \item \textbf{Code Documentation:} Core classes contain Javadoc and inline comments (e.g., connection, vehicle, and map rendering components).
+    \item \textbf{User Guide Draft:} A draft user guide is provided (\texttt{userguide.md}) describing setup and basic usage.
+    \item \textbf{Test Scenario:} A stress scenario configuration (\texttt{Stress.sumocfg}) is provided to test high vehicle counts.
+    \item \textbf{Progress Summary:} Performance and UI-update frequency were identified as key bottlenecks under heavy load.
 \end{itemize}
 
 \subsection{Timeline for Final Application}
@@ -26,9 +30,25 @@
 %%%%%%%%%%%%%
 \section{Task Distribution}
 
+\noindent
+Team roles were revisited and refined during Milestone~2 to match the implemented components.
+\medskip
+
 \begin{itemize}
-    \item \textbf{Traffic Network, Communication between Java and Sumo:} Raees Ashraf Shah, Gia Hung Dao
-    \item \textbf{GUI Mockups, User Interface Design:} Huu Trung Son Dang
-    \item \textbf{Wrapper Classes:} Huy Hoang Bui
+    \item \textbf{Traffic Network Files:} Raees Ashraf Shah
+    \item \textbf{TraCI Connector + SUMO Integration:} Gia Hung Dao
+    \item \textbf{Traffic Light Control (wrapper + UI):} Gia Hung Dao, Raees Ashraf Shah
+    \item \textbf{Vehicle Wrapper + Vehicle Injection:} Khac Uy Pham, Gia Hung Dao
+    \item \textbf{GUI Implementation (JavaFX):} Huu Trung Son Dang
+    \item \textbf{Infrastructure Wrapper Classes:} Huy Hoang Bui
+    \item \textbf{Logger + Run Scripts:} Huu Trung Son Dang
     \item \textbf{Architecture and UML Diagrams:} Khac Uy Pham
+\end{itemize}
+
+\section{Challenges and Risks}
+
+\begin{itemize}
+    \item \textbf{Performance under load:} With many vehicles, frequent UI refreshes (map + table) can become CPU-intensive.
+    \item \textbf{Update frequency trade-offs:} Increasing simulation step length or throttling table/map updates reduces load but lowers UI responsiveness.
+    \item \textbf{Robust TraCI lifecycle:} SUMO may terminate or close the socket when a scenario ends; the application must handle disconnects gracefully.
 \end{itemize}
