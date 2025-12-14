@@ -1,6 +1,9 @@
+import de.tudresden.sumo.cmd.Edge;
 import de.tudresden.sumo.cmd.Route;
+import de.tudresden.sumo.cmd.Simulation;
 import de.tudresden.sumo.cmd.Vehicle;
 import de.tudresden.sumo.objects.SumoColor;
+import de.tudresden.sumo.objects.SumoStage;
 import de.tudresden.sumo.objects.SumoStringList;
 import it.polito.appeal.traci.SumoTraciConnection;
 
@@ -35,11 +38,15 @@ public final class VehicleWrapper {
     // Queue them and retry on subsequent UI refresh/steps.
     private final Map<String, SumoColor> pendingColors = new HashMap<>();
     private final Map<String, Double> pendingMaxSpeeds = new HashMap<>();
+	private final Map<String, SumoStringList> pendingRoutes = new HashMap<>();
 
 	// Colors requested by the user for locally-injected vehicles.
 	// We prefer these for rendering so the UI reflects what the user chose even
 	// if SUMO temporarily reports an unset/default color for a freshly-added vehicle.
 	private final Map<String, Color> preferredVehicleColors = new HashMap<>();
+
+    private static final int RANDOM_ROUTE_TRIES = 10;
+    private static final int ROUTING_MODE_DEFAULT = 0;
 
     public VehicleWrapper(TraCIConnector traci) {
         this.traci = Objects.requireNonNull(traci, "traci");
@@ -129,6 +136,10 @@ public final class VehicleWrapper {
                 }
             }
         } catch (Exception e) {
+			if (e instanceof IllegalStateException) {
+				traci.handleConnectionError(e);
+				return rows;
+			}
             LOGGER.log(Level.WARNING, "Failed to fetch vehicle rows", e);
         }
         return rows;
@@ -233,7 +244,50 @@ public final class VehicleWrapper {
                 if (p != null) out.put(id, p);
             }
         } catch (Exception e) {
+			if (e instanceof IllegalStateException) {
+				traci.handleConnectionError(e);
+				return out;
+			}
             LOGGER.log(Level.WARNING, "Failed to fetch vehicle positions", e);
+        }
+        return out;
+    }
+
+    /**
+     * Fetch current lane IDs for all vehicles.
+     */
+    public Map<String, String> getVehicleLaneIds() {
+        Map<String, String> out = new HashMap<>();
+        if (traci.getConnection() == null || !traci.isConnected()) {
+            return out;
+        }
+
+        applyPendingUpdates();
+
+        try {
+            Object idsObj = traci.getConnection().do_job_get(Vehicle.getIDList());
+            List<String> ids = new ArrayList<>();
+            if (idsObj instanceof String[]) {
+                for (String s : (String[]) idsObj) ids.add(s);
+            } else if (idsObj instanceof List<?>) {
+                for (Object o : (List<?>) idsObj) ids.add(String.valueOf(o));
+            }
+
+            for (String id : ids) {
+                try {
+                    Object laneObj = traci.getConnection().do_job_get(Vehicle.getLaneID(id));
+                    String laneId = (laneObj != null) ? laneObj.toString() : "";
+                    if (!laneId.isEmpty()) out.put(id, laneId);
+                } catch (Exception ignored) {
+                    // ignore per-vehicle lane failures
+                }
+            }
+        } catch (Exception e) {
+            if (e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return out;
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch vehicle lane IDs", e);
         }
         return out;
     }
@@ -500,18 +554,19 @@ public final class VehicleWrapper {
             }
 
             String finalRouteId = routeOrEdgeId;
+			String startEdgeId = null;
 
             if (!isRoute) {
                 // Assume it's a "dead street" / entry edge where we want to spawn vehicles.
                 // Build a route that starts on this edge and heads into the network using a precomputed path.
                 finalRouteId = "route_" + vehicleId;
+				startEdgeId = routeOrEdgeId;
 
                 SumoStringList edgeList = new SumoStringList();
                 edgeList.add(routeOrEdgeId);
 
-                // For now, keep the injected route as just the chosen edge.
-                // This guarantees a valid route and avoids "no valid route" errors when spawning many vehicles.
-                // Vehicles will travel along this edge and disappear at its downstream end.
+				// We create a minimal route for spawning (start edge). After insertion we will
+				// try to set a destination edge (changeTarget) so the vehicle traverses multiple edges.
 
                 try {
                     traci.getConnection().do_job_set(Route.add(finalRouteId, edgeList));
@@ -557,6 +612,10 @@ public final class VehicleWrapper {
                 LOGGER.info("Injected vehicle: " + vehicleId + " on route/edge: " + finalRouteId);
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Error adding vehicle " + vehicleId, e);
+				if (e instanceof IllegalStateException) {
+					traci.handleConnectionError(e);
+					return;
+				}
                 // Try with empty type if DEFAULT_VEHTYPE fails
                 try {
                     traci.getConnection().do_job_set(Vehicle.addFull(
@@ -578,6 +637,27 @@ public final class VehicleWrapper {
                     LOGGER.info("Injected vehicle (empty type): " + vehicleId);
                 } catch (Exception ex) {
                     LOGGER.log(Level.WARNING, "Retry with empty type failed for " + vehicleId, ex);
+					if (ex instanceof IllegalStateException) {
+						traci.handleConnectionError(ex);
+						return;
+					}
+                }
+            }
+
+            // If caller provided only a start edge (not a pre-existing route), compute a longer route
+            // by picking a reachable destination edge and setting the computed route.
+            if (startEdgeId != null && !startEdgeId.isBlank()) {
+                SumoStringList routeEdges = pickRandomReachableRoute(startEdgeId, "DEFAULT_VEHTYPE");
+                if (routeEdges != null && routeEdges.size() >= 2) {
+                    try {
+                        traci.getConnection().do_job_set(Vehicle.setRoute(vehicleId, routeEdges));
+                    } catch (Exception e) {
+                        if (e instanceof IllegalStateException) {
+                            traci.handleConnectionError(e);
+                            return;
+                        }
+                        pendingRoutes.put(vehicleId, routeEdges);
+                    }
                 }
             }
 
@@ -593,6 +673,10 @@ public final class VehicleWrapper {
             try {
 				traci.getConnection().do_job_set(Vehicle.setColor(vehicleId, sumoColor));
             } catch (Exception e) {
+                if (e instanceof IllegalStateException) {
+                    traci.handleConnectionError(e);
+                    return;
+                }
                 pendingColors.put(vehicleId, sumoColor);
             }
 
@@ -601,10 +685,18 @@ public final class VehicleWrapper {
                 try {
 					traci.getConnection().do_job_set(Vehicle.setMaxSpeed(vehicleId, speed));
                 } catch (Exception e) {
+					if (e instanceof IllegalStateException) {
+						traci.handleConnectionError(e);
+						return;
+					}
                     pendingMaxSpeeds.put(vehicleId, speed);
                 }
             }
         } catch (Exception e) {
+			if (e instanceof IllegalStateException) {
+				traci.handleConnectionError(e);
+				return;
+			}
             LOGGER.log(Level.WARNING, "Failed to add vehicle " + vehicleId, e);
         }
     }
@@ -636,6 +728,76 @@ public final class VehicleWrapper {
             }
             for (String id : done) pendingMaxSpeeds.remove(id);
         }
+
+		if (!pendingRoutes.isEmpty()) {
+            List<String> done = new ArrayList<>();
+            for (Map.Entry<String, SumoStringList> e : pendingRoutes.entrySet()) {
+                try {
+                    conn.do_job_set(Vehicle.setRoute(e.getKey(), e.getValue()));
+                    done.add(e.getKey());
+                } catch (Exception ex) {
+                    if (ex instanceof IllegalStateException) {
+                        traci.handleConnectionError(ex);
+                        return;
+                    }
+                }
+            }
+            for (String id : done) pendingRoutes.remove(id);
+        }
+    }
+
+    private SumoStringList pickRandomReachableRoute(String startEdgeId, String vehicleTypeId) {
+        if (startEdgeId == null || startEdgeId.isBlank()) return null;
+        if (traci.getConnection() == null || !traci.isConnected()) return null;
+        try {
+            List<String> edges = getAllEdgeIds();
+            if (edges.isEmpty()) return null;
+            for (int i = 0; i < RANDOM_ROUTE_TRIES; i++) {
+                String candidate = edges.get((int) (Math.random() * edges.size()));
+                if (candidate == null || candidate.isBlank()) continue;
+                if (candidate.equals(startEdgeId)) continue;
+                if (candidate.startsWith(":")) continue;
+                SumoStringList route = findRouteEdges(startEdgeId, candidate, vehicleTypeId);
+                if (route != null && route.size() >= 2) {
+                    return route;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> getAllEdgeIds() {
+        List<String> edges = new ArrayList<>();
+        if (traci.getConnection() == null || !traci.isConnected()) return edges;
+        try {
+            Object resp = traci.getConnection().do_job_get(Edge.getIDList());
+            if (resp instanceof String[]) {
+                for (String s : (String[]) resp) edges.add(s);
+            } else if (resp instanceof List<?>) {
+                for (Object o : (List<?>) resp) edges.add(String.valueOf(o));
+            }
+        } catch (Exception ignored) {
+        }
+        return edges;
+    }
+
+    private SumoStringList findRouteEdges(String fromEdgeId, String toEdgeId, String vehicleTypeId) {
+        if (traci.getConnection() == null || !traci.isConnected()) return null;
+        try {
+            Object routeObj = traci.getConnection().do_job_get(
+                    Simulation.findRoute(fromEdgeId, toEdgeId, vehicleTypeId, 0.0, ROUTING_MODE_DEFAULT));
+            if (routeObj instanceof SumoStage stage) {
+                return stage.edges;
+            }
+            // Some SUMO versions may return a list of stages
+            if (routeObj instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof SumoStage stage) {
+                return stage.edges;
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     /**

@@ -2,9 +2,13 @@
 \addcontentsline{toc}{chapter}{Abstract}
 
 \noindent
-This project is the development of a real-time traffic simulation application using Java and other support tools, such as JavaFX and the Simulation of Urban Mobility (SUMO) traffic simulator. During Milestone 1, the primary objective was to design the graphical user interface that will serve as the foundation for future simulation control and visualization. 
+This project develops a real-time traffic simulation application using Java, JavaFX, and the Simulation of Urban Mobility (SUMO). The goal is to provide an interactive desktop GUI that connects to a running SUMO simulation via TraCI (TraaS) and enables users to visualize and control key traffic elements.
 \medskip
 
 \noindent
-The interface was created using JavaFX and Scene Builder, following a structured layout to support key features such as simulation configuration, vehicle and traffic light management, map visualization, and performance metrics. Although backend SUMO integration is not yet implemented, the completed UI provides a clear, organized, and fully resizable framework that prepares the application for the technical functionality planned in later milestones.
+By Milestone~2, the project has reached a functional prototype stage. The application can establish a live SUMO connection, advance the simulation in real time (or step-by-step), and render the SUMO network directly inside the JavaFX GUI with moving vehicles. It also supports interactive vehicle injection (selecting a target edge, number of vehicles, speed, and color) and manual traffic light control (switching phases and adjusting phase duration). For usability and debugging, the GUI includes live status indicators, a vehicle table and chart, and optional filters (e.g., by vehicle color, speed, and congestion heuristics).
+\medskip
+
+\noindent
+In addition to the working application, the Milestone~2 deliverables include inline code documentation (Javadoc), a draft user guide, and a stress-test scenario (\texttt{Stress.sumocfg}) to evaluate performance with a large number of vehicles. The report summarizes implemented features, current limitations, and the main challenges discovered during stress testing.
 \medskip
