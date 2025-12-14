@@ -102,7 +102,7 @@ In the ***Charts*** tab of the right panel, users can inspect different metrics 
 In the ***Vehicle Table*** tab, users can inspect all metadata and metrics of all vehicle instances in the simulation in tabular form.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_vehicle_table.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_table.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 6: Vehicle Table Menu
 	</p>
