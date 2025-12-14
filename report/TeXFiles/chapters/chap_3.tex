@@ -163,6 +163,33 @@ A key challenge in Milestone~2 was bridging the gap between the synchronous TraC
 \noindent
 This architecture allows the simulation to run at maximum speed (or a fixed real-time step) without being throttled by the frame rate of the UI, while the UI renders the latest available state as smoothly as possible.
 
+\subsection{Data Flow and System Architecture}
+\noindent
+The data flow within the application is designed to be unidirectional where possible to maintain state consistency.
+\medskip
+
+\noindent
+1. \textbf{Input:} The user interacts with the GUI (e.g., clicking "Inject Vehicle").
+\newline
+2. \textbf{Command:} The GUI sends a command to the \texttt{VehicleManager} or \texttt{TrafficLightWrapper}.
+\newline
+3. \textbf{Simulation:} The \texttt{VehicleSimulator} executes the command via TraCI during the next simulation step.
+\newline
+4. \textbf{Update:} SUMO computes the new state.
+\newline
+5. \textbf{Fetch:} The \texttt{VehicleManager} fetches the updated vehicle positions and statuses.
+\newline
+6. \textbf{Render:} The \texttt{MapView} receives the immutable \texttt{VehicleState} snapshot and redraws the scene.
+\medskip
+
+\noindent
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../assets/architecture_diagram.png}
+    \caption{System Architecture Diagram illustrating the layered design and data flow between the JavaFX GUI, Controller, Wrapper, and SUMO.}
+    \label{fig:dataflow}
+\end{figure}
+
 %%%%%%%%%%%%%
 \section{Stress Test Scenario and Results}
 
