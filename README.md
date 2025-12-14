@@ -160,19 +160,19 @@ As of Milestone 2, we have implemented a stress test SUMO config: [Stress.sumocf
 **Monitored metrics:**
 
 <div style="display: flex; gap: 10px;">
-	<div style="flex: 1 1 0; max-width: 100%;">
+	<div style="flex: 1 1 0; max-width: 50%;">
 		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_inject.png" alt="Image 1" style="height: 240px; width: auto; max-width: 100%;">
 		<p style="text-align: center; font-style: italic; font-size: 1em;">
 			Figure 4: Vehicle Injection Menu
 		</p>
 	</div>
-	<div style="flex: 1 1 0; max-width: 100%;">
+	<div style="flex: 1 1 0; max-width: 50%;">
 		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_filter.png" alt="Image 2" style="height: 240px; width: auto; max-width: 100%;">
 		<p style="text-align: center; font-style: italic; font-size: 1em;">
 			Figure 5: Filter Menu
 		</p>
 	</div>
-	<div style="flex: 1 1 0; max-width: 100%;">
+	<div style="flex: 1 1 0; max-width: 50%;">
 		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_table.png" alt="Image 3" style="height: 240px; width: auto; max-width: 100%;">
 		<p style="text-align: center; font-style: italic; font-size: 1em;">
 			Figure 6: Vehicle Table Menu
