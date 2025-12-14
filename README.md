@@ -61,14 +61,7 @@ The provided `.gitignore` includes all telemetry and miscellaneous types that ar
 
 `*` means all files of this type.
 
-Once the download has finished, simply double-click the `run.bat` script file inside the `java-code/` folder to start the application. Once the full application's GUI is loaded, it looks as follows:
-
-<div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
-	<p style="text-align: center; font-style: italic; font-size: 1em;">
-		Figure 1: Main UI when first loaded
-	</p>
-</div>
+Once the download has finished, simply double-click the `run.bat` script file inside the `java-code/` folder to start the application.
 
 ## Application Features
 
