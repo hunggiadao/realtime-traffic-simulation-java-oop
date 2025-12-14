@@ -1,0 +1,43 @@
+name: java-code (Gradle)
+
+on:
+  push:
+    paths:
+      - "java-code/**"
+      - ".github/workflows/java-code-ci.yml"
+  pull_request:
+    paths:
+      - "java-code/**"
+      - ".github/workflows/java-code-ci.yml"
+
+concurrency:
+  group: java-code-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: java-code
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Gradle tasks
+        run: gradle --no-daemon tasks
