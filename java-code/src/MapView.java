@@ -259,15 +259,21 @@ public class MapView extends Pane {
 
         // Draw vehicles
         if (vehiclePositions != null) {
-            double radius = 3.0;
+            double radius = 4.0;
             for (java.util.Map.Entry<String, Point2D> e : vehiclePositions.entrySet()) {
                 Color c = Color.RED;
                 if (vehicleColors != null) {
                     Color mapped = vehicleColors.get(e.getKey());
                     if (mapped != null) c = mapped;
                 }
-                g.setFill(c);
                 Point2D tp = transform(e.getValue(), h, scale);
+
+                // Outline improves visibility on dark roads.
+                g.setStroke(Color.WHITE);
+                g.setLineWidth(1.2);
+                g.strokeOval(tp.getX() - radius, tp.getY() - radius, radius * 2, radius * 2);
+
+                g.setFill(c);
                 g.fillOval(tp.getX() - radius, tp.getY() - radius, radius * 2, radius * 2);
             }
         }

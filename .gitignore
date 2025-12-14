@@ -27,6 +27,8 @@ out
 /java-code/.settings/
 /java-code/bin
 /java-code/build/
+/java-code/settings/
+/java-code/logs/
 
 # from Gradle
 .gradle
