@@ -1,10 +1,47 @@
-\chapter*{Conclusion}
-\addcontentsline{toc}{chapter}{Conclusion}
+\chapter*{Conclusion and Future Work}
+\addcontentsline{toc}{chapter}{Conclusion and Future Work}
 
+\section{Conclusion}
 \noindent
-In the first milestone, we successfully designed the complete graphical user interface of the application using JavaFX and Scene Builder. The GUI now provides all required structural components, including the simulation toolbar, configuration tabs, map display area, metrics panel, and status bar. 
+By Milestone~2, we delivered a functional prototype of the real-time traffic simulation application. The system can connect to a live SUMO simulation via TraCI, run or step the simulation, and visualize the network and moving vehicles directly in the JavaFX GUI. Core interactive features—vehicle injection and manual traffic light control—are implemented, enabling users to actively influence traffic flow during runtime.
 \medskip
 
 \noindent
-Although SUMO backend integration is not yet implemented, the interface is fully organized, responsive, and ready for the functional features that will be added in future milestones. The work completed here forms the foundation for real-time simulation control and visualization in the next development stages.
+The main challenges identified at this stage are performance and update-frequency trade-offs when handling large vehicle counts, particularly during stress testing. These findings guide the next development steps: improving rendering efficiency, reducing unnecessary UI refresh work, and extending the control logic. Overall, Milestone~2 establishes a solid, end-to-end pipeline from SUMO to a responsive GUI with tangible control capabilities.
+
+\section{Future Work}
+\noindent
+Building on the functional prototype, the final phase of development will focus on optimization, advanced features, and user experience refinements.
+
+\subsection{Performance Optimization}
+\noindent
+To address the bottlenecks identified during stress testing, we plan to:
+\begin{itemize}
+    \item \textbf{Optimize Map Rendering:} Implement spatial partitioning (e.g., QuadTree) to only render vehicles and map elements currently within the viewport.
+    \item \textbf{Throttle UI Updates:} Decouple the data fetch rate from the render rate to ensure the UI remains responsive even when the simulation is running at high speeds.
+\end{itemize}
+
+\subsection{Advanced Traffic Control}
+\noindent
+We will extend the current manual control capabilities with automated logic:
+\begin{itemize}
+    \item \textbf{Automated Traffic Light Management:} Implement algorithms that dynamically adjust signal phases based on real-time queue lengths detected by the simulation.
+    \item \textbf{Vehicle Grouping:} Allow users to define groups of vehicles and apply batch commands (e.g., "reroute all buses").
+\end{itemize}
+
+\subsection{Reporting and Analytics}
+\noindent
+The final application will include comprehensive reporting tools:
+\begin{itemize}
+    \item \textbf{Data Export:} Functionality to export simulation statistics (travel times, congestion levels) to CSV or PDF formats.
+    \item \textbf{Enhanced Dashboard:} A more detailed statistics view including average waiting times and CO2 emission estimates.
+\end{itemize}
 \medskip
+
+\noindent
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../assets/main_ui_milestone_2.png}
+    \caption{Proposed layout for the advanced analytics dashboard. Note the 'Export' button (top right) and the expandable 'Charts' pane, which will be fully implemented in Milestone 3.}
+    \label{fig:future-dashboard}
+\end{figure}

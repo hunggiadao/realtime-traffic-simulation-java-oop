@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Responsibilities:
  * - Step simulation periodically.
  * - Refresh vehicle list and update state snapshots via VehicleManager.
- * - Apply vehicle configuration via VehicleFactory.
+ * - Apply vehicle configuration via VehicleWrapper.
  */
 public final class VehicleSimulator {
 
@@ -26,7 +26,7 @@ public final class VehicleSimulator {
 
     private final TraCIConnector traci;      // connection to SUMO via TraCI
     private final VehicleManager manager;    // manages vehicle wrappers and state snapshots
-    private final VehicleFactory factory;    // applies configuration to vehicles
+    private final VehicleWrapper vehicles;   // vehicle control + queries
     private final long periodMs;             // loop period in milliseconds
 
     private final AtomicBoolean running = new AtomicBoolean(false); // indicates if simulator is running
@@ -40,8 +40,8 @@ public final class VehicleSimulator {
      */
     public VehicleSimulator(TraCIConnector traci,
                             VehicleManager manager,
-                            VehicleFactory factory) {
-        this(traci, manager, factory, DEFAULT_PERIOD_MS);
+                            VehicleWrapper vehicles) {
+        this(traci, manager, vehicles, DEFAULT_PERIOD_MS);
     }
 
     /**
@@ -49,11 +49,11 @@ public final class VehicleSimulator {
      */
     public VehicleSimulator(TraCIConnector traci,
                             VehicleManager manager,
-                            VehicleFactory factory,
+                            VehicleWrapper vehicles,
                             long periodMs) {
         this.traci = traci;
         this.manager = manager;
-        this.factory = factory;
+        this.vehicles = vehicles;
         this.periodMs = periodMs;
     }
 
@@ -139,7 +139,7 @@ public final class VehicleSimulator {
         // Apply vehicle configurations in batch
         Map<String, VehicleState> states = manager.getAllStates();
         for (VehicleState s : states.values()) {
-            factory.configureVehicle(
+            vehicles.configureVehicle(
                     s.id,
                     s.speed,
                     0.7,         // speed ratio applied to max speed

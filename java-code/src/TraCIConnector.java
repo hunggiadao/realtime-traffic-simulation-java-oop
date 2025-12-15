@@ -2,9 +2,12 @@ import it.polito.appeal.traci.SumoTraciConnection;
 import de.tudresden.sumo.cmd.*;
 import de.tudresden.sumo.cmd.Vehicle;
 import de.tudresden.sumo.cmd.Trafficlight;
+import de.tudresden.sumo.objects.SumoPosition2D;
 
 import java.io.*; // for throwing exceptions
 import java.util.*; // for using List interfaces
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Wrapper class for managing the TraCI connection to SUMO.
@@ -14,6 +17,7 @@ import java.util.*; // for using List interfaces
  * Members include: SUMO connection var, list of vehicles, list of traffic lights (junctions)
  */
 public class TraCIConnector {
+	private static final Logger LOGGER = Logger.getLogger(TraCIConnector.class.getName());
 	// member fields
 	private static String sumoBinary; // same across all objects
 
@@ -23,6 +27,12 @@ public class TraCIConnector {
 	private int delay; // we make the default 50
 	private boolean isConnected;
 	private int currentStep;
+	// Cached network boundary (SUMO world coordinates)
+	private double netMinX;
+	private double netMinY;
+	private double netMaxX;
+	private double netMaxY;
+	private boolean netBoundsInitialized;
 	// currently unused members, can implement later
 	
 	/**
@@ -98,9 +108,9 @@ public class TraCIConnector {
 			connection.runServer(); // throws IOException
 			this.isConnected = true;
 			this.currentStep = 0;
-			System.out.println("TraCIConnector: Connected to SUMO");
+			LOGGER.info("Connected to SUMO");
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.log(Level.WARNING, "Failed to connect to SUMO", e);
 			return false;
 		}
 
@@ -120,43 +130,12 @@ public class TraCIConnector {
 			connection.do_timestep();
 			this.currentStep++;
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.log(Level.WARNING, "Step failed", e);
+			handleConnectionError(e);
 			return false;
 		}
 
 		return true;
-	}
-
-	/**
-	 * update the vehicles list and return its size
-	 * 
-	 * @return the number of vehicles in the simulation
-	 */
-	public int getVehicleCount() {
-		//  Retrieve the vehicle count from SUMO
-		if (connection == null || !this.isConnected) {
-			return 0;
-		}
-		//		int vehicleCount = 0;
-		//		try {
-		//			@SuppressWarnings("unchecked")
-		//			List<String> vehicle_ids = (ArrayList<String>)connection.do_job_get(Vehicle.getIDList());
-		//			vehicleCount = vehicle_ids.size();
-		//		} catch (Exception e) {
-		//			e.printStackTrace();
-		//		}
-		//		if (vehicleCount == (int) connection.do_job_get(Vehicle.getIDCount())) {
-		//			return vehicleCount;
-		//		} else {
-		//			return (int) connection.do_job_get(Vehicle.getIDCount());
-		//		}
-
-		try {
-			return (int) connection.do_job_get(Vehicle.getIDCount());
-		} catch (Exception e) {
-			e.printStackTrace();
-			return 0;
-		}
 	}
 	
 	/**
@@ -180,11 +159,27 @@ public class TraCIConnector {
 		}
 		try {
 			connection.close();
-			System.out.println("TraCIConnector: Connection closed");
+			LOGGER.info("Connection closed");
+		} catch (IllegalStateException ignored) {
+			// connection may already be closed (e.g. SUMO side terminated)
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.log(Level.FINE, "Error while closing connection", e);
 		} finally {
 			this.isConnected = false;
+		}
+	}
+
+	/**
+	 * Mark the connector as disconnected after a TraCI failure.
+	 * SUMO may terminate on its own (simulation end) which closes the socket.
+	 */
+	public void handleConnectionError(Exception e) {
+		this.isConnected = false;
+		try {
+			if (this.connection != null) {
+				this.connection.close();
+			}
+		} catch (Exception ignored) {
 		}
 	}
 	
@@ -216,22 +211,98 @@ public class TraCIConnector {
 	 * @return SumoTraciConnection object
 	 */
 	public SumoTraciConnection getConnection() {
+		if (!this.isConnected) return null;
 		return connection; // null if connection doesn't exist
 	}
+
+	/**
+	 * Decide whether an edge is suitable as a spawn edge.
+	 *
+	 * Simple, robust rule:
+	 * - Skip internal edges (IDs starting with ':').
+	 * - Skip very short edges (likely pure intersection connectors) using
+	 *   lane 0 length; if length cannot be obtained, also skip.
+	 */
+	private boolean isGoodSpawnEdge(String edgeId) {
+		if (edgeId == null || edgeId.isEmpty()) {
+			return false;
+		}
+		// Internal / junction edges start with ':' in SUMO
+		if (edgeId.startsWith(":")) {
+			return false;
+		}
+		try {
+			String laneId = edgeId + "_0";
+			Object lenObj = connection.do_job_get(de.tudresden.sumo.cmd.Lane.getLength(laneId));
+			if (lenObj instanceof Double) {
+				double len = (Double) lenObj;
+				// Tune this threshold as needed; short edges are usually
+				// intersection stubs where spawning looks bad.
+				final double minLen = 40.0; // meters
+				return len >= minLen;
+			}
+			// If length is not a Double, treat as not spawnable.
+			return false;
+		} catch (Exception e) {
+			// If we cannot determine length (e.g. lane not found), be
+			// conservative and do NOT offer this edge for spawning.
+			return false;
+		}
+	}
+
+	/**
+	 * Get list of all edge IDs in the network
+	 * @return List of edge IDs
+	 */
+	public List<String> getEdgeIds() {
+		List<String> edges = new ArrayList<>();
+		if (connection == null || !this.isConnected) {
+			return edges;
+		}
+		try {
+			Object response = connection.do_job_get(de.tudresden.sumo.cmd.Edge.getIDList());
+			if (response instanceof String[]) {
+				for (String s : (String[]) response) {
+					if (isGoodSpawnEdge(s)) {
+						edges.add(s);
+					}
+				}
+			} else if (response instanceof List<?>) {
+				for (Object o : (List<?>) response) {
+					String s = String.valueOf(o);
+					if (isGoodSpawnEdge(s)) {
+						edges.add(s);
+					}
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.FINE, "Failed to retrieve edge IDs", e);
+		}
+		return edges;
+	}
+
+	/**
+	 * Connects to SUMO or throws a {@link SimulationException} on failure.
+	 *
+	 * @throws SimulationException when connection cannot be established
+	 */
+	public void connectOrThrow() throws SimulationException {
+		if (!connect()) {
+			throw new SimulationException("Failed to connect to SUMO");
+		}
+	}
+
+	/**
+	 * Advances the simulation by one step or throws a {@link SimulationException}.
+	 *
+	 * @throws SimulationException when stepping fails or not connected
+	 */
+	public void stepOrThrow() throws SimulationException {
+		if (!isConnected()) {
+			throw new SimulationException("Not connected");
+		}
+		if (!step()) {
+			throw new SimulationException("SUMO step failed");
+		}
+	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

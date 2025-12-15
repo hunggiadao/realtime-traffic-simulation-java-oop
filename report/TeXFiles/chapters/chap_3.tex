@@ -5,7 +5,7 @@
 \section{Graphical User Interface (GUI)}
 
 \noindent
-For Milestone 1, we designed the graphical user interface of the application using JavaFX and Scene Builder. The goal at this stage was to establish the complete visual structure of the program, without yet integrating SUMO or implementing any simulation logic.
+For Milestone~1, we designed the graphical user interface of the application using JavaFX and Scene Builder. In Milestone~2, we extended this UI into a functional prototype by integrating a live SUMO connection, real-time stepping, map rendering, vehicle injection, and traffic light control.
 \medskip
 
 \noindent
@@ -15,28 +15,200 @@ The interface is built around a \texttt{BorderPane} layout, dividing the window 
 \begin{figure}[!ht]
     \centering
     \includegraphics[width=0.65\textwidth]{../assets/main_ui_milestone_1.png}
-    \caption{Graphical User Interface designed for Milestone 1}
+    \caption{Graphical User Interface designed for Milestone~1}
     \label{fig:milestone1-ui}
 \end{figure}
 
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_milestone_2.png}
+    \caption{Milestone 2 functional prototype: live map rendering and simulation controls in the JavaFX GUI.}
+    \label{fig:milestone2-ui}
+\end{figure}
+
 \noindent
-On the left side, a \texttt{TabPane} organizes input settings into four tabs: \textit{Simulation}, \textit{Vehicles}, \textit{Traffic Lights}, and \textit{Filters}. As shown in the interface preview, the Simulation tab includes fields for selecting a configuration file, enabling real-time stepping, and adjusting the step interval. This structure keeps related parameters grouped and easy to navigate.
+On the left side, a \texttt{TabPane} organizes settings into tabs such as \textit{Simulation}, \textit{Vehicles} (injection), \textit{Traffic Lights}, and \textit{Filters}. The Simulation tab supports selecting a \texttt{.sumocfg} file and adjusting the step interval, while the Vehicles tab provides controls for injecting vehicles into a selected edge.
 \medskip
 
 \noindent
-The central region is reserved for the map view. In this milestone, it contains a placeholder label indicating where the SUMO network visualization will later appear. The map area is fully resizable and positioned as the main visual focus of the interface.
+The central region contains the map view. In Milestone~2, this region renders the SUMO network (parsed from the network file referenced by the loaded \texttt{.sumocfg}) and draws moving vehicles based on TraCI position updates. The map supports zooming and panning to inspect local behavior around intersections.
 \medskip
 
 \noindent
-On the right side, a second \texttt{TabPane} is prepared for simulation metrics. The \textit{Vehicle Table} tab includes a JavaFX \texttt{TableView} with predefined columns (ID, Speed, Edge), ready to display live data once SUMO integration is implemented.
+On the right side, a second \texttt{TabPane} provides simulation metrics. The \textit{Vehicle Table} tab contains a JavaFX \texttt{TableView} that is populated with live data (vehicle ID, speed, and current edge). A simple line chart tracks vehicle count over time.
 \medskip
 
 \noindent
-Finally, a status bar at the bottom of the interface displays key runtime information, such as the current simulation step, simulation time, vehicle count, and connection status. This ensures that essential system feedback remains visible at all times.
+Finally, a status bar at the bottom displays key runtime information such as simulation step, simulation time, vehicle count, and connection status.
 \medskip
 
 \noindent
-Overall, the GUI developed in Milestone 1 provides a clear, organized, and fully resizable framework for the simulation application. It establishes the necessary structure for future milestones in which SUMO communication, map rendering, and real-time traffic data will be integrated.
+Overall, the UI now provides a complete workflow for Milestone~2: load a scenario, connect to SUMO, run or step the simulation, visualize the network with moving vehicles, inject vehicles interactively, and manipulate traffic light phases.
+\medskip
+
+%%%%%%%%%%%%%
+\section{Milestone 2: Core Functionalities}
+
+\subsection{Live SUMO Connection and Simulation Control}
+
+\noindent
+The application establishes a TraCI connection to SUMO and manages the simulation lifecycle (connect, disconnect, step, and run/pause). The simulation can run continuously with a configurable step length, and the GUI reflects the current state through a status bar (step number, simulation time, and vehicle count).
+\medskip
+
+\subsection{Map Visualization in the Application}
+
+\noindent
+The map renderer parses the SUMO network file (\texttt{.net.xml}) to extract lane polylines and junction shapes. During runtime, the renderer updates vehicle positions from TraCI and draws moving vehicles on top of the network. 
+A key feature introduced in Milestone~2 is the interactive zoom and pan capability, allowing users to inspect specific intersections or view the entire network at a glance.
+To improve interpretability at intersections, the map overlays traffic-light stop lines colored by the current signal state (red/yellow/green), providing immediate visual feedback on signal phases.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/zoom-in_map.png}
+    \caption{Zoomed-in map view with moving vehicles and traffic-light stop-line overlays (red/yellow/green).}
+    \label{fig:zoom-map}
+\end{figure}
+
+\subsection{Vehicle Injection}
+
+\noindent
+Users can inject vehicles during a running simulation by selecting a target edge and specifying the number of vehicles, an optional speed, and a vehicle color. 
+The ability to customize vehicle color was recently added to help visually distinguish injected fleets from background traffic.
+Injected vehicles are immediately reflected in the map rendering and vehicle table, enabling quick scenario exploration and load testing.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_stress_vehicle_inject.png}
+    \caption{Vehicle injection controls used during stress testing, including color selection.}
+    \label{fig:stress-inject}
+\end{figure}
+
+\subsection{Traffic Light Control}
+
+\noindent
+The Traffic Lights tab provides direct control over signal behavior. Users can select a specific traffic light ID from the network. The interface then displays the current phase and state definition.
+Operators can manually switch to the previous or next phase and dynamically adjust the current phase duration. This enables interactive experimentation with signal timings and their impact on traffic flow, which is visualized in real-time on the map.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/TrafficLights_selection.png}
+    \caption{Traffic light selection and manual control: phase/state display and phase duration adjustment.}
+    \label{fig:trafficlights-selection}
+\end{figure}
+
+\subsection{Filtering and Diagnostics}
+
+\noindent
+To support debugging and analysis, the GUI provides optional vehicle filters based on (1) vehicle color, (2) speed threshold, and (3) a congestion heuristic (edge mean speed and/or vehicle speed). The vehicle table displays the filtered set, and a chart plots vehicle count over time.
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_stress_filter.png}
+    \caption{Filter controls used to isolate vehicles by color, speed, and congestion heuristics.}
+    \label{fig:stress-filter}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_stress_vehicle_table.png}
+    \caption{Vehicle table populated with live simulation data (filtered view).}
+    \label{fig:stress-table}
+\end{figure}
+
+%%%%%%%%%%%%%
+\section{Technical Implementation}
+
+\noindent
+To support the functional requirements of Milestone~2, specifically the need to handle high vehicle counts and real-time visualization, we implemented a robust architecture separating the simulation logic from the UI rendering.
+
+\subsection{Simulation Loop Architecture}
+\noindent
+The core simulation loop is encapsulated in the \texttt{VehicleSimulator} class. To ensure responsiveness and prevent the user interface from freezing during heavy computation, the simulation runs on a dedicated single-threaded executor. This design decouples the TraCI communication—which is synchronous and blocking—from the JavaFX Application Thread.
+\medskip
+
+\noindent
+The simulator uses an atomic state management approach. At each step, it triggers the \texttt{VehicleManager} to refresh the list of active vehicles and update their states. This ensures that the simulation state is consistent before being passed to the UI for rendering.
+
+\subsection{Efficient Vehicle State Management}
+\noindent
+Handling thousands of vehicles requires minimizing the overhead of TraCI calls. The \texttt{VehicleManager} and \texttt{VehicleWrapper} classes implement a caching strategy where vehicle data (position, speed, color) is fetched in bulk or lazily updated.
+\medskip
+
+\noindent
+We introduced the \texttt{VehicleState} class, an immutable data structure that captures a snapshot of a vehicle at a specific simulation step. This immutability allows the simulation thread to safely pass data to the UI thread without complex synchronization locks, avoiding race conditions where the UI might try to render a vehicle that is being modified.
+
+\subsection{Map Rendering Engine}
+\noindent
+The \texttt{MapView} component is a custom JavaFX \texttt{Canvas} implementation designed for performance. Instead of using heavy scene graph nodes for each map element, it performs direct drawing operations.
+\medskip
+
+\noindent
+\textbf{Network Parsing:} On initialization, the renderer parses the SUMO network file (\texttt{.net.xml}) using a DOM parser to extract lane geometries and junction shapes. These are stored as lightweight \texttt{LaneShape} and \texttt{JunctionShape} objects.
+\newline
+\textbf{Coordinate Transformation:} The renderer implements a dynamic coordinate transformation system that maps SUMO's Cartesian coordinates to the screen space, supporting real-time zooming and panning.
+\newline
+\textbf{Layered Rendering:} The draw loop is optimized to render static elements (roads, junctions) first, followed by dynamic overlays (traffic light states, vehicles). This ensures that critical information is always visible on top.
+
+\subsection{Concurrency and Thread Safety}
+\noindent
+A key challenge in Milestone~2 was bridging the gap between the synchronous TraCI simulation and the asynchronous JavaFX UI. We solved this using a producer-consumer pattern:
+\begin{itemize}
+    \item The \textbf{Simulation Thread} (Producer) steps the simulation and produces a map of \texttt{VehicleState} objects.
+    \item The \textbf{UI Thread} (Consumer) polls this state via a thread-safe reference and updates the \texttt{MapView} and \texttt{TableView}.
+\end{itemize}
+\noindent
+This architecture allows the simulation to run at maximum speed (or a fixed real-time step) without being throttled by the frame rate of the UI, while the UI renders the latest available state as smoothly as possible.
+
+\subsection{Data Flow and System Architecture}
+\noindent
+The data flow within the application is designed to be unidirectional where possible to maintain state consistency.
+\medskip
+
+\noindent
+1. \textbf{Input:} The user interacts with the GUI (e.g., clicking "Inject Vehicle").
+\newline
+2. \textbf{Command:} The GUI sends a command to the \texttt{VehicleManager} or \texttt{TrafficLightWrapper}.
+\newline
+3. \textbf{Simulation:} The \texttt{VehicleSimulator} executes the command via TraCI during the next simulation step.
+\newline
+4. \textbf{Update:} SUMO computes the new state.
+\newline
+5. \textbf{Fetch:} The \texttt{VehicleManager} fetches the updated vehicle positions and statuses.
+\newline
+6. \textbf{Render:} The \texttt{MapView} receives the immutable \texttt{VehicleState} snapshot and redraws the scene.
+\medskip
+
+\noindent
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../assets/architecture_diagram.png}
+    \caption{System Architecture Diagram illustrating the layered design and data flow between the JavaFX GUI, Controller, Wrapper, and SUMO.}
+    \label{fig:dataflow}
+\end{figure}
+
+%%%%%%%%%%%%%
+\section{Stress Test Scenario and Results}
+
+\noindent
+To validate the prototype under load, we prepared a stress-test scenario (\texttt{Stress.sumocfg}) that generates a high number of vehicles to stress vehicle injection, filtering, and rendering performance. This scenario was used to identify CPU-intensive parts of the update loop (map redraw and table refresh) and to motivate throttling strategies (e.g., updating the table less frequently or increasing the simulation step length).
+\medskip
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../assets/main_ui_stress.png}
+    \caption{Stress test run of the application with a high vehicle count.}
+    \label{fig:stress-overview}
+\end{figure}
+
+%%%%%%%%%%%%%
+\section{Code Documentation and User Guide}
+
+\noindent
+Core components are documented using Javadoc and targeted inline comments, focusing on public APIs and non-trivial logic (e.g., TraCI connection lifecycle, map rendering, and vehicle state caching). A draft user guide (\texttt{userguide.md}) describes environment setup, launching the application, and the main UI workflows.
 \medskip
 
 %%%%%%%%%%%%%

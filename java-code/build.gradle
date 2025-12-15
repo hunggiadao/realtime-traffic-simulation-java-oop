@@ -1,0 +1,106 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'eclipse'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+javafx {
+    version = "21.0.1"
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
+}
+
+// Function to find SUMO installation
+def getSumoHome() {
+    def env = System.getenv('SUMO_HOME')
+    if (env) return env
+
+    // Try 'where sumo'
+    try {
+        def process = "where sumo".execute()
+        process.waitFor()
+        if (process.exitValue() == 0) {
+            def output = process.text.trim().split('\n')[0].trim()
+            // output is path to sumo.exe, e.g. C:\Sumo\bin\sumo.exe
+            def binDir = new File(output).parent
+            return new File(binDir).parent // SUMO_HOME is parent of bin
+        }
+    } catch (Exception e) {
+        // ignore
+    }
+
+    def commonPaths = [
+        'C:/Program Files (x86)/Eclipse/Sumo',
+        'C:/Program Files/Eclipse/Sumo',
+        'C:/Sumo'
+    ]
+    
+    for (path in commonPaths) {
+        if (new File(path).exists()) return path
+    }
+    return null
+}
+
+def sumoHome = getSumoHome()
+def sumoBin = sumoHome ? "$sumoHome/bin" : null
+
+dependencies {
+    if (sumoBin) {
+        // Add TraaS.jar
+        def traas = new File(sumoBin, "TraaS.jar")
+        if (traas.exists()) {
+            implementation files(traas)
+        } else {
+            println "WARNING: TraaS.jar not found in $sumoBin"
+        }
+
+        // Add libtraci jar
+        def binDir = new File(sumoBin)
+        if (binDir.exists()) {
+            def libtraci = binDir.listFiles().find { it.name.startsWith('libtraci') && it.name.endsWith('.jar') }
+            if (libtraci) {
+                implementation files(libtraci)
+            }
+        }
+    } else {
+        println "WARNING: SUMO_HOME not found. SUMO dependencies (TraaS, libtraci) will be missing."
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+        resources {
+            // Map project root as a resource source, but only include 'ui' folder
+            srcDirs = ['.']
+            include 'ui/**'
+        }
+    }
+}
+
+application {
+    mainClass = 'Main'
+    applicationDefaultJvmArgs = [
+        '--enable-native-access=javafx.graphics',
+        '-Dprism.order=d3d,sw'
+    ]
+}
+
+// Eclipse configuration to ensure resources are handled correctly
+eclipse {
+    classpath {
+        defaultOutputDir = file('bin')
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+

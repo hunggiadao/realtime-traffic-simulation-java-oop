@@ -22,9 +22,25 @@ The project utilizes the following tools:
 
 <!-- **Note:** this project requires Git Large File Storage (LFS) tracking for transfering files larger than 50MB. -->
 
-## Setting up
+## Task Distribution:
 
-Clone the repository:
+|Task|Assignee(s)|
+|:------------|:---------------------------|
+|Traffic Network Files|Raees Ashraf Shah|
+|TraCI Connector|Gia Hung Dao|
+|Logger|Huu Trung Son Dang|
+|Traffic Light Wrapper Class|Gia Hung Dao <br> Raees Ashraf Shah|
+|GUI|Huu Trung Son Dang|
+|Infrastructure Wrapper Class|Huy Hoang Bui|
+|Vehicle Wrapper Class|Khac Uy Pham <br> Gia Hung Dao|
+|Architecture and UML Diagrams|Khac Uy Pham|
+|Run scripts|Huu Trung Son Dang|
+
+<!-- ![alt text](https://github.com/hunggiadao/human_age_detection/blob/main/Presentation/data_collection.png) -->
+
+## Setting up and Running
+
+Users can either download the latest source folder in [Releases](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/releases) or clone the repository directly using the following command:
 ```
 $ git clone git@github.com:hunggiadao/realtime-traffic-simulation-java-oop.git
 ```
@@ -45,28 +61,44 @@ The provided `.gitignore` includes all telemetry and miscellaneous types that ar
 
 `*` means all files of this type.
 
-## Description
-
-### Task Distribution:
-
-- **Traffic Network, Communication between Java and Sumo**: Raees Ashraf Shah, Gia Hung Dao
-- **GUI Mockups, User Interface Design**: Huu Trung Son Dang
-- **Wrapper Classes**: Huy Hoang Bui
-- **Architecture and UML Diagrams**: Khac Uy Pham
-
-<!-- ![alt text](https://github.com/hunggiadao/human_age_detection/blob/main/Presentation/data_collection.png) -->
+Once the download has finished, simply double-click the `run.bat` script file inside the `java-code/` folder to start the application.
 
 ## Application Features
 
 ### Graphical User Interface (GUI)
 
-The interface is built around a `BorderPane` layout, dividing the window into clear functional regions. At the top of the application, a responsive toolbar provides the essential simulation controls, including opening a SUMO configuration file, connecting to the simulation backend, starting or pausing the simulation, executing single simulation steps, and adjusting the simulation speed. This layout remains clean and stable when the window is resized.
+The interface is built around a `BorderPane` layout, dividing the window into clear functional regions.
 
-![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png)
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 1: Main UI when first loaded
+	</p>
+</div>
+
+<!-- ![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png) -->
+
+At the top of the application, a responsive toolbar provides the essential simulation controls, including opening a SUMO configuration file, connecting to the simulation backend, starting or pausing the simulation, executing single simulation steps, and adjusting the simulation speed. This layout remains clean and stable when the window is resized.
+
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_2.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 2: Main UI after SUMO connection
+	</p>
+</div>
+
+<!-- ![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_2.png) -->
 
 ### Architecture Diagram
 
-![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/architecture_diagram.png)
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/architecture_diagram.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 3: Architecture Diagram
+	</p>
+</div>
+
+<!-- ![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/architecture_diagram.png) -->
 
 ### Use Case Diagram
 
@@ -74,9 +106,100 @@ To be added
 
 <!-- ![alt text](<to be added>) -->
 
-## Testing and Results
+## Milestone 1
+
+### 1.1. Purpose
+Lay the foundation for the project by designing the architecture, planning the components, and demonstrating basic SUMO integration. 
+
+### 1.2. Deliverables
+**Technical Components:**
+
+✅ Project Overview (1–2 pages) <br>
+✅ Architecture Diagram <br>
+✅ Class Design for TraaS wrapper (Vehicle, TrafficLight, etc.) <br>
+✅ GUI Mockups (map view, control panels, dashboard) <br>
+✅ SUMO Connection Demo (list traffic lights, step simulation) • Technology Stack Summary
+
+### 1.3. Software Engineering Practices
+✅ Git Repository Setup (README, initial commit) <br>
+✅ Note: More information will be announced <br>
+✅ Time plan: Features → Time <br>
+✅ Team Roles
+
+## Milestone 2
+
+### 2.1. Purpose 
+Deliver a working version of the system with core features implemented and demonstrate progress toward the final product.
+
+### 2.2. Deliverables
+**Technical Components:**
+
+✅ Working Application:
+- Live SUMO connection
+- Vehicle injection
+- Traffic light control
+- Map visualization
+
+✅ Code Documentation (Javadoc or inline comments) <br>
+✅ User Guide Draft <br>
+✅ Test Scenario (at least one stress test) <br>
+✅ Progress Summary (status, challenges) 
+
+### 2.3. Software Engineering Practices 
+✅ Git Commit History (clear messages, feature branches) <br>
+✅ Revisiting: team roles
+
+## Final Submission
 
 To be added
+
+## Testing
+
+**Stress test setup:**
+
+As of Milestone 2, we have implemented a stress test SUMO config: [Stress.sumocfg](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/SumoConfig/Stress.sumocfg) to test our vehicle injection and filtering logic. This facilitates a heavy simulation load with hundreds of vehicles present at once.
+
+**Monitored metrics:**
+
+<div style="display: flex; gap: 10px;">
+	<div style="flex: 1 1 0; max-width: 100%;">
+		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_inject.png" alt="Image 1" style="height: 300px; width: auto; max-width: 100%;">
+		<p style="text-align: center; font-style: italic; font-size: 1em;">
+			Figure 4: Vehicle Injection Menu
+		</p>
+	</div>
+	<div style="flex: 1 1 0; max-width: 100%;">
+		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_filter.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+		<p style="text-align: center; font-style: italic; font-size: 1em;">
+			Figure 5: Filter Menu
+		</p>
+	</div>
+	<div style="flex: 1 1 0; max-width: 100%;">
+		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_charts.png" alt="Image 3" style="height: 300px; width: auto; max-width: 100%;">
+		<p style="text-align: center; font-style: italic; font-size: 1em;">
+			Figure 6: Charts Menu
+		</p>
+	</div>
+	<div style="flex: 1 1 0; max-width: 100%;">
+		<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_table.png" alt="Image 3" style="height: 300px; width: auto; max-width: 100%;">
+		<p style="text-align: center; font-style: italic; font-size: 1em;">
+			Figure 7: Vehicle Table Menu
+		</p>
+	</div>
+</div>
+
+**Running stress test:**
+
+Below is a snapshot of the running stress test with about 50 vehicles present.
+
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 8: Running Stress Test
+	</p>
+</div>
+
+<!-- ![alt text](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress.png) -->
 
 <!-- ### Model design: -->
 
@@ -96,7 +219,9 @@ To be added
 
 ### Evaluation:
 
-To be added
+Currently, the application causes the computer to spin up its fan quite a lot when there are more than 50 vehicles on the map.
+
+We can reduce the work load by updating the vehicle table less frequently, or increasing the `stepLength` of the simulation.
 
 <!-- ![alt text]() -->
 

@@ -1,20 +1,22 @@
-import de.tudresden.sumo.*;
 import de.tudresden.sumo.cmd.*;
 import de.tudresden.sumo.cmd.Trafficlight;
 
 import de.tudresden.sumo.config.Constants;
-import de.tudresden.sumo.objects.SumoTLSProgram;
+//import de.tudresden.sumo.objects.SumoTLSProgram;
 import de.tudresden.sumo.util.SumoCommand;
 
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Wrapper class for Traffic Lights in SUMO.
  * Used to get traffic light IDs and their states.
  */
 public abstract class TrafficLightWrapper extends TraCIConnector {
+    private static final Logger LOGGER = Logger.getLogger(TrafficLightWrapper.class.getName());
     /**
      * Gets a list of all traffic light IDs in the map.
      * @return List of Traffic light IDs
@@ -32,7 +34,7 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
                 return (List<String>) response;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+			LOGGER.log(Level.FINE, "Failed to get traffic light IDs", e);
         }
         return new ArrayList<>();
     }
@@ -45,7 +47,7 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
         try {
             return (String) this.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(id));
         } catch (Exception e) {
-            e.printStackTrace();
+			LOGGER.log(Level.FINE, "Failed to get traffic light state for id=" + id, e);
         }
         return "Error";
     }
@@ -56,12 +58,12 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      */
     public void setTrafficLightState(String id, String newState) {
     	if (this.getConnection() == null || !this.isConnected()) {
-    		System.out.println("Cannot set state. Problem with connector");
+			LOGGER.fine("Cannot set state: connection not available");
     	};
     	try {
             this.getConnection().do_job_set(Trafficlight.setRedYellowGreenState(id, newState));
         } catch (Exception e) {
-            e.printStackTrace();
+			LOGGER.log(Level.FINE, "Failed to set traffic light state for id=" + id, e);
         }
     }
     /**
@@ -73,7 +75,7 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
         try {
             return (int) this.getConnection().do_job_get(Trafficlight.getIDCount());
         } catch (Exception e) {
-            e.printStackTrace();
+			LOGGER.log(Level.FINE, "Failed to get traffic light count", e);
         }
         return -1; // code for error, only if connection exists and fails to get count
     }
@@ -87,7 +89,7 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     	try {
     		return (double) this.getConnection().do_job_get(Trafficlight.getPhaseDuration(id));
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to get phase duration for id=" + id, e);
     	}
     	return 0;
     }
@@ -99,12 +101,12 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      */
     public void setRemainingPhaseDuration(String id, double newRemaining) {
     	if (this.getConnection() == null || !this.isConnected()) {
-    		System.out.println("Error, connection does not exist");
+            LOGGER.fine("Cannot set remaining phase duration: connection not available");
     	}
     	try {
     		this.getConnection().do_job_set(Trafficlight.setPhaseDuration(id, newRemaining));
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to set remaining phase duration for id=" + id, e);
     	}
     }
     /**
@@ -120,7 +122,7 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_SPENT_DURATION, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_DOUBLE));
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to get phase elapsed duration for id=" + id, e);
     	}
     	return 0;
     }
@@ -134,7 +136,7 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     	try {
     		return (String) this.getConnection().do_job_get(Trafficlight.getPhaseName(id));
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to get phase name for id=" + id, e);
     	}
     	return null;
     }
@@ -149,7 +151,7 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     	try {
     		return (int) this.getConnection().do_job_get(Trafficlight.getPhase(id));
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to get phase index for id=" + id, e);
     	}
     	return -1;
     }
@@ -163,12 +165,12 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     	// TODO: need to figure out how to calulation length(phases)
     	// since there is no native method
     	if (this.getConnection() == null || !this.isConnected()) {
-    		System.out.println("Error, connection does not exist");
+            LOGGER.fine("Cannot set phase index: connection not available");
     	}
     	try {
     		this.getConnection().do_job_set(Trafficlight.setPhase(id, newIndex));
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to set phase index for id=" + id + ", newIndex=" + newIndex, e);
     	}
     }
     /**
@@ -186,10 +188,13 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     		Object response = this.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_BLOCKING_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
-    		if (response instanceof String[]) return (List<String>) response;
-    		return new ArrayList<String>(); // error
+    		if (response instanceof String[]) {
+                return Arrays.asList((String[]) response);
+            } else if (response instanceof List) {
+                return (List<String>) response;
+            }
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to get blocking vehicles for id=" + id + ", index=" + index, e);
     	}
     	return new ArrayList<String>(); // error
     }
@@ -208,10 +213,13 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     		Object response = this.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_RIVAL_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
-    		if (response instanceof String[]) return (List<String>) response;
-    		return new ArrayList<String>(); // error
+    		if (response instanceof String[]) {
+                return Arrays.asList((String[]) response);
+            } else if (response instanceof List) {
+                return (List<String>) response;
+            }
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to get waiting vehicles for id=" + id + ", index=" + index, e);
     	}
     	return new ArrayList<String>(); // error
     }
@@ -230,10 +238,13 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     		Object response = this.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_PRIORITY_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
-    		if (response instanceof String[]) return (List<String>) response;
-    		return new ArrayList<String>(); // error
+    		if (response instanceof String[]) {
+                return Arrays.asList((String[]) response);
+            } else if (response instanceof List) {
+                return (List<String>) response;
+            }
     	} catch (Exception e) {
-    		e.printStackTrace();
+            LOGGER.log(Level.FINE, "Failed to get waiting priority vehicles for id=" + id + ", index=" + index, e);
     	}
     	return new ArrayList<String>(); // error
     }
