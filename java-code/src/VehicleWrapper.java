@@ -113,7 +113,7 @@ public final class VehicleWrapper {
                     Color color = preferredVehicleColors.getOrDefault(id, Color.RED);
 
                     Object speedObj = traci.getConnection().do_job_get(Vehicle.getSpeed(id));
-                    double speed = (speedObj instanceof Number n) ? n.doubleValue() : 0.0;
+                    double speed = (speedObj instanceof Number) ? ((Number)speedObj).doubleValue() : 0.0;
 
                     Object edgeObj = traci.getConnection().do_job_get(Vehicle.getRoadID(id));
                     String edge = (edgeObj != null) ? edgeObj.toString() : "";
@@ -151,19 +151,22 @@ public final class VehicleWrapper {
 
     private static int[] extractRgba(Object colorObj) {
         if (colorObj == null) return null;
-        if (colorObj instanceof SumoColor sc) {
+        if (colorObj instanceof SumoColor) {
+        	SumoColor sc = (SumoColor) colorObj;
             // SUMO/TraaS can return -1 for unset/unknown colors.
             if (sc.r < 0 || sc.g < 0 || sc.b < 0 || sc.a < 0) return null;
-            return new int[] { sc.r, sc.g, sc.b, sc.a };
+            return new int[] {sc.r, sc.g, sc.b, sc.a };
         }
-        if (colorObj instanceof int[] a) {
+        if (colorObj instanceof int[]) {
+        	int[] a = (int[]) colorObj;
             if (a.length < 3) return null;
             int alpha = (a.length >= 4) ? a[3] : 255;
             // Treat negative values as invalid/unset.
             if (a[0] < 0 || a[1] < 0 || a[2] < 0 || alpha < 0) return null;
             return new int[] { a[0], a[1], a[2], alpha };
         }
-        if (colorObj instanceof byte[] a) {
+        if (colorObj instanceof byte[]) {
+        	byte[] a = (byte[]) colorObj;
             if (a.length < 3) return null;
             int r = a[0] & 0xFF;
             int g = a[1] & 0xFF;
@@ -171,7 +174,8 @@ public final class VehicleWrapper {
             int alpha = (a.length >= 4) ? (a[3] & 0xFF) : 255;
             return new int[] { r, g, b, alpha };
         }
-        if (colorObj instanceof Object[] a) {
+        if (colorObj instanceof Object[]) {
+        	Object[] a = (Object[]) colorObj;
             if (a.length < 3) return null;
             Integer r = safeParseInt(a[0]);
             Integer g = safeParseInt(a[1]);
@@ -181,7 +185,8 @@ public final class VehicleWrapper {
             if (r < 0 || g < 0 || b < 0 || (alpha != null && alpha < 0)) return null;
             return new int[] { r, g, b, (alpha == null ? 255 : alpha) };
         }
-        if (colorObj instanceof List<?> list) {
+        if (colorObj instanceof List<?>) {
+        	List<?> list = (List<?>) colorObj;
             if (list.size() < 3) return null;
             Integer r = safeParseInt(list.get(0));
             Integer g = safeParseInt(list.get(1));
@@ -196,7 +201,7 @@ public final class VehicleWrapper {
 
     private static Integer safeParseInt(Object v) {
         if (v == null) return null;
-        if (v instanceof Number n) return n.intValue();
+        if (v instanceof Number) return ((Number)v).intValue();
         try {
             return Integer.parseInt(v.toString().trim());
         } catch (Exception ignored) {
@@ -385,7 +390,7 @@ public final class VehicleWrapper {
 
     private static Double safeParseDouble(Object o) {
         if (o == null) return null;
-        if (o instanceof Number n) return n.doubleValue();
+        if (o instanceof Number) return ((Number)o).doubleValue();
         try {
             return Double.parseDouble(String.valueOf(o));
         } catch (Exception e) {
@@ -788,15 +793,17 @@ public final class VehicleWrapper {
         try {
             Object routeObj = traci.getConnection().do_job_get(
                     Simulation.findRoute(fromEdgeId, toEdgeId, vehicleTypeId, 0.0, ROUTING_MODE_DEFAULT));
-            if (routeObj instanceof SumoStage stage) {
-                return stage.edges;
+            if (routeObj instanceof SumoStage) {
+                return ((SumoStage)routeObj).edges;
             }
             // Some SUMO versions may return a list of stages
-            if (routeObj instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof SumoStage stage) {
-                return stage.edges;
+            if (routeObj instanceof List<?>) {
+            	List<?> list = (List<?>) routeObj;
+            	if (!list.isEmpty() && list.get(0) instanceof SumoStage) {
+            		return ((SumoStage)list.get(0)).edges;
+            	}
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         return null;
     }
 
