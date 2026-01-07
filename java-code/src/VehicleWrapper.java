@@ -903,7 +903,7 @@ public final class VehicleWrapper {
         return Math.max(min, Math.min(v, max));
     }
 
-    /**
+	/**
      * Fetch current vehicle angles (heading in degrees) from SUMO.
      * Angle is measured from North (0 degrees) clockwise.
      * @return map of vehicle id to angle in degrees
@@ -992,4 +992,5 @@ public final class VehicleWrapper {
 //    getDistance()
 //    getSignals()
 //    getAcceleration()
+//    getAngle()
 }

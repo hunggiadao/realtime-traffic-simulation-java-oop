@@ -4,8 +4,12 @@ import de.tudresden.sumo.cmd.Trafficlight;
 import de.tudresden.sumo.config.Constants;
 //import de.tudresden.sumo.objects.SumoTLSProgram;
 import de.tudresden.sumo.util.SumoCommand;
+import de.tudresden.sumo.objects.SumoTLSController;
+import de.tudresden.sumo.objects.SumoTLSProgram;
+import de.tudresden.sumo.objects.SumoTLSPhase;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -15,19 +19,25 @@ import java.util.logging.Logger;
  * Wrapper class for Traffic Lights in SUMO.
  * Used to get traffic light IDs and their states.
  */
-public abstract class TrafficLightWrapper extends TraCIConnector {
+public final class TrafficLightWrapper {
     private static final Logger LOGGER = Logger.getLogger(TrafficLightWrapper.class.getName());
+    private final TraCIConnector traci;
+    
+    public TrafficLightWrapper(TraCIConnector traci) {
+    	this.traci = Objects.requireNonNull(traci, "traci");
+    }
+    
     /**
      * Gets a list of all traffic light IDs in the map.
      * @return List of Traffic light IDs
      */
     @SuppressWarnings("unchecked")
     public List<String> getTrafficLightIds() {
-        if (this.getConnection() == null || !this.isConnected()) {
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
         	return new ArrayList<>(); // empty list of strings
         }
         try {
-            Object response = this.getConnection().do_job_get(Trafficlight.getIDList());
+            Object response = this.traci.getConnection().do_job_get(Trafficlight.getIDList());
             if (response instanceof String[]) {
                 return Arrays.asList((String[]) response);
             } else if (response instanceof List) {
@@ -43,9 +53,9 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      * @return RYG state of a specified Traffic light
      */
     public String getTrafficLightState(String id) {
-        if (this.getConnection() == null || !this.isConnected()) return "N/A";
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) return "N/A";
         try {
-            return (String) this.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(id));
+            return (String) this.traci.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(id));
         } catch (Exception e) {
 			LOGGER.log(Level.FINE, "Failed to get traffic light state for id=" + id, e);
         }
@@ -57,11 +67,11 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      * @param newState
      */
     public void setTrafficLightState(String id, String newState) {
-    	if (this.getConnection() == null || !this.isConnected()) {
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
 			LOGGER.fine("Cannot set state: connection not available");
     	};
     	try {
-            this.getConnection().do_job_set(Trafficlight.setRedYellowGreenState(id, newState));
+            this.traci.getConnection().do_job_set(Trafficlight.setRedYellowGreenState(id, newState));
         } catch (Exception e) {
 			LOGGER.log(Level.FINE, "Failed to set traffic light state for id=" + id, e);
         }
@@ -71,9 +81,9 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      */
     public int getTrafficLightCount() {
     	//  Retrieve the traffic light count from SUMO
-		if (this.getConnection() == null || !this.isConnected()) return 0;
+		if (this.traci.getConnection() == null || !this.traci.isConnected()) return 0;
         try {
-            return (int) this.getConnection().do_job_get(Trafficlight.getIDCount());
+            return (int) this.traci.getConnection().do_job_get(Trafficlight.getIDCount());
         } catch (Exception e) {
 			LOGGER.log(Level.FINE, "Failed to get traffic light count", e);
         }
@@ -85,9 +95,9 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      * @return
      */
     public double getPhaseDuration(String id) {
-    	if (this.getConnection() == null || !this.isConnected()) return 0;
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) return 0;
     	try {
-    		return (double) this.getConnection().do_job_get(Trafficlight.getPhaseDuration(id));
+    		return (double) this.traci.getConnection().do_job_get(Trafficlight.getPhaseDuration(id));
     	} catch (Exception e) {
             LOGGER.log(Level.FINE, "Failed to get phase duration for id=" + id, e);
     	}
@@ -100,11 +110,11 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      * @param newDuration
      */
     public void setRemainingPhaseDuration(String id, double newRemaining) {
-    	if (this.getConnection() == null || !this.isConnected()) {
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
             LOGGER.fine("Cannot set remaining phase duration: connection not available");
     	}
     	try {
-    		this.getConnection().do_job_set(Trafficlight.setPhaseDuration(id, newRemaining));
+    		this.traci.getConnection().do_job_set(Trafficlight.setPhaseDuration(id, newRemaining));
     	} catch (Exception e) {
             LOGGER.log(Level.FINE, "Failed to set remaining phase duration for id=" + id, e);
     	}
@@ -116,9 +126,9 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      * @return
      */
     public double getPhaseElapsedDuration(String id) {
-    	if (this.getConnection() == null || !this.isConnected()) return 0;
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) return 0;
     	try {
-    		return (double) this.getConnection().do_job_get(
+    		return (double) this.traci.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_SPENT_DURATION, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_DOUBLE));
     	} catch (Exception e) {
@@ -132,13 +142,26 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      * @return
      */
     public String getPhaseName(String id) {
-    	if (this.getConnection() == null || !this.isConnected()) return null;
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) return null;
     	try {
-    		return (String) this.getConnection().do_job_get(Trafficlight.getPhaseName(id));
+    		return (String) this.traci.getConnection().do_job_get(Trafficlight.getPhaseName(id));
     	} catch (Exception e) {
             LOGGER.log(Level.FINE, "Failed to get phase name for id=" + id, e);
     	}
     	return null;
+    }
+    /**
+     * Set newName as the name of the current phase of this TL id
+     * @param id
+     * @param newName
+     */
+    public void setPhaseName(String id, String newName) {
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) return;
+    	try {
+    		this.traci.getConnection().do_job_set(Trafficlight.setPhaseName(id, newName));
+    	} catch (Exception e) {
+            LOGGER.log(Level.FINE, "Failed to set phase name for id=" + id, e);
+    	}
     }
     /**
      * Returns the index of the current phase within the list
@@ -147,9 +170,9 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      * @return
      */
     public int getPhaseIndex(String id) {
-    	if (this.getConnection() == null || !this.isConnected()) return -1; // error code
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) return -1; // error code
     	try {
-    		return (int) this.getConnection().do_job_get(Trafficlight.getPhase(id));
+    		return (int) this.traci.getConnection().do_job_get(Trafficlight.getPhase(id));
     	} catch (Exception e) {
             LOGGER.log(Level.FINE, "Failed to get phase index for id=" + id, e);
     	}
@@ -164,14 +187,35 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
     public void setPhaseIndex(String id, int newIndex) {
     	// TODO: need to figure out how to calulation length(phases)
     	// since there is no native method
-    	if (this.getConnection() == null || !this.isConnected()) {
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
             LOGGER.fine("Cannot set phase index: connection not available");
     	}
     	try {
-    		this.getConnection().do_job_set(Trafficlight.setPhase(id, newIndex));
+    		this.traci.getConnection().do_job_set(Trafficlight.setPhase(id, newIndex));
     	} catch (Exception e) {
             LOGGER.log(Level.FINE, "Failed to set phase index for id=" + id + ", newIndex=" + newIndex, e);
     	}
+    }
+    /**
+     * Return a SumoTLSController for a specific traffic light
+     * Allows user to directly access and control that traffic light
+     * @param id
+     * @return
+     */
+    public SumoTLSController getRGBDefinition(String id) {
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+    		return null;
+    	}
+    	try {
+    		Object def = this.traci.getConnection().do_job_get(Trafficlight.getCompleteRedYellowGreenDefinition(id));
+			
+			if (def instanceof SumoTLSController) {
+				return (SumoTLSController) def;
+			}
+    	} catch (Exception e) {
+            LOGGER.log(Level.FINE, "Failed to cast Object to SumoTLSController", e);
+    	}
+    	return null; // error
     }
     /**
      * Returns the tuple of vehicles that are blocking the subsequent
@@ -180,12 +224,12 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      */
     @SuppressWarnings("unchecked")
 	public List<String> getBlockingVehicles(String id, int index) {
-    	if (this.getConnection() == null || !this.isConnected()) {
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
     		return new ArrayList<String>(); // empty array
     	}
     	try {
     		// not sure if this is logically correct, no docs for this
-    		Object response = this.getConnection().do_job_get(
+    		Object response = this.traci.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_BLOCKING_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
     		if (response instanceof String[]) {
@@ -205,12 +249,12 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      */
     @SuppressWarnings("unchecked")
 	public List<String> getWaitingVehicles(String id, int index) {
-    	if (this.getConnection() == null || !this.isConnected()) {
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
     		return new ArrayList<String>(); // empty array
     	}
     	try {
     		// not sure if this is logically correct, no docs for this
-    		Object response = this.getConnection().do_job_get(
+    		Object response = this.traci.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_RIVAL_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
     		if (response instanceof String[]) {
@@ -230,12 +274,12 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
      */
     @SuppressWarnings("unchecked")
 	public List<String> getWaitingPriorityVehicles(String id, int index) {
-    	if (this.getConnection() == null || !this.isConnected()) {
+    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
     		return new ArrayList<String>(); // empty array
     	}
     	try {
     		// not sure if this is logically correct, no docs for this
-    		Object response = this.getConnection().do_job_get(
+    		Object response = this.traci.getConnection().do_job_get(
     			new SumoCommand(Constants.CMD_GET_TL_VARIABLE, Constants.TL_PRIORITY_VEHICLES, id,
     				Constants.RESPONSE_GET_TL_VARIABLE, Constants.TYPE_STRINGLIST, index + ""));
     		if (response instanceof String[]) {
@@ -253,6 +297,7 @@ public abstract class TrafficLightWrapper extends TraCIConnector {
 //    addConstraint();
 //    removeConstraint();
 //    updateConstraints();
+//    getControlledLinks(tlId)
 }
 
 

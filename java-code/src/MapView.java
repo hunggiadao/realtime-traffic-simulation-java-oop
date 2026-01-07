@@ -73,11 +73,12 @@ public class MapView extends Pane {
 
 	private static class JunctionShape {
         final String id;
-        final boolean trafficLight;
+        final boolean hasTrafficLight;
 		final List<Point2D> polygon;
+		
         JunctionShape(String id, boolean trafficLight, List<Point2D> p) {
             this.id = id;
-            this.trafficLight = trafficLight;
+            this.hasTrafficLight = trafficLight;
 			this.polygon = p;
 		}
 	}
@@ -85,6 +86,7 @@ public class MapView extends Pane {
     private static final class TextMarker {
         final String text;
         final Point2D world;
+        
         TextMarker(String text, Point2D world) {
             this.text = text;
             this.world = world;
@@ -255,10 +257,6 @@ public class MapView extends Pane {
 
     public void updateTrafficSignals(Map<String, Color> laneSignalColors) {
         this.laneSignalColors = laneSignalColors;
-        recalculateAndRedraw();
-    }
-
-    private void recalculateAndRedraw() {
         redraw();
     }
 
