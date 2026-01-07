@@ -353,7 +353,6 @@ public class UI {
         switch (code) {
             case UP:
                 System.out.println("Up");
-                trafWrapper.getAllTrafficLightStates("J26");
                 changeTrafficLightPhase(1);
                 break;
             case DOWN:

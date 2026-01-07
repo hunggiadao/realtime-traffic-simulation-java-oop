@@ -3095,3 +3095,181 @@
 2026-01-07 17:48:00 [INFO   ] UIKeys - Selected traffic light: J27
 2026-01-07 17:48:00 [INFO   ] MapView - Loaded 354 lanes. Bounds x:[-419.16, 417.65] y:[-365.48, 201.86]
 2026-01-07 17:48:54 [INFO   ] TraCIConnector - Connection closed
+2026-01-07 17:56:26 [INFO   ] Main - Launching JavaFX UI
+2026-01-07 17:56:27 [INFO   ] UI - UI initialized
+2026-01-07 17:56:30 [INFO   ] TraCIConnector - Connected to SUMO
+2026-01-07 17:56:30 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-07 17:56:31 [INFO   ] MapView - Loaded 354 lanes. Bounds x:[-419.16, 417.65] y:[-365.48, 201.86]
+2026-01-07 17:56:41 [INFO   ] UI - Phase count for TL J27: -1
+2026-01-07 17:56:41 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:56:41 [WARNING] TraCIConnector - Step failed
+2026-01-07 17:56:45 [WARNING] UIKeys - No traffic lights found in the simulation
+2026-01-07 17:56:45 [WARNING] UIKeys - No traffic lights found in the simulation
+2026-01-07 17:57:49 [INFO   ] Main - Launching JavaFX UI
+2026-01-07 17:57:50 [INFO   ] UI - UI initialized
+2026-01-07 17:57:54 [INFO   ] TraCIConnector - Connected to SUMO
+2026-01-07 17:57:54 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-07 17:57:54 [INFO   ] MapView - Loaded 354 lanes. Bounds x:[-419.16, 417.65] y:[-365.48, 201.86]
+2026-01-07 17:58:12 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:12 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:58:13 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:13 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:58:14 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:14 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:58:15 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:15 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:58:15 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:15 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:58:15 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:15 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:58:16 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:16 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:58:16 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:16 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:58:16 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:16 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:58:16 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:16 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:58:17 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:17 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:58:17 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:17 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:58:17 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:17 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:58:18 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:18 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:58:18 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:18 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:58:19 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:19 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:58:19 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:19 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:58:20 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:20 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:58:20 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:20 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:58:20 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:20 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:58:21 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:21 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:58:22 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:22 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:58:24 [INFO   ] UIKeys - Selected traffic light: J28
+2026-01-07 17:58:28 [INFO   ] UIKeys - Selected traffic light: J29
+2026-01-07 17:58:34 [INFO   ] UIKeys - Selected traffic light: J31
+2026-01-07 17:58:55 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:55 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:58:56 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:56 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:58:56 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:56 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:58:56 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:56 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:58:58 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:58:58 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:59:02 [INFO   ] UIKeys - Selected traffic light: J36
+2026-01-07 17:59:04 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:59:04 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:59:05 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:59:05 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:59:05 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:59:05 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:59:05 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:59:05 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:59:06 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:59:06 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:59:06 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:59:06 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:59:06 [INFO   ] UI - Phase count for TL J27: 4
+2026-01-07 17:59:06 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:59:16 [INFO   ] UI - Phase count for TL J28: 6
+2026-01-07 17:59:16 [INFO   ] UI - Changing to phase 5
+2026-01-07 17:59:16 [INFO   ] UI - Phase count for TL J28: 6
+2026-01-07 17:59:16 [INFO   ] UI - Changing to phase 4
+2026-01-07 17:59:17 [INFO   ] UI - Phase count for TL J28: 6
+2026-01-07 17:59:17 [INFO   ] UI - Changing to phase 5
+2026-01-07 17:59:19 [INFO   ] UI - Phase count for TL J28: 6
+2026-01-07 17:59:19 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:59:19 [INFO   ] UI - Phase count for TL J28: 6
+2026-01-07 17:59:19 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:59:20 [INFO   ] UI - Phase count for TL J28: 6
+2026-01-07 17:59:20 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:59:21 [INFO   ] UI - Phase count for TL J28: 6
+2026-01-07 17:59:21 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:59:22 [INFO   ] UI - Phase count for TL J28: 6
+2026-01-07 17:59:22 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:59:40 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:40 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:59:41 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:41 [INFO   ] UI - Changing to phase 0
+2026-01-07 17:59:41 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:41 [INFO   ] UI - Changing to phase 4
+2026-01-07 17:59:41 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:41 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:59:42 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:42 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:59:42 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:42 [INFO   ] UI - Changing to phase 1
+2026-01-07 17:59:42 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:42 [INFO   ] UI - Changing to phase 2
+2026-01-07 17:59:43 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:43 [INFO   ] UI - Changing to phase 3
+2026-01-07 17:59:44 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:44 [INFO   ] UI - Changing to phase 4
+2026-01-07 17:59:44 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 17:59:44 [INFO   ] UI - Changing to phase 0
+2026-01-07 18:00:05 [INFO   ] UIKeys - Selected traffic light: J38
+2026-01-07 18:00:05 [INFO   ] UIKeys - Selected traffic light: J40
+2026-01-07 18:00:20 [INFO   ] UIKeys - Selected traffic light: J64
+2026-01-07 18:00:20 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-07 18:00:20 [INFO   ] UIKeys - Selected traffic light: J28
+2026-01-07 18:00:20 [INFO   ] UIKeys - Selected traffic light: J29
+2026-01-07 18:00:21 [INFO   ] UIKeys - Selected traffic light: J31
+2026-01-07 18:00:21 [INFO   ] UIKeys - Selected traffic light: J36
+2026-01-07 18:00:21 [INFO   ] UIKeys - Selected traffic light: J38
+2026-01-07 18:00:21 [INFO   ] UIKeys - Selected traffic light: J40
+2026-01-07 18:00:22 [INFO   ] UIKeys - Selected traffic light: J64
+2026-01-07 18:00:22 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-07 18:00:22 [INFO   ] UIKeys - Selected traffic light: J28
+2026-01-07 18:00:22 [INFO   ] UIKeys - Selected traffic light: J29
+2026-01-07 18:00:23 [INFO   ] UIKeys - Selected traffic light: J31
+2026-01-07 18:00:24 [INFO   ] UIKeys - Selected traffic light: J36
+2026-01-07 18:00:24 [INFO   ] UIKeys - Selected traffic light: J38
+2026-01-07 18:00:24 [INFO   ] UIKeys - Selected traffic light: J40
+2026-01-07 18:00:24 [INFO   ] UIKeys - Selected traffic light: J64
+2026-01-07 18:00:25 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-07 18:00:25 [INFO   ] UIKeys - Selected traffic light: J28
+2026-01-07 18:00:25 [INFO   ] UIKeys - Selected traffic light: J29
+2026-01-07 18:00:26 [INFO   ] UIKeys - Selected traffic light: J31
+2026-01-07 18:00:26 [INFO   ] UIKeys - Selected traffic light: J36
+2026-01-07 18:00:26 [INFO   ] UIKeys - Selected traffic light: J38
+2026-01-07 18:00:26 [INFO   ] UIKeys - Selected traffic light: J40
+2026-01-07 18:00:26 [INFO   ] UIKeys - Selected traffic light: J64
+2026-01-07 18:00:27 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-07 18:00:27 [INFO   ] UIKeys - Selected traffic light: J28
+2026-01-07 18:00:27 [INFO   ] UIKeys - Selected traffic light: J29
+2026-01-07 18:00:27 [INFO   ] UIKeys - Selected traffic light: J31
+2026-01-07 18:00:32 [INFO   ] UIKeys - Selected traffic light: J36
+2026-01-07 18:00:32 [INFO   ] UIKeys - Selected traffic light: J38
+2026-01-07 18:00:32 [INFO   ] UIKeys - Selected traffic light: J40
+2026-01-07 18:00:33 [INFO   ] UIKeys - Selected traffic light: J64
+2026-01-07 18:00:37 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-07 18:00:37 [INFO   ] UIKeys - Selected traffic light: J64
+2026-01-07 18:00:37 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-07 18:01:10 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 18:01:10 [INFO   ] UI - Changing to phase 3
+2026-01-07 18:01:11 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 18:01:11 [INFO   ] UI - Changing to phase 2
+2026-01-07 18:01:11 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 18:01:11 [INFO   ] UI - Changing to phase 3
+2026-01-07 18:01:12 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 18:01:12 [INFO   ] UI - Changing to phase 2
+2026-01-07 18:01:12 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 18:01:12 [INFO   ] UI - Changing to phase 3
+2026-01-07 18:01:12 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 18:01:12 [INFO   ] UI - Changing to phase 2
+2026-01-07 18:01:13 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 18:01:13 [INFO   ] UI - Changing to phase 3
+2026-01-07 18:01:13 [INFO   ] UI - Phase count for TL J38: 5
+2026-01-07 18:01:13 [INFO   ] UI - Changing to phase 2
+2026-01-07 18:01:47 [INFO   ] TraCIConnector - Connection closed
