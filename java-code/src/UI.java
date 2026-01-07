@@ -520,10 +520,16 @@ public class UI {
 		// Fetch latest positions and data
 		Map<String, Point2D> allPositions = vehicleWrapper.getVehiclePositions();
 		Map<String, String> allLaneIds = vehicleWrapper.getVehicleLaneIds();
+		// Fetch vehicle angles for realistic orientation rendering
+		Map<String, Double> allAngles = vehicleWrapper.getVehicleAngles();
+		// Fetch vehicle types for rendering appropriate vehicle shapes (car, bus, motorbike, etc.)
+		Map<String, String> allTypes = vehicleWrapper.getVehicleTypes();
 		List<VehicleRow> allRows = vehicleWrapper.getVehicleRows();
 		Map<String, Color> colorMap = new HashMap<>();
 		Map<String, Point2D> filteredPositions = new HashMap<>();
 		Map<String, String> filteredLaneIds = new HashMap<>();
+		Map<String, Double> filteredAngles = new HashMap<>();
+		Map<String, String> filteredTypes = new HashMap<>();
 		List<VehicleRow> filteredRows = new ArrayList<>();
 
 		// Cache for edge mean speeds (only used when congestion filter enabled)
@@ -591,14 +597,24 @@ public class UI {
 			if (laneId != null && !laneId.isEmpty()) {
 				filteredLaneIds.put(row.getId(), laneId);
 			}
+			// Include vehicle angle for orientation in rendering
+			Double angle = (allAngles != null) ? allAngles.get(row.getId()) : null;
+			if (angle != null) {
+				filteredAngles.put(row.getId(), angle);
+			}
+			// Include vehicle type for shape rendering (car, bus, motorbike, etc.)
+			String vehType = (allTypes != null) ? allTypes.get(row.getId()) : null;
+			if (vehType != null && !vehType.isEmpty()) {
+				filteredTypes.put(row.getId(), vehType);
+			}
 		}
 
-		// Update map (only filtered vehicles)
+		// Update map (only filtered vehicles) with angles and types for realistic rendering
 		if (filteredPositions.isEmpty() && allRows.isEmpty() && allPositions != null && !allPositions.isEmpty()) {
 			// If row fetching fails for any reason, still render positions so vehicles remain visible.
-			mapView.updateVehicles(allPositions, Collections.emptyMap(), allLaneIds);
+			mapView.updateVehicles(allPositions, Collections.emptyMap(), allLaneIds, allAngles, allTypes);
 		} else {
-			mapView.updateVehicles(filteredPositions, colorMap, filteredLaneIds);
+			mapView.updateVehicles(filteredPositions, colorMap, filteredLaneIds, filteredAngles, filteredTypes);
 		}
 
 		// Overlay traffic-light stop lines (R/Y/G) so it's obvious why vehicles stop.

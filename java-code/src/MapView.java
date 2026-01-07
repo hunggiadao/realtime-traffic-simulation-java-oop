@@ -100,6 +100,14 @@ public class MapView extends Pane {
     private Map<String, Point2D> vehiclePositions;
 	private Map<String, Color> vehicleColors;
     private Map<String, String> vehicleLaneIds;
+    // Vehicle angles in degrees (heading from North, clockwise)
+    private Map<String, Double> vehicleAngles;
+    // Vehicle types (e.g., "car", "bus", "motorcycle", "bike")
+    private Map<String, String> vehicleTypes;
+
+    // Per-vehicle render smoothing state (keeps headings stable at junctions)
+    private final Map<String, Point2D> lastVehicleWorldPos = new HashMap<>();
+    private final Map<String, Point2D> smoothedVehicleDir = new HashMap<>();
 	private Map<String, Color> laneSignalColors;
     private double minX = 0, maxX = 1, minY = 0, maxY = 1;
 
@@ -217,18 +225,31 @@ public class MapView extends Pane {
         offsetY = 0;
         userScale = 1.0;
         computeBaseScale();
+        clampOffsets();
         redraw();
         return laneCount;
     }
 
     public void updateVehicles(Map<String, Point2D> positions, Map<String, Color> colors) {
-        updateVehicles(positions, colors, null);
+        updateVehicles(positions, colors, null, null, null);
     }
 
     public void updateVehicles(Map<String, Point2D> positions, Map<String, Color> colors, Map<String, String> laneIds) {
+        updateVehicles(positions, colors, laneIds, null, null);
+    }
+
+    /**
+     * Update vehicle positions, colors, lane IDs, angles, and types for rendering.
+     * This overload supports realistic vehicle shapes with proper orientation.
+     */
+    public void updateVehicles(Map<String, Point2D> positions, Map<String, Color> colors, 
+                               Map<String, String> laneIds, Map<String, Double> angles, 
+                               Map<String, String> types) {
         this.vehiclePositions = positions;
         this.vehicleColors = colors;
         this.vehicleLaneIds = laneIds;
+        this.vehicleAngles = angles;
+        this.vehicleTypes = types;
         redraw();
     }
 
@@ -245,6 +266,7 @@ public class MapView extends Pane {
         canvas.setWidth(getWidth());
         canvas.setHeight(getHeight());
         computeBaseScale();
+        clampOffsets();
         redraw();
     }
 
@@ -265,6 +287,10 @@ public class MapView extends Pane {
             g.fillText("No network loaded. Check your .sumocfg and net path.", 20, 30);
             return;
         }
+
+        // Green grass background after config is loaded (network exists)
+        g.setFill(Color.web("#e8f5e9")); // Super soft light green
+        g.fillRect(0, 0, w, h);
 
         // Dark road styling similar to SUMO GUI: black asphalt
         // with slightly lighter lane markings.
@@ -316,64 +342,28 @@ public class MapView extends Pane {
         drawRoadDirectionArrows(g, h, scale, Color.web("#bdbdbd"));
 
         // Draw traffic light stop lines (overlay on top of roads)
-        if (laneSignalColors != null && !laneSignalColors.isEmpty()) {
-            for (Entry<String, Color> e : laneSignalColors.entrySet()) {
-                LaneShape lane = lanesById.get(e.getKey());
-                if (lane == null || lane.polyline == null || lane.polyline.size() < 2) continue;
-                int n = lane.polyline.size();
-                Point2D worldPrev = lane.polyline.get(n - 2);
-                Point2D worldEnd = lane.polyline.get(n - 1);
-                Point2D pPrev = transform(worldPrev, h, scale);
-                Point2D pEnd = transform(worldEnd, h, scale);
-                double dx = pEnd.getX() - pPrev.getX();
-                double dy = pEnd.getY() - pPrev.getY();
-                double len = Math.hypot(dx, dy);
-                if (len < 0.001) continue;
-                double ux = dx / len;
-                double uy = dy / len;
-                // Normal vector for stop line across lane direction
-                double nx = -uy;
-                double ny = ux;
+        // (Drawn after vehicles so stop lines remain visible when cars overlap.)
 
-                double laneScreenWidth = Math.max(1.5, lane.widthMeters * scale);
-                double lineLen = Math.max(7.0, laneScreenWidth * 1.4);
-                double backShift = Math.max(3.0, laneScreenWidth * 0.7);
-                double cx = pEnd.getX() - ux * backShift;
-                double cy = pEnd.getY() - uy * backShift;
-
-                double x1 = cx - nx * (lineLen / 2.0);
-                double y1 = cy - ny * (lineLen / 2.0);
-                double x2 = cx + nx * (lineLen / 2.0);
-                double y2 = cy + ny * (lineLen / 2.0);
-
-                Color c = (e.getValue() != null) ? e.getValue() : Color.RED;
-                g.setLineDashes(null);
-                // Outline for readability on dark roads
-                g.setStroke(Color.WHITE);
-                g.setLineWidth(Math.max(3.2, laneScreenWidth * 0.6));
-                g.strokeLine(x1, y1, x2, y2);
-
-                g.setStroke(c);
-                g.setLineWidth(Math.max(2.0, laneScreenWidth * 0.35));
-                g.strokeLine(x1, y1, x2, y2);
-            }
-        }
-
-        // Draw vehicles
+        // Draw vehicles with realistic shapes based on vehicle type
         if (vehiclePositions != null) {
-            double radius = 4.0;
             for (Entry<String, Point2D> e : vehiclePositions.entrySet()) {
+                String vehicleId = e.getKey();
                 Color c = Color.RED;
                 if (vehicleColors != null) {
-                    Color mapped = vehicleColors.get(e.getKey());
+                    Color mapped = vehicleColors.get(vehicleId);
                     if (mapped != null) c = mapped;
                 }
 
                 Point2D worldPos = e.getValue();
                 Point2D drawWorld = worldPos;
+
+                LaneShape laneForHeading = null;
                 if (vehicleLaneIds != null) {
-                    String laneId = vehicleLaneIds.get(e.getKey());
+                    String laneId = vehicleLaneIds.get(vehicleId);
                     LaneShape lane = (laneId != null) ? lanesById.get(laneId) : null;
+
+                    // Keep the lane reference so we can derive a stable heading direction.
+                    laneForHeading = lane;
                     if (lane != null && lane.polyline != null && lane.polyline.size() >= 2 && worldPos != null) {
                         double offsetMeters = Math.max(0.35, lane.widthMeters * 0.22);
                         double sign = ((laneId.hashCode() & 1) == 0) ? 1.0 : -1.0;
@@ -383,14 +373,100 @@ public class MapView extends Pane {
 
                 Point2D tp = transform(drawWorld, h, scale);
 
-                // Outline improves visibility on dark roads.
-                g.setStroke(Color.WHITE);
-                g.setLineWidth(1.2);
-                g.strokeOval(tp.getX() - radius, tp.getY() - radius, radius * 2, radius * 2);
+                // Get vehicle angle (heading) - default to 0 if not available
+                double angleDegrees = 0.0;
+                if (vehicleAngles != null && vehicleAngles.containsKey(vehicleId)) {
+                    angleDegrees = vehicleAngles.get(vehicleId);
+                }
 
-                g.setFill(c);
-                g.fillOval(tp.getX() - radius, tp.getY() - radius, radius * 2, radius * 2);
+                // Get vehicle type - default to "car" if not available
+                String vehicleType = "car";
+                if (vehicleTypes != null && vehicleTypes.containsKey(vehicleId)) {
+                    vehicleType = vehicleTypes.get(vehicleId).toLowerCase();
+                }
+
+                // Draw the vehicle; size scales with user zoom so it's easier to see when zoomed in.
+                drawVehicleShape(g, vehicleId, worldPos, laneForHeading, tp.getX(), tp.getY(), angleDegrees, vehicleType, c, userScale);
             }
+        }
+
+        // Draw traffic light stop lines (overlay on top of roads)
+        drawTrafficLightStopLines(g, h, scale);
+    }
+
+    private void drawTrafficLightStopLines(GraphicsContext g, double height, double scale) {
+        // This function draws stop lines at the end of each signaled lane.
+        // Sizes are clamped in screen pixels so they don't become huge when zooming.
+        if (laneSignalColors == null || laneSignalColors.isEmpty()) return;
+
+        for (Entry<String, Color> e : laneSignalColors.entrySet()) {
+            LaneShape lane = lanesById.get(e.getKey());
+            if (lane == null || lane.polyline == null || lane.polyline.size() < 2) continue;
+            int n = lane.polyline.size();
+
+            Point2D worldPrev = lane.polyline.get(n - 2);
+            Point2D worldEnd = lane.polyline.get(n - 1);
+            Point2D pPrev = transform(worldPrev, height, scale);
+            Point2D pEnd = transform(worldEnd, height, scale);
+
+            double dx = pEnd.getX() - pPrev.getX();
+            double dy = pEnd.getY() - pPrev.getY();
+            double len = Math.hypot(dx, dy);
+            if (len < 0.001) continue;
+            double ux = dx / len;
+            double uy = dy / len;
+            // Normal vector for stop line across lane direction
+            double nx = -uy;
+            double ny = ux;
+
+            // Keep stop-line thickness mostly constant in screen pixels.
+            // Only increase *length* with zoom so the stop line is more visible when zoomed in.
+            double lanePx = clamp(Math.max(6.0, lane.widthMeters * baseScale), 6.0, 22.0);
+
+            // Make the stop-line longer when zoomed in, without increasing thickness.
+            // Use an "ease-in" curve so mid-zoom doesn't produce overly long lines,
+            // while max zoom still gets a clearly longer stop line.
+            // NOTE: userScale ranges up to ~25 in this project.
+            // We want the stop line to be slightly longer at mid zoom (not tiny),
+            // and noticeably longer near max zoom, without becoming road-wide too early.
+            double z = clamp(userScale, 1.0, 25.0);
+
+            // Stage 1: small boost up to around userScale ~8.
+            double t1 = clamp((z - 1.0) / (8.0 - 1.0), 0.0, 1.0);
+            t1 = t1 * t1 * (3.0 - 2.0 * t1); // smoothstep
+
+            // Stage 2: stronger ramp from ~8 up to max zoom.
+            double t2 = clamp((z - 8.0) / (25.0 - 8.0), 0.0, 1.0);
+            t2 = t2 * t2;
+
+            double baseLen = clamp(lanePx * 1.2, 14.0, 44.0);
+            double midExtraPx = 18.0;
+            double maxExtra = clamp(lanePx * 3.2, 35.0, 90.0);
+            double lineLen = clamp(baseLen + midExtraPx * t1 + maxExtra * t2, 14.0, 120.0);
+
+            // Place the stop line a small, consistent distance before the lane end in *world meters*.
+            // If this is in pixels, the world-distance changes with zoom and cars may appear to cross it.
+            double backShiftMeters = clamp(lane.widthMeters * 0.20, 0.35, 0.85);
+            double backShiftPx = backShiftMeters * scale;
+            double cx = pEnd.getX() - ux * backShiftPx;
+            double cy = pEnd.getY() - uy * backShiftPx;
+
+            double x1 = cx - nx * (lineLen / 2.0);
+            double y1 = cy - ny * (lineLen / 2.0);
+            double x2 = cx + nx * (lineLen / 2.0);
+            double y2 = cy + ny * (lineLen / 2.0);
+
+            Color c = (e.getValue() != null) ? e.getValue() : Color.RED;
+            g.setLineDashes(null);
+
+            // Outline for readability on dark roads
+            g.setStroke(Color.WHITE);
+            g.setLineWidth(clamp(lanePx * 0.55, 3.2, 14.0));
+            g.strokeLine(x1, y1, x2, y2);
+
+            g.setStroke(c);
+            g.setLineWidth(clamp(lanePx * 0.35, 2.0, 11.0));
+            g.strokeLine(x1, y1, x2, y2);
         }
     }
 
@@ -430,6 +506,215 @@ public class MapView extends Pane {
         g.strokeRoundRect(x - padX, y - h + padY, w, h, 6, 6);
         g.setFill(fg);
         g.fillText(text, x, y);
+    }
+
+    /**
+     * Draws a realistic car shape for all vehicle types.
+     * Uses vector-based drawing for smooth rotation at any angle.
+     */
+    private void drawVehicleShape(GraphicsContext g, String vehicleId, Point2D worldPos, LaneShape lane,
+                                  double x, double y, double angleDegrees,
+                                  String vehicleType, Color color, double scale) {
+        // This function computes a stable heading direction for the car:
+        // 1) Prefer lane tangent (smooth on curves)
+        // 2) Fallback to movement delta (smooth at merges)
+        // 3) Fallback to SUMO angle
+        Point2D dirWorld = null;
+
+        // (1) Lane tangent in world coordinates (x right, y up)
+        if (lane != null && lane.polyline != null && lane.polyline.size() >= 2 && worldPos != null) {
+            dirWorld = laneTangentAt(worldPos, lane.polyline);
+        }
+
+        // (2) Movement delta (world coordinates)
+        if (dirWorld == null && worldPos != null && vehicleId != null) {
+            Point2D prev = lastVehicleWorldPos.get(vehicleId);
+            if (prev != null) {
+                double dx = worldPos.getX() - prev.getX();
+                double dy = worldPos.getY() - prev.getY();
+                double len = Math.hypot(dx, dy);
+                if (len > 1e-6) {
+                    dirWorld = new Point2D(dx / len, dy / len);
+                }
+            }
+        }
+
+        // (3) SUMO angle fallback (world coordinates)
+        if (dirWorld == null) {
+            double angleRad = Math.toRadians(angleDegrees);
+            // SUMO 0° = North (+Y), 90° = East (+X)
+            dirWorld = new Point2D(Math.sin(angleRad), Math.cos(angleRad));
+        }
+
+        // Convert world direction to screen direction (screen Y is flipped)
+        Point2D dirScreen = new Point2D(dirWorld.getX(), -dirWorld.getY());
+        dirScreen = normalize(dirScreen);
+
+        // Smooth direction to avoid jitter / sudden flips at junctions.
+        // Small alpha => smoother but more lag; medium value is a good compromise.
+        final double alpha = 0.28;
+        if (vehicleId != null) {
+            Point2D prevDir = smoothedVehicleDir.get(vehicleId);
+            if (prevDir != null) {
+                Point2D blended = new Point2D(
+                        prevDir.getX() * (1.0 - alpha) + dirScreen.getX() * alpha,
+                        prevDir.getY() * (1.0 - alpha) + dirScreen.getY() * alpha
+                );
+                dirScreen = normalize(blended);
+            }
+            smoothedVehicleDir.put(vehicleId, dirScreen);
+            if (worldPos != null) {
+                lastVehicleWorldPos.put(vehicleId, worldPos);
+            }
+        }
+
+        double fx = dirScreen.getX();
+        double fy = dirScreen.getY();
+        // Right vector perpendicular to forward (screen coordinates)
+        double rx = fy;
+        double ry = -fx;
+
+        // Draw car using vectors (vehicleType currently ignored; kept for future extension).
+        // SUMO's reported position is typically near the *front* of the vehicle; we draw centered.
+        // Shift the car back by half its screen length so cars don't visually cross stop lines.
+        double halfLenPx = carLengthPxForZoom(scale) * 0.5;
+        drawCarShapeWithVectors(g, x - fx * halfLenPx, y - fy * halfLenPx, fx, fy, rx, ry, color, scale);
+    }
+
+    private double carSizeMulForZoom(double mapScale) {
+        // This function controls how car size changes with zoom.
+        // Small when zoomed out, grows smoothly when zooming in.
+        double zoom = clamp(mapScale, 1.0, 25.0);
+        double t = clamp((zoom - 1.0) / (10.0 - 1.0), 0.0, 1.0);
+        t = t * t * (3.0 - 2.0 * t); // smoothstep
+        return clamp(0.75 + 1.35 * t, 0.7, 2.2);
+    }
+
+    private double carLengthPxForZoom(double mapScale) {
+        // This function returns the car length in screen pixels.
+        return Math.max(8.5, 12.0 * carSizeMulForZoom(mapScale));
+    }
+
+    private static Point2D normalize(Point2D v) {
+        if (v == null) return new Point2D(1.0, 0.0);
+        double len = Math.hypot(v.getX(), v.getY());
+        if (len < 1e-9) return new Point2D(1.0, 0.0);
+        return new Point2D(v.getX() / len, v.getY() / len);
+    }
+
+    private static Point2D laneTangentAt(Point2D worldPos, List<Point2D> polyline) {
+        // This function finds the closest lane segment to the vehicle and returns its direction.
+        if (worldPos == null || polyline == null || polyline.size() < 2) return null;
+        double bestDist2 = Double.POSITIVE_INFINITY;
+        Point2D bestDir = null;
+
+        for (int i = 1; i < polyline.size(); i++) {
+            Point2D a = polyline.get(i - 1);
+            Point2D b = polyline.get(i);
+            double vx = b.getX() - a.getX();
+            double vy = b.getY() - a.getY();
+            double len2 = vx * vx + vy * vy;
+            if (len2 < 1e-9) continue;
+
+            double wx = worldPos.getX() - a.getX();
+            double wy = worldPos.getY() - a.getY();
+            double t = (wx * vx + wy * vy) / len2;
+            if (t < 0.0) t = 0.0;
+            else if (t > 1.0) t = 1.0;
+            double px = a.getX() + t * vx;
+            double py = a.getY() + t * vy;
+            double dx = worldPos.getX() - px;
+            double dy = worldPos.getY() - py;
+            double dist2 = dx * dx + dy * dy;
+            if (dist2 < bestDist2) {
+                bestDist2 = dist2;
+                double len = Math.sqrt(len2);
+                bestDir = new Point2D(vx / len, vy / len);
+            }
+        }
+
+        return bestDir;
+    }
+
+    /**
+     * Draws a car shape using direction vectors for smooth rotation.
+     * @param fx, fy - forward direction vector (normalized)
+     * @param rx, ry - right direction vector (perpendicular to forward)
+     */
+    private void drawCarShapeWithVectors(GraphicsContext g, double cx, double cy,
+                                          double fx, double fy, double rx, double ry,
+                                          Color color, double mapScale) {
+        // Car dimensions in screen pixels.
+        // We intentionally scale with the user's zoom (not world scale) so cars stay readable.
+        double length = carLengthPxForZoom(mapScale);
+        double width = length * 0.45;
+        double halfLen = length / 2.0;
+        double halfWid = width / 2.0;
+        
+        // Calculate the 4 corners of the car body
+        // Front-right, Front-left, Back-left, Back-right
+        double[] xPoints = new double[4];
+        double[] yPoints = new double[4];
+        
+        // Front-right corner
+        xPoints[0] = cx + fx * halfLen + rx * halfWid;
+        yPoints[0] = cy + fy * halfLen + ry * halfWid;
+        // Front-left corner
+        xPoints[1] = cx + fx * halfLen - rx * halfWid;
+        yPoints[1] = cy + fy * halfLen - ry * halfWid;
+        // Back-left corner
+        xPoints[2] = cx - fx * halfLen - rx * halfWid;
+        yPoints[2] = cy - fy * halfLen - ry * halfWid;
+        // Back-right corner
+        xPoints[3] = cx - fx * halfLen + rx * halfWid;
+        yPoints[3] = cy - fy * halfLen + ry * halfWid;
+        
+        // Draw car body outline for visibility
+        g.setStroke(Color.WHITE);
+        g.setLineWidth(1.0);
+        g.strokePolygon(xPoints, yPoints, 4);
+        
+        // Draw car body fill
+        g.setFill(color);
+        g.fillPolygon(xPoints, yPoints, 4);
+        
+        // Draw windshield (front window) - darker shade
+        Color windowColor = color.darker().darker();
+        double windowLen = length * 0.2;
+        double windowWid = width * 0.6;
+        double windowHalfWid = windowWid / 2.0;
+        // Window position: slightly behind the front
+        double windowOffset = halfLen - windowLen * 0.8;
+        
+        double[] wxPoints = new double[4];
+        double[] wyPoints = new double[4];
+        wxPoints[0] = cx + fx * windowOffset + rx * windowHalfWid;
+        wyPoints[0] = cy + fy * windowOffset + ry * windowHalfWid;
+        wxPoints[1] = cx + fx * windowOffset - rx * windowHalfWid;
+        wyPoints[1] = cy + fy * windowOffset - ry * windowHalfWid;
+        wxPoints[2] = cx + fx * (windowOffset - windowLen) - rx * windowHalfWid;
+        wyPoints[2] = cy + fy * (windowOffset - windowLen) - ry * windowHalfWid;
+        wxPoints[3] = cx + fx * (windowOffset - windowLen) + rx * windowHalfWid;
+        wyPoints[3] = cy + fy * (windowOffset - windowLen) + ry * windowHalfWid;
+        
+        g.setFill(windowColor);
+        g.fillPolygon(wxPoints, wyPoints, 4);
+        
+        // Draw headlights (small circles at front corners)
+        g.setFill(Color.YELLOW);
+        double lightSize = width * 0.22;
+        double lightOffset = halfLen - lightSize * 0.5;
+        double lightSide = halfWid - lightSize * 0.3;
+        
+        // Right headlight
+        double lx1 = cx + fx * lightOffset + rx * lightSide;
+        double ly1 = cy + fy * lightOffset + ry * lightSide;
+        g.fillOval(lx1 - lightSize / 2, ly1 - lightSize / 2, lightSize, lightSize);
+        
+        // Left headlight
+        double lx2 = cx + fx * lightOffset - rx * lightSide;
+        double ly2 = cy + fy * lightOffset - ry * lightSide;
+        g.fillOval(lx2 - lightSize / 2, ly2 - lightSize / 2, lightSize, lightSize);
     }
 
     private static Point2D centroid(List<Point2D> poly) {
@@ -688,6 +973,7 @@ public class MapView extends Pane {
             double dy = evt.getY() - lastMouseY;
             offsetX += dx;
             offsetY += dy;
+            clampOffsets();
             lastMouseX = evt.getX();
             lastMouseY = evt.getY();
             redraw();
@@ -696,7 +982,7 @@ public class MapView extends Pane {
 
     private void zoom(double factor, double pivotX, double pivotY) {
         double oldScale = userScale;
-        double newScale = clamp(userScale * factor, 0.1, 10.0);
+        double newScale = clamp(userScale * factor, 1.0, 25.0);
         factor = newScale / oldScale;
 
         double scale = baseScale * oldScale;
@@ -708,7 +994,50 @@ public class MapView extends Pane {
         double newScaleCombined = baseScale * userScale;
         offsetX = pivotX - padding - worldX * newScaleCombined;
         offsetY = pivotY - padding - worldY * newScaleCombined;
+        clampOffsets();
         redraw();
+    }
+
+    private void clampOffsets() {
+        // This function limits panning so the map stays within a reasonable "sandbox".
+        // It prevents dragging so far that the network becomes hard to find again.
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
+        if (w <= 0 || h <= 0) return;
+        if (lanes.isEmpty()) return;
+
+        double scale = baseScale * userScale;
+        double contentW = Math.max(0.0, (maxX - minX) * scale);
+        double contentH = Math.max(0.0, (maxY - minY) * scale);
+
+        // Allow some overscroll margin so the user can inspect edges without losing the map.
+        // Make the margin scale with zoom (in world meters) so it feels consistent.
+        // When zoomed out, tighten the sandbox aggressively to avoid getting "lost".
+        double marginMeters = 35.0;
+        double z = clamp(userScale, 1.0, 25.0);
+        double zoomOutT = clamp((z - 1.0) / (3.0 - 1.0), 0.0, 1.0);
+        double minMarginWhenZoomedOut = Math.min(w, h) * 0.35;
+        double minMargin = (1.0 - zoomOutT) * minMarginWhenZoomedOut + zoomOutT * 80.0;
+        double margin = clamp(marginMeters * scale, minMargin, Math.min(360.0, Math.min(w, h) * 0.30));
+
+        // Screen bounds of the network: [padding + offsetX, padding + offsetX + contentW]
+        double minOffX = margin - padding - contentW;
+        double maxOffX = (w - margin) - padding;
+        if (minOffX > maxOffX) {
+            // If the content is smaller than the viewport (at this zoom), keep it centered.
+            offsetX = (w - contentW) * 0.5 - padding;
+        } else {
+            offsetX = clamp(offsetX, minOffX, maxOffX);
+        }
+
+        // Y uses the same screen-space logic because transform() flips world Y inside the mapping.
+        double minOffY = margin - padding - contentH;
+        double maxOffY = (h - margin) - padding;
+        if (minOffY > maxOffY) {
+            offsetY = (h - contentH) * 0.5 - padding;
+        } else {
+            offsetY = clamp(offsetY, minOffY, maxOffY);
+        }
     }
 
     private double clamp(double v, double min, double max) {
