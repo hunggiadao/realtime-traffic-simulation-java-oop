@@ -362,10 +362,12 @@ public class UI {
             case LEFT:
                 System.out.println("Left");
                 keyController.selectPreviousTrafficLight();
+                cmbTrafficLight.getSelectionModel().select(keyController.getCurrentTrafficLightIndex());
                 break;
             case RIGHT:
                 System.out.println("Right");
                 keyController.selectNextTrafficLight();
+                cmbTrafficLight.getSelectionModel().select(keyController.getCurrentTrafficLightIndex());
                 break;
             default:
                 break;

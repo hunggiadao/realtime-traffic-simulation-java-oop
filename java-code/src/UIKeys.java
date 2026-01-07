@@ -35,7 +35,9 @@ public class UIKeys {
         // Select the first traffic light by default
         selectFirstTrafficLight();
     }
-
+    public int getCurrentTrafficLightIndex() {
+        return currentTrafficLightIndex;
+    }
 
     /**
      * Select the first traffic light from the available list
