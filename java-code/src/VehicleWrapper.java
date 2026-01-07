@@ -903,6 +903,88 @@ public final class VehicleWrapper {
         return Math.max(min, Math.min(v, max));
     }
 
+    /**
+     * Fetch current vehicle angles (heading in degrees) from SUMO.
+     * Angle is measured from North (0 degrees) clockwise.
+     * @return map of vehicle id to angle in degrees
+     */
+    public Map<String, Double> getVehicleAngles() {
+        Map<String, Double> out = new HashMap<>();
+        if (traci.getConnection() == null || !traci.isConnected()) {
+            return out;
+        }
+
+        try {
+            Object idsObj = traci.getConnection().do_job_get(Vehicle.getIDList());
+            List<String> ids = new ArrayList<>();
+            if (idsObj instanceof String[]) {
+                for (String s : (String[]) idsObj) ids.add(s);
+            } else if (idsObj instanceof List<?>) {
+                for (Object o : (List<?>) idsObj) ids.add(String.valueOf(o));
+            }
+
+            for (String id : ids) {
+                try {
+                    // Get vehicle angle (heading) from SUMO
+                    Object angleObj = traci.getConnection().do_job_get(Vehicle.getAngle(id));
+                    if (angleObj instanceof Number) {
+                        out.put(id, ((Number) angleObj).doubleValue());
+                    }
+                } catch (Exception ignored) {
+                    // ignore per-vehicle angle failures
+                }
+            }
+        } catch (Exception e) {
+            if (e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return out;
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch vehicle angles", e);
+        }
+        return out;
+    }
+
+    /**
+     * Fetch current vehicle types from SUMO.
+     * Returns the vehicle type ID for each vehicle (e.g., "car", "bus", "motorcycle").
+     * @return map of vehicle id to vehicle type string
+     */
+    public Map<String, String> getVehicleTypes() {
+        Map<String, String> out = new HashMap<>();
+        if (traci.getConnection() == null || !traci.isConnected()) {
+            return out;
+        }
+
+        try {
+            Object idsObj = traci.getConnection().do_job_get(Vehicle.getIDList());
+            List<String> ids = new ArrayList<>();
+            if (idsObj instanceof String[]) {
+                for (String s : (String[]) idsObj) ids.add(s);
+            } else if (idsObj instanceof List<?>) {
+                for (Object o : (List<?>) idsObj) ids.add(String.valueOf(o));
+            }
+
+            for (String id : ids) {
+                try {
+                    // Get vehicle type ID from SUMO
+                    Object typeObj = traci.getConnection().do_job_get(Vehicle.getTypeID(id));
+                    if (typeObj != null) {
+                        out.put(id, typeObj.toString());
+                    }
+                } catch (Exception ignored) {
+                    // ignore per-vehicle type failures
+                }
+            }
+        } catch (Exception e) {
+            if (e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return out;
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch vehicle types", e);
+        }
+        return out;
+    }
+
     // not yet implemented
 //    getRouteID()
 //    getRouteIndex()
@@ -910,5 +992,4 @@ public final class VehicleWrapper {
 //    getDistance()
 //    getSignals()
 //    getAcceleration()
-//    getAngle()
 }
