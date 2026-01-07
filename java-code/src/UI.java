@@ -111,6 +111,7 @@ public class UI {
 	private TraCIConnector connector;
 	private VehicleWrapper vehicleWrapper;
 	private TrafficLightWrapper trafWrapper;
+    private UIKeys keyController;
 	private int stepLengthMs = 100;
 	private double stepLengthSeconds = 0.1;
 	private AnimationTimer loopTimer;
@@ -351,16 +352,20 @@ public class UI {
 
         switch (code) {
             case UP:
-                System.out.println("Stopped moving Up");
+                System.out.println("Up");
+                changeTrafficLightPhase(1);
                 break;
             case DOWN:
-                System.out.println("Stopped moving Down");
+                System.out.println("Down");
+                changeTrafficLightPhase(-1);
                 break;
             case LEFT:
-                System.out.println("Stopped moving Left");
+                System.out.println("Left");
+                keyController.selectPreviousTrafficLight();
                 break;
             case RIGHT:
-                System.out.println("Stopped moving Right");
+                System.out.println("Right");
+                keyController.selectNextTrafficLight();
                 break;
             default:
                 break;
@@ -429,6 +434,7 @@ public class UI {
 
 		vehicleWrapper = new VehicleWrapper(connector);
 		trafWrapper = new TrafficLightWrapper(connector);
+        keyController = new UIKeys(trafWrapper);
 
 		if (cpInjectColor != null) {
 			// Reset injection color on (re)connect.

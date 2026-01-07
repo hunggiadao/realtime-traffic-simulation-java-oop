@@ -76,6 +76,28 @@ public final class TrafficLightWrapper {
 			LOGGER.log(Level.FINE, "Failed to set traffic light state for id=" + id, e);
         }
     }
+
+    public List<String> getAllTrafficLightStates(String id){
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            LOGGER.fine("Cannot set state: connection not available");
+            return null;
+        };
+        try {
+            SumoTLSController controller = (SumoTLSController) traci.getConnection().do_job_get(Trafficlight.getCompleteRedYellowGreenDefinition(id));
+            SumoTLSProgram program = (SumoTLSProgram) controller.get("0");
+            List<String> phasesStrings = new ArrayList<String>();
+            List<SumoTLSPhase> sumoPhases = (List<SumoTLSPhase>) program.phases;
+            for (SumoTLSPhase phase : sumoPhases) {
+                phasesStrings.add(phase.phasedef);
+            }
+            return phasesStrings;
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "Failed to get traffic light state for id=" + id, e);
+        }
+        return null;
+    }
+
+
     /**
      * Returns the number of traffic lights within the scenario
      */
