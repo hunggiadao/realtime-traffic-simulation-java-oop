@@ -17,6 +17,9 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import javafx.scene.paint.Color;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.BorderPane;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
@@ -43,8 +46,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import de.tudresden.sumo.objects.SumoTLSController;
+import de.tudresden.sumo.objects.SumoTLSProgram;
+import de.tudresden.sumo.objects.SumoTLSPhase;
+
 public class UI {
 	private static final Logger LOGGER = Logger.getLogger(UI.class.getName());
+	
+	@FXML private BorderPane rootPane;
 
 	// Top toolbar
 	@FXML private Button btnOpenConfig;
@@ -101,6 +110,7 @@ public class UI {
 	// SUMO / TraCI
 	private TraCIConnector connector;
 	private VehicleWrapper vehicleWrapper;
+	private TrafficLightWrapper trafWrapper;
 	private int stepLengthMs = 100;
 	private double stepLengthSeconds = 0.1;
 	private AnimationTimer loopTimer;
@@ -179,6 +189,7 @@ public class UI {
 				txtConfigPath.setText(lastCfg);
 			}
 		}
+		
 		if (txtStepMs != null) {
 			txtStepMs.setText(userSettings.getString("stepMs", "100"));
 		}
@@ -200,22 +211,31 @@ public class UI {
 			mapPane.getChildren().clear();
 			mapPane.getChildren().add(mapView);
 		}
-
-			// Clear traffic light UI until we connect
-			if (cmbTrafficLight != null) {
-				cmbTrafficLight.getItems().clear();
-			}
-			if (lblPhaseInfo != null) {
-				lblPhaseInfo.setText("Phase: -");
-			}
-			if (txtPhaseDuration != null) {
-				txtPhaseDuration.setText("");
-			}
+		
+		// Clear traffic light UI until we connect
+		if (cmbTrafficLight != null) {
+			cmbTrafficLight.getItems().clear();
+		}
+		if (lblPhaseInfo != null) {
+			lblPhaseInfo.setText("Phase: -");
+		}
+		if (txtPhaseDuration != null) {
+			txtPhaseDuration.setText("");
+		}
+		if (rootPane != null) {
+            rootPane.setFocusTraversable(true);
+			Platform.runLater(() -> rootPane.requestFocus());
+			rootPane.setOnMouseClicked(event -> rootPane.requestFocus());
+		}
 
 		setDisconnectedUI();
 	}
 
 	// UI state helpers
+	/**
+	 * Change the UI to disconnected state, show Connect button,
+	 * status bar says Disconnected, OpenConfig clickable
+	 */
 	private void setDisconnectedUI() {
 		if (lblStatus != null) lblStatus.setText("Status: Disconnected");
 		if (btnConnect != null) {
@@ -232,7 +252,10 @@ public class UI {
 		}
 		if (btnStep != null) btnStep.setDisable(true);
 	}
-
+	/**
+	 * Change the UI to connected state, show Disconnect button,
+	 * status bar says Connected, OpenConfig not clickable
+	 */
 	private void setConnectedUI() {
 		if (lblStatus != null) lblStatus.setText("Status: Connected");
 		if (btnConnect != null) {
@@ -321,6 +344,28 @@ public class UI {
 
 		updateMapView();
 	}
+	
+	@FXML
+    private void handleKeyRelease(KeyEvent event) {
+        KeyCode code = event.getCode();
+
+        switch (code) {
+            case UP:
+                System.out.println("Stopped moving Up");
+                break;
+            case DOWN:
+                System.out.println("Stopped moving Down");
+                break;
+            case LEFT:
+                System.out.println("Stopped moving Left");
+                break;
+            case RIGHT:
+                System.out.println("Stopped moving Right");
+                break;
+            default:
+                break;
+        }
+    }
 
 	@FXML
 	private void onOpenConfig() {
@@ -383,6 +428,7 @@ public class UI {
 		resetSessionStats();
 
 		vehicleWrapper = new VehicleWrapper(connector);
+		trafWrapper = new TrafficLightWrapper(connector);
 
 		if (cpInjectColor != null) {
 			// Reset injection color on (re)connect.
@@ -629,26 +675,34 @@ public class UI {
 			vehicleTable.refresh();
 		}
 	}
-
+	
+	/**
+	 * build a map for traffic light states in different lanes
+	 * @return
+	 */
 	private Map<String, Color> buildLaneSignalColorMap() {
 		if (connector == null || !connector.isConnected() || connector.getConnection() == null) {
 			return Collections.emptyMap();
 		}
 		try {
-			Object idsObj = connector.getConnection().do_job_get(Trafficlight.getIDList());
 			List<String> ids = new ArrayList<>();
-			if (idsObj instanceof String[]) {
-				for (String s : (String[]) idsObj) ids.add(s);
-			} else if (idsObj instanceof List<?>) {
-				for (Object o : (List<?>) idsObj) ids.add(String.valueOf(o));
-			}
+			
+//			Object idsObj = connector.getConnection().do_job_get(Trafficlight.getIDList());
+//			if (idsObj instanceof String[]) {
+//				for (String s : (String[]) idsObj) ids.add(s);
+//			} else if (idsObj instanceof List<?>) {
+//				for (Object o : (List<?>) idsObj) ids.add(String.valueOf(o));
+//			}
+			
+			ids = trafWrapper.getTrafficLightIds();
 			if (ids.isEmpty()) return Collections.emptyMap();
 
 			Map<String, Integer> lanePriority = new HashMap<>();
 			Map<String, Color> laneColor = new HashMap<>();
 			for (String tlId : ids) {
 				if (tlId == null || tlId.isEmpty()) continue;
-				String state = String.valueOf(connector.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(tlId)));
+//				String state = String.valueOf(connector.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(tlId)));
+				String state = trafWrapper.getTrafficLightState(tlId);
 				if (state == null || state.isEmpty()) continue;
 
 				List<SumoLink> links = trafficLightLinksCache.get(tlId);
@@ -722,7 +776,8 @@ public class UI {
 			}
 		}
 	}
-
+	
+	// 3 is the highest, 0 is the lowest
 	private static int signalPriority(char state) {
 		switch (Character.toLowerCase(state)) {
 			case 'r':
@@ -755,10 +810,16 @@ public class UI {
 				&& Math.abs(actual.getGreen() - target.getGreen()) <= tol
 				&& Math.abs(actual.getBlue() - target.getBlue()) <= tol;
 	}
-
+	
+	/**
+	 * return a File given a string path
+	 * @param path
+	 * @return
+	 */
 	private File resolveConfigFile(String path) {
 		if (path == null || path.isEmpty()) return null;
 		File f = Paths.get(path).toAbsolutePath().normalize().toFile();
+		
 		if (f.exists()) return f;
 		// try also if path was relative to project parent (java-code/..)
 		f = Paths.get("..").resolve(path).toAbsolutePath().normalize().toFile();
@@ -814,6 +875,7 @@ public class UI {
 		}
 		setStatusText("Status: Running");
 		updateAfterStep();
+		
 		// Also keep traffic light info in sync
 		updateTrafficLightUI();
 	}
@@ -824,13 +886,14 @@ public class UI {
 		if (connector == null || !connector.isConnected() || cmbTrafficLight == null) return;
 		try {
 			trafficLightPhaseCountCache.clear();
-			Object resp = connector.getConnection().do_job_get(Trafficlight.getIDList());
-			List<String> ids = new ArrayList<>();
-			if (resp instanceof String[]) {
-				for (String s : (String[]) resp) ids.add(s);
-			} else if (resp instanceof List<?>) {
-				for (Object o : (List<?>) resp) ids.add(String.valueOf(o));
-			}
+//			Object resp = connector.getConnection().do_job_get(Trafficlight.getIDList());
+//			List<String> ids = new ArrayList<>();
+//			if (resp instanceof String[]) {
+//				for (String s : (String[]) resp) ids.add(s);
+//			} else if (resp instanceof List<?>) {
+//				for (Object o : (List<?>) resp) ids.add(String.valueOf(o));
+//			}
+			List<String> ids = trafWrapper.getTrafficLightIds();
 			cmbTrafficLight.getItems().setAll(ids);
 			if (!ids.isEmpty()) {
 				cmbTrafficLight.getSelectionModel().select(0);
@@ -841,26 +904,33 @@ public class UI {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	/**
+	 * get the number of phases for this TL
+	 * @param id
+	 * @return
+	 */
 	private int getTrafficLightPhaseCount(String id) {
 		if (id == null || id.isEmpty() || connector == null || !connector.isConnected()) return -1;
 		Integer cached = trafficLightPhaseCountCache.get(id);
 		if (cached != null) return cached;
 		try {
-			Object def = connector.getConnection().do_job_get(Trafficlight.getCompleteRedYellowGreenDefinition(id));
-			int count = -1;
-
-			if (def instanceof de.tudresden.sumo.objects.SumoTLSProgram) {
-				de.tudresden.sumo.objects.SumoTLSProgram p = (de.tudresden.sumo.objects.SumoTLSProgram) def;
-				if (p.phases != null) count = p.phases.size();
-			} else if (def instanceof List<?>) {
-				// Some SUMO networks may return a list of programs; take the first one.
-				List<?> list = (List<?>) def;
-				if (!list.isEmpty() && list.get(0) instanceof de.tudresden.sumo.objects.SumoTLSProgram) {
-					de.tudresden.sumo.objects.SumoTLSProgram p = (de.tudresden.sumo.objects.SumoTLSProgram) list.get(0);
-					if (p.phases != null) count = p.phases.size();
+			int count = -1; // default, if no change then there is an error
+			SumoTLSController cont = (SumoTLSController) trafWrapper.getRGBDefinition(id);
+			if (cont == null) {
+				System.out.println("trafWrapper failed, resorting to manual call");
+				Object def = connector.getConnection().do_job_get(Trafficlight.getCompleteRedYellowGreenDefinition(id));
+				System.out.println("The actual class is: " + def.getClass().getName());
+				
+				if (def instanceof SumoTLSController) {
+					cont = (SumoTLSController) def;
 				}
 			}
-
+			// there is only 1 key in the HashMap, the key is "0"
+			SumoTLSProgram prog = (SumoTLSProgram) cont.get("0");
+			count = prog.phases.size();
+			System.out.println("Number of Phases: " + count);
+			
 			trafficLightPhaseCountCache.put(id, count);
 			return count;
 		} catch (Exception e) {
@@ -868,20 +938,28 @@ public class UI {
 			return -1;
 		}
 	}
-
+	
+	/**
+	 * supply TL state to each TL id, then update the UI accordingly
+	 */
 	private void updateTrafficLightUI() {
 		if (connector == null || !connector.isConnected() || cmbTrafficLight == null) return;
-		String id = cmbTrafficLight.getValue();
-		if (id == null || id.isEmpty()) return;
+		String tlid = cmbTrafficLight.getValue();
+		if (tlid == null || tlid.isEmpty()) return;
 		try {
-			Object stateObj = connector.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(id));
-			Object phaseObj = connector.getConnection().do_job_get(Trafficlight.getPhase(id));
-			Object durObj = connector.getConnection().do_job_get(Trafficlight.getPhaseDuration(id));
-			String state = String.valueOf(stateObj);
-			int phase = (phaseObj instanceof Number) ? ((Number) phaseObj).intValue() : 0;
-			double dur = (durObj instanceof Number) ? ((Number) durObj).doubleValue() : 0.0;
+//			Object stateObj = connector.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(id));
+//			Object phaseObj = connector.getConnection().do_job_get(Trafficlight.getPhase(id));
+//			Object durObj = connector.getConnection().do_job_get(Trafficlight.getPhaseDuration(id));
+//			String state = String.valueOf(stateObj);
+//			int phase = (phaseObj instanceof Number) ? ((Number) phaseObj).intValue() : 0;
+//			double dur = (durObj instanceof Number) ? ((Number) durObj).doubleValue() : 0.0;
+			
+			String state = trafWrapper.getTrafficLightState(tlid); // RGB state of the TL
+			int phaseIndex = trafWrapper.getPhaseIndex(tlid); // phase index in the phase cycle
+			double dur = trafWrapper.getPhaseDuration(tlid); // in seconds
+			
 			if (lblPhaseInfo != null) {
-				lblPhaseInfo.setText("Phase " + phase + ": " + state);
+				lblPhaseInfo.setText("Phase " + phaseIndex + ": " + state);
 			}
 			if (txtPhaseDuration != null) {
 				txtPhaseDuration.setText(String.format(Locale.US, "%.1f", dur));
@@ -906,18 +984,24 @@ public class UI {
 		String id = cmbTrafficLight.getValue();
 		if (id == null || id.isEmpty()) return;
 		try {
-			Object phaseObj = connector.getConnection().do_job_get(Trafficlight.getPhase(id));
-			int phase = (phaseObj instanceof Number) ? ((Number) phaseObj).intValue() : 0;
+//			Object phaseObj = connector.getConnection().do_job_get(Trafficlight.getPhase(id));
+//			int phase = (phaseObj instanceof Number) ? ((Number) phaseObj).intValue() : 0;
+			int curPhase = trafWrapper.getPhaseIndex(id);
 			int phaseCount = getTrafficLightPhaseCount(id);
+			LOGGER.info("Phase count for TL " + id + ": " + phaseCount);
 			int newPhase;
+			
 			if (phaseCount > 0) {
-				int raw = phase + delta;
-				newPhase = ((raw % phaseCount) + phaseCount) % phaseCount; // safe wrap for negatives
+				int raw = curPhase + delta;
+				newPhase = (raw + phaseCount) % phaseCount; // safe wrap for out-of-bound index
 			} else {
-				newPhase = Math.max(0, phase + delta);
+				newPhase = Math.max(0, curPhase + delta);
 			}
 
-			connector.getConnection().do_job_set(Trafficlight.setPhase(id, newPhase));
+//			connector.getConnection().do_job_set(Trafficlight.setPhase(id, newPhase));
+			trafWrapper.setPhaseIndex(id, newPhase);
+			LOGGER.info("Changing to phase " + newPhase);
+			
 			updateTrafficLightUI();
 		} catch (Exception e) {
 			// Don't spam stack traces for user-driven UI actions.
@@ -932,7 +1016,8 @@ public class UI {
 		if (id == null || id.isEmpty()) return;
 		try {
 			double dur = Double.parseDouble(txtPhaseDuration.getText().trim());
-			connector.getConnection().do_job_set(Trafficlight.setPhaseDuration(id, dur));
+//			connector.getConnection().do_job_set(Trafficlight.setPhaseDuration(id, dur));
+			trafWrapper.setRemainingPhaseDuration(id, dur);
 			updateTrafficLightUI();
 		} catch (NumberFormatException ignored) {
 			// ignore invalid input
