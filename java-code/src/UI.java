@@ -102,6 +102,7 @@ public class UI {
 	@FXML private Label lblStatus;
 	@FXML private StackPane mapPane;
 
+
 	// Data
 	private final ObservableList<VehicleRow> vehicleData = FXCollections.observableArrayList();
 	private XYChart.Series<Number, Number> vehicleSeries;
@@ -369,6 +370,10 @@ public class UI {
                 keyController.selectNextTrafficLight();
                 cmbTrafficLight.getSelectionModel().select(keyController.getCurrentTrafficLightIndex());
                 break;
+            case P:
+                System.out.println("P");
+                keyController.togglePause();
+                break;
             default:
                 break;
         }
@@ -436,7 +441,7 @@ public class UI {
 
 		vehicleWrapper = new VehicleWrapper(connector);
 		trafWrapper = new TrafficLightWrapper(connector);
-        keyController = new UIKeys(trafWrapper);
+        keyController = new UIKeys(trafWrapper, this);
 
 		if (cpInjectColor != null) {
 			// Reset injection color on (re)connect.
@@ -467,13 +472,14 @@ public class UI {
 	}
 
 	@FXML
-	private void onStartPause() {
+	public void onStartPause() {
 		if (running) {
 			stopLoop();
 			setConnectedUI();
 			return;
 		}
 		startLoop();
+        trafWrapper.togglePauseSimulation();
 	}
 
 	@FXML
@@ -1080,4 +1086,68 @@ public class UI {
 		// pending updates like color will be applied on refresh).
 		updateMapView();
 	}
+    @FXML
+    public void handlePdfExport() {
+        // open a FileChooser to let the user select the where he wants to save the pdf
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save PDF Report");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
+
+        // Use the primary stage to show the dialog
+        File file = fileChooser.showSaveDialog(null);
+
+        if (file != null) {
+            try {
+                // Prepare the data for Export
+                List<String> currentData = new ArrayList<>();
+                // Add your actual simulation stats here!
+
+                // Export the Data
+                Export exporter = new Export();
+                exporter.createPDF(file.getAbsolutePath(), "Sumo Simulation Report", currentData);
+
+                System.out.println("Sumo-PDF Export successful saved in: " + file.getAbsolutePath());
+            } catch (Exception e) {
+                System.err.println("Failed to export PDF from Sumo-UI: " + e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    public void handleCSVExport() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save CSV Report");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+
+        File file = fileChooser.showSaveDialog(null);
+
+        if (file != null) {
+            try {
+                List<String> currentData = new ArrayList<>();
+                int stepcounter = 0;
+
+                // Export the Data
+                List<String> vehicleData = vehicleWrapper.getVehicleData();
+                List<String> tlData = trafWrapper.getTrafficLightData();
+
+                int maxRow = Math.max(vehicleData.size(), tlData.size());
+
+                for(int j = 0; j < maxRow; j++) {
+                    // Vehicle Data output: (ID, Color, Speed, PosX, PosY, Egde)
+                    String vehicle = (j < vehicleData.size()) ?  vehicleData.get(j): ";;;;;;"; // ; for empty space
+                    // TrafficLight Data output: (ID, Phase, Index)
+                    String tl = (j < tlData.size()) ? tlData.get(j): ";;";
+                    currentData.add(stepcounter++ + ";" + vehicle + ";" + tl);
+                }
+                Export exporter = new Export();
+                exporter.createCSV(file.getAbsolutePath(), currentData);
+                System.out.println("Sumo-CSV Export successful saved in: " + file.getAbsolutePath());
+            } catch (Exception e) {
+                System.err.println("Failed to export CSV from Sumo-UI: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+
 }

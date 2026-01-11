@@ -314,12 +314,47 @@ public final class TrafficLightWrapper {
     	}
     	return new ArrayList<String>(); // error
     }
-    
-    // not yet implemented
-//    addConstraint();
-//    removeConstraint();
-//    updateConstraints();
-//    getControlledLinks(tlId)
+
+
+    private boolean isPaused = false;
+    // Getter Function for isPaused
+    public boolean isPaused() {
+        return isPaused;
+    }
+    // Pauses the Simulation
+    public void togglePauseSimulation() {
+        this.isPaused = !this.isPaused;
+    }
+
+    /**
+     * Saves Data for CSV/PDF Export.
+     * Format: TrafficLightID;PhaseState;PhaseIndex
+     */
+    public List<String> getTrafficLightData() {
+        List<String> exportRows = new ArrayList<>();
+        List<String> ids = getTrafficLightIds();
+
+        for (String id : ids) {
+            try {
+                // Get the Data
+                String phaseState = getTrafficLightState(id);
+                int phaseIndex = getPhaseIndex(id);
+
+                if (phaseState == null || phaseState.isEmpty()) {
+                    phaseState = "default";
+                }
+
+                // Format: ID;Name;Index
+                String row = String.format("%s;%s;%d", id, phaseState, phaseIndex);
+
+                exportRows.add(row);
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "Could not get data for TrafficLight: " + id, e);
+            }
+        }
+        return exportRows;
+    }
+
 }
 
 

@@ -3,11 +3,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-/**
- * TO:DO
- * FIX BUG: USER CAN ONLY USE THE KEYS IN TRAFFIC LIGHT TAB
- *
- */
 
 
 /**
@@ -18,6 +13,7 @@ public class UIKeys {
     private static final Logger LOGGER = Logger.getLogger(UIKeys.class.getName());
     private TrafficLightWrapper trafficLightWrapper;
     private int totalTrafficLights;
+    private UI uiController;
 
     private int currentTrafficLightIndex;
     private int currenPhaseIndex;
@@ -27,8 +23,9 @@ public class UIKeys {
     private List<String> trafficLightStates;
 
 
-    public UIKeys(TrafficLightWrapper trafficLightWrapper) {
+    public UIKeys(TrafficLightWrapper trafficLightWrapper, UI uiController) {
         this.trafficLightWrapper = trafficLightWrapper;
+        this.uiController = uiController;
         trafficLightStates = new ArrayList<>();
         totalTrafficLights = trafficLightWrapper.getTrafficLightCount();
 
@@ -106,6 +103,20 @@ public class UIKeys {
                 currentTrafficLightIndex = index;
                 LOGGER.info("Updated current state index to: " + index);
             }
+        }
+    }
+
+    /**
+     * Pause / Resume the Simulation by Printing P
+     */
+    public void togglePause() {
+        if(uiController != null) {
+            uiController.onStartPause();
+        }
+        if (trafficLightWrapper.isPaused()) {
+            LOGGER.info("Paused");
+        } else {
+            LOGGER.info("Resumed");
         }
     }
 
