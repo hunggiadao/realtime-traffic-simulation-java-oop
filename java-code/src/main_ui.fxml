@@ -63,8 +63,8 @@
                   <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
                   <MenuButton mnemonicParsing="false" text="Export">
                     <items>
-                      <MenuItem mnemonicParsing="false" text="PDF" />
-                      <MenuItem mnemonicParsing="false" text="CSV" />
+                      <MenuItem mnemonicParsing="false" text="PDF" onAction="#handlePdfExport" />
+                      <MenuItem mnemonicParsing="false" text="CSV" onAction="#handleCSVExport" />
                     </items>
                   </MenuButton>
                </children>

@@ -985,6 +985,34 @@ public final class VehicleWrapper {
         return out;
     }
 
+    // Method to Convert Data into PDF, CSV
+    public List<String> getVehicleData(){
+        List<String> exportRows = new ArrayList<>();
+        List<String> ids = getVehicleIds();
+
+        for (String id : ids) {
+            try {
+                // TODO: Color is always [0 0 0] --> always black
+                // TODO: Have to fix the bug
+                int[] color = getColor(id);
+                String colorStr = color[0] + "-" + color[1] + "-" + color[2]; // R-G-B ID     0 0 0 For Black
+                double speed = getSpeed(id);
+                double[] pos = getPosition(id); // returns [x, y]
+                String edge = getEdgeId(id);
+
+                // Format: Vehicle-ID, Color, Speed, PosX, PosY, Egde-ID, Empty, Empty, Empty [no Vehicle Data]
+                String row = String.format("%s;%s;%.2f;%.2f;%.2f;%s",
+                        id, colorStr, speed, pos[0], pos[1], edge
+                );
+
+                exportRows.add(row);
+            } catch (Exception e) {
+                LOGGER.fine("Could not get data for vehicle: " + id);
+            }
+        }
+        return exportRows;
+    }
+
     // not yet implemented
 //    getRouteID()
 //    getRouteIndex()
