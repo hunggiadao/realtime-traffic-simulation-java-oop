@@ -4649,3 +4649,26 @@
 2026-01-11 21:56:04 [INFO   ] UIKeys - Selected traffic light: J27
 2026-01-11 21:56:04 [INFO   ] MapView - Loaded 354 lanes. Bounds x:[-419.16, 417.65] y:[-365.48, 201.86]
 2026-01-11 21:58:42 [INFO   ] TraCIConnector - Connection closed
+2026-01-12 10:46:42 [INFO   ] Main - Launching JavaFX UI
+2026-01-12 10:46:44 [INFO   ] UI - UI initialized
+2026-01-12 10:46:48 [INFO   ] TraCIConnector - Connected to SUMO
+2026-01-12 10:46:48 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-12 10:46:48 [INFO   ] MapView - Loaded 354 lanes. Bounds x:[-419.16, 417.65] y:[-365.48, 201.86]
+2026-01-12 10:47:08 [INFO   ] TraCIConnector - Connection closed
+2026-01-12 11:10:50 [INFO   ] Main - Launching JavaFX UI
+2026-01-12 11:10:50 [INFO   ] UI - UI initialized
+2026-01-12 11:10:55 [INFO   ] TraCIConnector - Connected to SUMO
+2026-01-12 11:10:55 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-12 11:10:55 [INFO   ] MapView - Loaded 354 lanes. Bounds x:[-419.16, 417.65] y:[-365.48, 201.86]
+2026-01-12 11:11:14 [INFO   ] TraCIConnector - Connection closed
+2026-01-12 11:30:06 [INFO   ] Main - Launching JavaFX UI
+2026-01-12 11:30:07 [INFO   ] UI - UI initialized
+2026-01-12 11:30:12 [INFO   ] TraCIConnector - Connected to SUMO
+2026-01-12 11:30:12 [INFO   ] UIKeys - Selected traffic light: J27
+2026-01-12 11:30:12 [INFO   ] MapView - Loaded 354 lanes. Bounds x:[-419.16, 417.65] y:[-365.48, 201.86]
+2026-01-12 11:30:22 [INFO   ] VehicleWrapper - Injected vehicle: inj_1768213822116_0 on route/edge: route_inj_1768213822116_0
+2026-01-12 11:30:22 [INFO   ] VehicleWrapper - Injected vehicle: inj_1768213822132_1 on route/edge: route_inj_1768213822132_1
+2026-01-12 11:30:22 [INFO   ] VehicleWrapper - Injected vehicle: inj_1768213822138_2 on route/edge: route_inj_1768213822138_2
+2026-01-12 11:30:22 [INFO   ] VehicleWrapper - Injected vehicle: inj_1768213822142_3 on route/edge: route_inj_1768213822142_3
+2026-01-12 11:30:22 [INFO   ] VehicleWrapper - Injected vehicle: inj_1768213822144_4 on route/edge: route_inj_1768213822144_4
+2026-01-12 11:32:28 [INFO   ] TraCIConnector - Connection closed
