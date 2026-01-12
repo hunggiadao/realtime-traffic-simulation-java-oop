@@ -53,6 +53,7 @@ import de.tudresden.sumo.objects.SumoTLSPhase;
 public class UI {
 	private static final Logger LOGGER = Logger.getLogger(UI.class.getName());
 	
+	// Main window pane
 	@FXML private BorderPane rootPane;
 
 	// Top toolbar
@@ -89,6 +90,7 @@ public class UI {
 	@FXML private TableColumn<VehicleRow, String> colId;
 	@FXML private TableColumn<VehicleRow, Number> colSpeed;
 	@FXML private TableColumn<VehicleRow, String> colEdge;
+	@FXML private TableColumn<VehicleRow, String> colColor;
 
 	// Traffic lights tab
 	@FXML private ComboBox<String> cmbTrafficLight;
@@ -102,9 +104,8 @@ public class UI {
 	@FXML private Label lblStatus;
 	@FXML private StackPane mapPane;
 
-
 	// Data
-	private final ObservableList<VehicleRow> vehicleData = FXCollections.observableArrayList();
+	private ObservableList<VehicleRow> vehicleData = FXCollections.observableArrayList();
 	private XYChart.Series<Number, Number> vehicleSeries;
 	private MapView mapView;
 
@@ -112,20 +113,21 @@ public class UI {
 	private TraCIConnector connector;
 	private VehicleWrapper vehicleWrapper;
 	private TrafficLightWrapper trafWrapper;
+	private EdgeWrapper edgeWrapper;
     private UIKeys keyController;
-	private int stepLengthMs = 100;
-	private double stepLengthSeconds = 0.1;
+	private int stepLengthMs = 50; // default 50
+	private double stepLengthSeconds = 0.05; // default 0.05
 	private AnimationTimer loopTimer;
-	private boolean running = false;
-	private long lastStepNs = 0;
-
+	private boolean running = false; // default false
+	private long lastStepNs = 0; // default 0
+	
 	// Settings + background monitor thread (explicit extra thread beyond main/JavaFX)
-	private final UserSettings userSettings = new UserSettings();
+	private UserSettings userSettings = new UserSettings();
 	private ScheduledExecutorService monitorExecutor;
 
 	// Cache phase counts per traffic light (used to safely wrap phase +/-)
-	private final Map<String, Integer> trafficLightPhaseCountCache = new HashMap<>();
-	private final Map<String, List<SumoLink>> trafficLightLinksCache = new HashMap<>();
+	private Map<String, Integer> trafficLightPhaseCountCache = new HashMap<>();
+	private Map<String, List<SumoLink>> trafficLightLinksCache = new HashMap<>();
 
 	public UI() {
 		// called when FXML is loaded
@@ -159,10 +161,11 @@ public class UI {
 		}
 
 		// Table setup
-		if (colId != null && colSpeed != null && colEdge != null) {
+		if (colId != null && colSpeed != null && colEdge != null && colColor != null) {
 			colId.setCellValueFactory(data -> data.getValue().idProperty());
 			colSpeed.setCellValueFactory(data -> data.getValue().speedProperty());
 			colEdge.setCellValueFactory(data -> data.getValue().edgeProperty());
+			colColor.setCellValueFactory(data -> data.getValue().colorProperty());
 		}
 		if (vehicleTable != null) {
 			vehicleTable.setItems(vehicleData);
@@ -191,21 +194,18 @@ public class UI {
 				txtConfigPath.setText(lastCfg);
 			}
 		}
-		
 		if (txtStepMs != null) {
-			txtStepMs.setText(userSettings.getString("stepMs", "100"));
+			txtStepMs.setText(userSettings.getString("stepMs", "50"));
 		}
 		if (sliderSpeed != null) {
 			sliderSpeed.setMin(0.25);
-			sliderSpeed.setMax(4.0);
+			sliderSpeed.setMax(5.0);
 			sliderSpeed.setValue(1.0);
 		}
-
 		if (cpInjectColor != null) {
 			// Always start with red for injection.
 			cpInjectColor.setValue(Color.RED);
 		}
-
 		if (mapPane != null) {
 			mapView = new MapView();
 			mapView.prefWidthProperty().bind(mapPane.widthProperty());
@@ -224,6 +224,8 @@ public class UI {
 		if (txtPhaseDuration != null) {
 			txtPhaseDuration.setText("");
 		}
+		
+		// set focus on main window for key press listening
 		if (rootPane != null) {
             rootPane.setFocusTraversable(true);
 			Platform.runLater(() -> rootPane.requestFocus());
@@ -274,7 +276,10 @@ public class UI {
 		}
 		if (btnStep != null) btnStep.setDisable(false);
 	}
-
+	/**
+	 * Change the UI to running state, show Disconnect button,
+	 * status bar says Running, OpenConfig not clickable
+	 */
 	private void setRunningUI() {
 		if (lblStatus != null) lblStatus.setText("Status: Running");
 		if (btnConnect != null) {
@@ -410,8 +415,8 @@ public class UI {
 				stepLengthMs = Integer.parseInt(txtStepMs.getText().trim());
 			}
 		} catch (NumberFormatException e) {
-			stepLengthMs = 100;
-			txtStepMs.setText("100");
+			stepLengthMs = 50;
+			txtStepMs.setText("50");
 		}
 
 		stepLengthSeconds = stepLengthMs / 1000.0;
@@ -429,7 +434,7 @@ public class UI {
 		// Path to SUMO (headless calculation only, render inside JavaFX)
 		String sumoBinary = resolveSumoBinary();
 
-		connector = new TraCIConnector(sumoBinary, cfgFile.getPath(), stepLengthSeconds);
+		connector = new TraCIConnector(sumoBinary, cfgFile.getPath(), (double)stepLengthSeconds);
 		boolean ok = connector.connect();
 		if (!ok) {
 			setStatusText("Status: Connection failed");
@@ -442,6 +447,7 @@ public class UI {
 		vehicleWrapper = new VehicleWrapper(connector);
 		trafWrapper = new TrafficLightWrapper(connector);
         keyController = new UIKeys(trafWrapper, this);
+        edgeWrapper = new EdgeWrapper(connector, vehicleWrapper);
 
 		if (cpInjectColor != null) {
 			// Reset injection color on (re)connect.
@@ -457,8 +463,8 @@ public class UI {
 			setStatusText("Loaded SUMO, net lanes: " + lanes);
 		}
 
-		// Populate edge list
-		List<String> edges = connector.getEdgeIds();
+		// Populate spawnable edge list
+		List<String> edges = connector.getGoodSpawnEdgeIds();
 		if (cmbInjectEdge != null) {
 			cmbInjectEdge.getItems().setAll(edges);
 			if (!edges.isEmpty()) cmbInjectEdge.getSelectionModel().select(0);
@@ -466,6 +472,15 @@ public class UI {
 
 		// Populate traffic light list
 		populateTrafficLights();
+		
+		// populate autostart vehicles
+		List<String> ids = vehicleWrapper.getVehicleIds();
+		for (String id : ids) {
+			int[] c = vehicleWrapper.getColorRGBA(id);
+			System.out.println(c.toString());
+			Color jfc = Color.rgb(c[0], c[1], c[2], (double)c[3] / 255);
+			vehicleWrapper.addVehicle(id, vehicleWrapper.getEdgeId(id), vehicleWrapper.getSpeed(id), jfc);
+		}
 
 		setConnectedUI();
 		updateAfterStep(); // initial values (step 0, 0s)
@@ -476,9 +491,11 @@ public class UI {
 		if (running) {
 			stopLoop();
 			setConnectedUI();
+			trafWrapper.togglePauseSimulation();
 			return;
 		}
 		startLoop();
+		setRunningUI();
         trafWrapper.togglePauseSimulation();
 	}
 
@@ -536,7 +553,10 @@ public class UI {
 			monitorExecutor = null;
 		}
 	}
-
+	/**
+	 * Parse strings for Windows environment
+	 * @return
+	 */
 	private String resolveSumoBinary() {
 		// Prefer SUMO_HOME env, otherwise fall back to common default
 		String sumoHome = System.getenv("SUMO_HOME");
@@ -545,13 +565,16 @@ public class UI {
 		}
 		return "C:\\\\Program Files (x86)\\\\Eclipse\\\\Sumo\\\\bin\\\\sumo.exe";
 	}
-
+	/**
+	 * helper function to load network file
+	 * @param configPath
+	 * @return
+	 */
 	private int loadNetworkForMap(String configPath) {
 		if (mapView == null) return 0;
 		File netFile = resolveNetFile(configPath);
 		return mapView.loadNetwork(netFile);
 	}
-
 	private File resolveNetFile(String configPath) {
 		if (configPath == null || configPath.isEmpty()) return null;
 		try {
@@ -574,17 +597,20 @@ public class UI {
 		}
 		return null;
 	}
-
+	/**
+	 * update map and vehicleRows data
+	 */
 	private void updateMapView() {
 		if (mapView == null || connector == null || vehicleWrapper == null) return;
 		// Fetch latest positions and data
-		Map<String, Point2D> allPositions = vehicleWrapper.getVehiclePositions();
-		Map<String, String> allLaneIds = vehicleWrapper.getVehicleLaneIds();
+		Map<String, Point2D> allPositions = vehicleWrapper.getVehiclePositions(); // gets a new list every time
+		Map<String, String> allLaneIds = vehicleWrapper.getVehicleLaneIds(); // gets a new list every time
 		// Fetch vehicle angles for realistic orientation rendering
-		Map<String, Double> allAngles = vehicleWrapper.getVehicleAngles();
+		Map<String, Double> allAngles = vehicleWrapper.getVehicleAngles(); // gets a new list every time
 		// Fetch vehicle types for rendering appropriate vehicle shapes (car, bus, motorbike, etc.)
-		Map<String, String> allTypes = vehicleWrapper.getVehicleTypes();
-		List<VehicleRow> allRows = vehicleWrapper.getVehicleRows();
+		Map<String, String> allTypes = vehicleWrapper.getVehicleTypes(); // gets a new list every time, not efficient
+		List<VehicleRow> allRows = vehicleWrapper.getVehicleRows(); // also update vehicleRows every time, not efficient
+		
 		Map<String, Color> colorMap = new HashMap<>();
 		Map<String, Point2D> filteredPositions = new HashMap<>();
 		Map<String, String> filteredLaneIds = new HashMap<>();
@@ -625,14 +651,12 @@ public class UI {
 					Double mean = edgeMeanSpeedCache.get(edgeId);
 					if (mean == null && !edgeMeanSpeedCache.containsKey(edgeId)) {
 						try {
-							Object m = connector.getConnection().do_job_get(Edge.getLastStepMeanSpeed(edgeId));
-							mean = (m instanceof Number) ? ((Number) m).doubleValue() : null;
+							mean = (double) edgeWrapper.getLastStepMeanSpeed(edgeId);
 						} catch (Exception ignored) {
 							mean = null;
 						}
 						edgeMeanSpeedCache.put(edgeId, mean);
 					}
-
 					if (mean != null && mean >= 0.0) {
 						congested = mean <= 5.0;
 					}
@@ -642,11 +666,12 @@ public class UI {
 				if (!congested) {
 					congested = row.getSpeed() < 5.0;
 				}
-
 				if (!congested) {
 					continue;
 				}
 			}
+			
+			// for each vehicleRow that satisfies filter conditions, add it to the filter list
 			filteredRows.add(row);
 			colorMap.put(row.getId(), row.getColor());
 			Point2D pos = (allPositions != null) ? allPositions.get(row.getId()) : null;
@@ -682,9 +707,7 @@ public class UI {
 
 		// Update table
 		vehicleData.setAll(filteredRows);
-		// mapView.updateVehicles(((VehicleWrapper)connector).getVehiclePositions());
-		// Update table with live vehicles
-		// vehicleData.setAll(((VehicleWrapper)connector).getVehicleRows());
+		
 		if (vehicleTable != null) {
 			vehicleTable.refresh();
 		}
@@ -700,28 +723,20 @@ public class UI {
 		}
 		try {
 			List<String> ids = new ArrayList<>();
-			
-//			Object idsObj = connector.getConnection().do_job_get(Trafficlight.getIDList());
-//			if (idsObj instanceof String[]) {
-//				for (String s : (String[]) idsObj) ids.add(s);
-//			} else if (idsObj instanceof List<?>) {
-//				for (Object o : (List<?>) idsObj) ids.add(String.valueOf(o));
-//			}
-			
 			ids = trafWrapper.getTrafficLightIds();
 			if (ids.isEmpty()) return Collections.emptyMap();
 
 			Map<String, Integer> lanePriority = new HashMap<>();
 			Map<String, Color> laneColor = new HashMap<>();
 			for (String tlId : ids) {
+				// draw the TL marker in the correct spot with the correct color
 				if (tlId == null || tlId.isEmpty()) continue;
-//				String state = String.valueOf(connector.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(tlId)));
 				String state = trafWrapper.getTrafficLightState(tlId);
 				if (state == null || state.isEmpty()) continue;
 
 				List<SumoLink> links = trafficLightLinksCache.get(tlId);
 				if (links == null) {
-					links = fetchTrafficLightLinks(tlId);
+					links = trafWrapper.getTrafficLightLinks(tlId);
 					trafficLightLinksCache.put(tlId, links);
 				}
 				if (links == null || links.isEmpty()) continue;
@@ -747,47 +762,6 @@ public class UI {
 			return laneColor;
 		} catch (Exception e) {
 			return Collections.emptyMap();
-		}
-	}
-
-	private List<SumoLink> fetchTrafficLightLinks(String tlId) {
-		if (connector == null || !connector.isConnected() || connector.getConnection() == null) {
-			return Collections.emptyList();
-		}
-		try {
-			Object obj = connector.getConnection().do_job_get(Trafficlight.getControlledLinks(tlId));
-			List<SumoLink> out = new ArrayList<>();
-			flattenControlledLinks(obj, out);
-			return out;
-		} catch (Exception e) {
-			return Collections.emptyList();
-		}
-	}
-
-	private static void flattenControlledLinks(Object obj, List<SumoLink> out) {
-		if (obj == null) return;
-		if (obj instanceof SumoLink) {
-			out.add((SumoLink) obj);
-			return;
-		}
-		if (obj instanceof de.tudresden.sumo.objects.SumoLinkList) {
-			for (Object o : (de.tudresden.sumo.objects.SumoLinkList) obj) {
-				flattenControlledLinks(o, out);
-			}
-			return;
-		}
-		if (obj instanceof java.lang.Iterable<?>) {
-			for (Object o : (java.lang.Iterable<?>) obj) {
-				flattenControlledLinks(o, out);
-			}
-			return;
-		}
-		Class<?> c = obj.getClass();
-		if (c.isArray()) {
-			int n = java.lang.reflect.Array.getLength(obj);
-			for (int i = 0; i < n; i++) {
-				flattenControlledLinks(java.lang.reflect.Array.get(obj, i), out);
-			}
 		}
 	}
 	
@@ -817,7 +791,13 @@ public class UI {
 				return Color.GRAY;
 		}
 	}
-
+	/**
+	 * Are the colors are within a tolerance range of each other?
+	 * @param actual
+	 * @param target
+	 * @param tol tolerance amount
+	 * @return
+	 */
 	private static boolean isSimilarColor(Color actual, Color target, double tol) {
 		if (actual == null || target == null) return false;
 		return Math.abs(actual.getRed() - target.getRed()) <= tol
@@ -852,7 +832,7 @@ public class UI {
 						return;
 					}
 					double speedFactor = (sliderSpeed != null) ? sliderSpeed.getValue() : 1.0;
-					double stepIntervalNs = (stepLengthSeconds / Math.max(0.1, speedFactor)) * 1_000_000_000.0;
+					double stepIntervalNs = (stepLengthSeconds / Math.max(sliderSpeed.getMin(), speedFactor)) * 1_000_000_000.0;
 					if ((now - lastStepNs) >= stepIntervalNs) {
 						doStep();
 						lastStepNs = now;
@@ -863,7 +843,6 @@ public class UI {
 		running = true;
 		lastStepNs = 0;
 		loopTimer.start();
-		setRunningUI();
 	}
 
 	private void stopLoop() {
@@ -900,13 +879,6 @@ public class UI {
 		if (connector == null || !connector.isConnected() || cmbTrafficLight == null) return;
 		try {
 			trafficLightPhaseCountCache.clear();
-//			Object resp = connector.getConnection().do_job_get(Trafficlight.getIDList());
-//			List<String> ids = new ArrayList<>();
-//			if (resp instanceof String[]) {
-//				for (String s : (String[]) resp) ids.add(s);
-//			} else if (resp instanceof List<?>) {
-//				for (Object o : (List<?>) resp) ids.add(String.valueOf(o));
-//			}
 			List<String> ids = trafWrapper.getTrafficLightIds();
 			cmbTrafficLight.getItems().setAll(ids);
 			if (!ids.isEmpty()) {
@@ -918,39 +890,22 @@ public class UI {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	/**
 	 * get the number of phases for this TL
 	 * @param id
 	 * @return
 	 */
-	private int getTrafficLightPhaseCount(String id) {
+	private int getTLPhaseCount(String id) {
 		if (id == null || id.isEmpty() || connector == null || !connector.isConnected()) return -1;
+		
+		// if phase count already exists, just retrieve it
 		Integer cached = trafficLightPhaseCountCache.get(id);
 		if (cached != null) return cached;
-		try {
-			int count = -1; // default, if no change then there is an error
-			SumoTLSController cont = (SumoTLSController) trafWrapper.getRGBDefinition(id);
-			if (cont == null) {
-				System.out.println("trafWrapper failed, resorting to manual call");
-				Object def = connector.getConnection().do_job_get(Trafficlight.getCompleteRedYellowGreenDefinition(id));
-				System.out.println("The actual class is: " + def.getClass().getName());
-				
-				if (def instanceof SumoTLSController) {
-					cont = (SumoTLSController) def;
-				}
-			}
-			// there is only 1 key in the HashMap, the key is "0"
-			SumoTLSProgram prog = (SumoTLSProgram) cont.get("0");
-			count = prog.phases.size();
-			System.out.println("Number of Phases: " + count);
-			
-			trafficLightPhaseCountCache.put(id, count);
-			return count;
-		} catch (Exception e) {
-			trafficLightPhaseCountCache.put(id, -1);
-			return -1;
-		}
+		
+		// else use trafWrapper, fallback method
+		int count = trafWrapper.getTrafficLightPhaseCount(id);
+		trafficLightPhaseCountCache.put(id, count);
+		return count;
 	}
 	
 	/**
@@ -961,13 +916,6 @@ public class UI {
 		String tlid = cmbTrafficLight.getValue();
 		if (tlid == null || tlid.isEmpty()) return;
 		try {
-//			Object stateObj = connector.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(id));
-//			Object phaseObj = connector.getConnection().do_job_get(Trafficlight.getPhase(id));
-//			Object durObj = connector.getConnection().do_job_get(Trafficlight.getPhaseDuration(id));
-//			String state = String.valueOf(stateObj);
-//			int phase = (phaseObj instanceof Number) ? ((Number) phaseObj).intValue() : 0;
-//			double dur = (durObj instanceof Number) ? ((Number) durObj).doubleValue() : 0.0;
-			
 			String state = trafWrapper.getTrafficLightState(tlid); // RGB state of the TL
 			int phaseIndex = trafWrapper.getPhaseIndex(tlid); // phase index in the phase cycle
 			double dur = trafWrapper.getPhaseDuration(tlid); // in seconds
@@ -992,19 +940,17 @@ public class UI {
 	private void onTrafficLightNextPhase() {
 		changeTrafficLightPhase(1);
 	}
-
+	// helper function for changing TL phase
 	private void changeTrafficLightPhase(int delta) {
 		if (connector == null || !connector.isConnected() || cmbTrafficLight == null) return;
 		String id = cmbTrafficLight.getValue();
 		if (id == null || id.isEmpty()) return;
 		try {
-//			Object phaseObj = connector.getConnection().do_job_get(Trafficlight.getPhase(id));
-//			int phase = (phaseObj instanceof Number) ? ((Number) phaseObj).intValue() : 0;
 			int curPhase = trafWrapper.getPhaseIndex(id);
-			int phaseCount = getTrafficLightPhaseCount(id);
+			int phaseCount = getTLPhaseCount(id);
 			LOGGER.info("Phase count for TL " + id + ": " + phaseCount);
-			int newPhase;
 			
+			int newPhase;
 			if (phaseCount > 0) {
 				int raw = curPhase + delta;
 				newPhase = (raw + phaseCount) % phaseCount; // safe wrap for out-of-bound index
@@ -1012,7 +958,6 @@ public class UI {
 				newPhase = Math.max(0, curPhase + delta);
 			}
 
-//			connector.getConnection().do_job_set(Trafficlight.setPhase(id, newPhase));
 			trafWrapper.setPhaseIndex(id, newPhase);
 			LOGGER.info("Changing to phase " + newPhase);
 			
@@ -1030,7 +975,6 @@ public class UI {
 		if (id == null || id.isEmpty()) return;
 		try {
 			double dur = Double.parseDouble(txtPhaseDuration.getText().trim());
-//			connector.getConnection().do_job_set(Trafficlight.setPhaseDuration(id, dur));
 			trafWrapper.setRemainingPhaseDuration(id, dur);
 			updateTrafficLightUI();
 		} catch (NumberFormatException ignored) {
@@ -1046,28 +990,31 @@ public class UI {
 			setStatusText("Status: Not connected");
 			return;
 		}
-
+		
+		// edge where new vehicles are injected
 		String edge = "";
 		if (cmbInjectEdge != null) {
 			 edge = cmbInjectEdge.getValue();
 			 if (edge == null || edge.isEmpty()) edge = cmbInjectEdge.getEditor().getText();
 		}
-
 		if (edge == null || edge.isEmpty()) {
 			setStatusText("Status: Edge ID required");
 			return;
 		}
-
+		
+		// number of injected vehicles
 		int count = 1;
 		try {
 			if (txtInjectCount != null) count = Integer.parseInt(txtInjectCount.getText().trim());
 		} catch (NumberFormatException e) {}
-
+		
+		// default max speed of vehicles
 		double speed = -1;
 		try {
 			if (txtInjectSpeed != null) speed = Double.parseDouble(txtInjectSpeed.getText().trim());
 		} catch (NumberFormatException e) {}
-
+		
+		// color of vehicles
 		Color color = (cpInjectColor != null) ? cpInjectColor.getValue() : Color.RED;
 		if (color == null) color = Color.RED;
 
@@ -1086,12 +1033,14 @@ public class UI {
 		// pending updates like color will be applied on refresh).
 		updateMapView();
 	}
+	
     @FXML
     public void handlePdfExport() {
         // open a FileChooser to let the user select the where he wants to save the pdf
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Save PDF Report");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
+        fileChooser.setInitialFileName("pdfExport");
 
         // Use the primary stage to show the dialog
         File file = fileChooser.showSaveDialog(null);
@@ -1101,14 +1050,24 @@ public class UI {
                 // Prepare the data for Export
                 List<String> currentData = new ArrayList<>();
                 // Add your actual simulation stats here!
-
+                List<String> vehicleData = vehicleWrapper.getVehicleData();
+                List<String> tlData = trafWrapper.getTrafficLightData();
+                int maxRow = Math.max(vehicleData.size(), tlData.size());
+                
+                for(int j = 0; j < maxRow; j++) {
+                    // Vehicle Data output: (ID, Color, Speed, PosX, PosY, Edge)
+                    String vehicle = (j < vehicleData.size()) ? vehicleData.get(j): ",,,,,,"; // ; for empty space
+                    // TrafficLight Data output: (ID, Phase, Index)
+                    String tl = (j < tlData.size()) ? tlData.get(j): ",,";
+                    currentData.add(j + "," + vehicle + tl);
+                }
                 // Export the Data
                 Export exporter = new Export();
                 exporter.createPDF(file.getAbsolutePath(), "Sumo Simulation Report", currentData);
-
-                System.out.println("Sumo-PDF Export successful saved in: " + file.getAbsolutePath());
+                System.out.println("PDF successfully created: " + file.getAbsolutePath());
+                LOGGER.fine("Sumo-PDF Export successful saved in: " + file.getAbsolutePath());
             } catch (Exception e) {
-                System.err.println("Failed to export PDF from Sumo-UI: " + e.getMessage());
+                LOGGER.warning("Failed to export PDF from Sumo-UI: " + e.getMessage());
             }
         }
     }
@@ -1118,32 +1077,31 @@ public class UI {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Save CSV Report");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        fileChooser.setInitialFileName("csvExport");
 
         File file = fileChooser.showSaveDialog(null);
 
         if (file != null) {
             try {
                 List<String> currentData = new ArrayList<>();
-                int stepcounter = 0;
 
                 // Export the Data
                 List<String> vehicleData = vehicleWrapper.getVehicleData();
                 List<String> tlData = trafWrapper.getTrafficLightData();
-
                 int maxRow = Math.max(vehicleData.size(), tlData.size());
 
                 for(int j = 0; j < maxRow; j++) {
-                    // Vehicle Data output: (ID, Color, Speed, PosX, PosY, Egde)
-                    String vehicle = (j < vehicleData.size()) ?  vehicleData.get(j): ";;;;;;"; // ; for empty space
+                    // Vehicle Data output: (ID, Color, Speed, PosX, PosY, Edge)
+                    String vehicle = (j < vehicleData.size()) ?  vehicleData.get(j): ",,,,,,"; // ; for empty space
                     // TrafficLight Data output: (ID, Phase, Index)
-                    String tl = (j < tlData.size()) ? tlData.get(j): ";;";
-                    currentData.add(stepcounter++ + ";" + vehicle + ";" + tl);
+                    String tl = (j < tlData.size()) ? tlData.get(j): ",,";
+                    currentData.add(j + "," + vehicle + tl);
                 }
                 Export exporter = new Export();
                 exporter.createCSV(file.getAbsolutePath(), currentData);
-                System.out.println("Sumo-CSV Export successful saved in: " + file.getAbsolutePath());
+                LOGGER.fine("Sumo-CSV Export successful saved in: " + file.getAbsolutePath());
             } catch (Exception e) {
-                System.err.println("Failed to export CSV from Sumo-UI: " + e.getMessage());
+                LOGGER.warning("Failed to export CSV from Sumo-UI: " + e.getMessage());
                 e.printStackTrace();
             }
         }

@@ -3,6 +3,7 @@ import de.tudresden.sumo.cmd.Route;
 import de.tudresden.sumo.cmd.Simulation;
 import de.tudresden.sumo.cmd.Vehicle;
 import de.tudresden.sumo.objects.SumoColor;
+import de.tudresden.sumo.util.SumoCommand;
 import de.tudresden.sumo.objects.SumoStage;
 import de.tudresden.sumo.objects.SumoStringList;
 import it.polito.appeal.traci.SumoTraciConnection;
@@ -12,6 +13,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,21 +31,22 @@ import javafx.scene.paint.Color;
  * This class wraps a single {@link TraCIConnector} instance (composition) and
  * exposes higher-level vehicle operations for UI and simulation code.
  */
-public final class VehicleWrapper {
+public class VehicleWrapper {
     private static final Logger LOGGER = Logger.getLogger(VehicleWrapper.class.getName());
 
-    private final TraCIConnector traci;
+    private TraCIConnector traci;
 
     // Some SUMO operations (e.g. setColor) may fail if the vehicle is not yet inserted.
     // Queue them and retry on subsequent UI refresh/steps.
-    private final Map<String, SumoColor> pendingColors = new HashMap<>();
-    private final Map<String, Double> pendingMaxSpeeds = new HashMap<>();
-	private final Map<String, SumoStringList> pendingRoutes = new HashMap<>();
+    private Map<String, SumoColor> pendingColors = new HashMap<>();
+    private Map<String, Double> pendingMaxSpeeds = new HashMap<>();
+	private Map<String, SumoStringList> pendingRoutes = new HashMap<>();
 
 	// Colors requested by the user for locally-injected vehicles.
 	// We prefer these for rendering so the UI reflects what the user chose even
 	// if SUMO temporarily reports an unset/default color for a freshly-added vehicle.
-	private final Map<String, Color> preferredVehicleColors = new HashMap<>();
+	private Map<String, Color> preferredVehicleColors = new HashMap<>();
+	private Map<String, VehicleRow> vehRows = new HashMap<>();
 
     private static final int RANDOM_ROUTE_TRIES = 10;
     private static final int ROUTING_MODE_DEFAULT = 0;
@@ -88,15 +91,15 @@ public final class VehicleWrapper {
     }
 
     /**
+     * update as needed, try not to make a new list every time
      * Fetch current vehicle rows (id, speed, edge) from SUMO.
      * @return rows
      */
     public List<VehicleRow> getVehicleRows() {
-        List<VehicleRow> rows = new ArrayList<>();
+    	List<VehicleRow> rows = new ArrayList<>();
 		if (traci.getConnection() == null || !traci.isConnected()) {
             return rows;
         }
-
         applyPendingUpdates();
 
         try {
@@ -143,63 +146,81 @@ public final class VehicleWrapper {
             LOGGER.log(Level.WARNING, "Failed to fetch vehicle rows", e);
         }
         return rows;
+        
+//		if (traci.getConnection() == null || !traci.isConnected()) {
+//            return new ArrayList<>();
+//        }
+//        applyPendingUpdates();
+//
+//        try {
+//        	List<String> ids = this.getVehicleIds();
+//            for (String id : ids) {
+//                try {
+//                	double speed = this.getSpeed(id);
+//	                String edge = this.getEdgeId(id);
+//                	
+//                	// if id already exists, only update, if not, add new entry
+//                	if (!vehRows.containsKey(id)) {
+//                		// add new entry
+//                		Color color = preferredVehicleColors.getOrDefault(id, Color.RED);
+//	                    int[] rgba = this.getColorRGBA(id);
+//						if (rgba != null) {
+//							int r = clampInt(rgba[0], 0, 255);
+//							int g = clampInt(rgba[1], 0, 255);
+//							int b = clampInt(rgba[2], 0, 255);
+//							double opacity = clamp(rgba[3] / 255.0, 0.0, 1.0);
+//	                        // Only override the preferred injected color if SUMO returns a valid color.
+//	                        color = Color.rgb(r, g, b, opacity);
+//						}
+//	                    vehRows.put(id, new VehicleRow(id, speed, edge, color));
+//                	} else {
+//                		// update old data
+//                		vehRows.get(id).setSpeed(speed);
+//                		vehRows.get(id).setEdge(edge);
+//                	}
+//                } catch (Exception perVehicle) {
+//                    // Skip only the problematic vehicle; keep the rest visible.
+//                    LOGGER.log(Level.FINE, "Failed to fetch row for vehicle " + id, perVehicle);
+//                }
+//            }
+//            
+//            // remove old entries if vehicle no longer exists
+//            Iterator<String> it = vehRows.keySet().iterator();
+//			while (it.hasNext()) {
+//			    String id = it.next();
+//			    if (!ids.contains(id)) {
+//			        it.remove(); // Safely removes "Green" from the set
+//			    }
+//			}
+//        } catch (Exception e) {
+//			if (e instanceof IllegalStateException) {
+//				traci.handleConnectionError(e);
+//				return new ArrayList<>();
+//			}
+//            LOGGER.log(Level.WARNING, "Failed to fetch vehicle rows", e);
+//        }
+//        return new ArrayList<>();
     }
 
-    private static int clampInt(int v, int min, int max) {
+    private int clampInt(int v, int min, int max) {
         return Math.max(min, Math.min(v, max));
     }
 
-    private static int[] extractRgba(Object colorObj) {
+    private int[] extractRgba(Object colorObj) {
         if (colorObj == null) return null;
         if (colorObj instanceof SumoColor) {
         	SumoColor sc = (SumoColor) colorObj;
-            // SUMO/TraaS can return -1 for unset/unknown colors.
-            if (sc.r < 0 || sc.g < 0 || sc.b < 0 || sc.a < 0) return null;
-            return new int[] {sc.r, sc.g, sc.b, sc.a };
+        	// must convert from signed byte back to unsigned int
+            return new int[] {((int)sc.r + 256) % 256,
+            					((int)sc.g + 256) % 256,
+            					((int)sc.b + 256) % 256,
+            					((int)sc.a + 256) % 256};
         }
-        if (colorObj instanceof int[]) {
-        	int[] a = (int[]) colorObj;
-            if (a.length < 3) return null;
-            int alpha = (a.length >= 4) ? a[3] : 255;
-            // Treat negative values as invalid/unset.
-            if (a[0] < 0 || a[1] < 0 || a[2] < 0 || alpha < 0) return null;
-            return new int[] { a[0], a[1], a[2], alpha };
-        }
-        if (colorObj instanceof byte[]) {
-        	byte[] a = (byte[]) colorObj;
-            if (a.length < 3) return null;
-            int r = a[0] & 0xFF;
-            int g = a[1] & 0xFF;
-            int b = a[2] & 0xFF;
-            int alpha = (a.length >= 4) ? (a[3] & 0xFF) : 255;
-            return new int[] { r, g, b, alpha };
-        }
-        if (colorObj instanceof Object[]) {
-        	Object[] a = (Object[]) colorObj;
-            if (a.length < 3) return null;
-            Integer r = safeParseInt(a[0]);
-            Integer g = safeParseInt(a[1]);
-            Integer b = safeParseInt(a[2]);
-            Integer alpha = (a.length >= 4) ? safeParseInt(a[3]) : 255;
-            if (r == null || g == null || b == null) return null;
-            if (r < 0 || g < 0 || b < 0 || (alpha != null && alpha < 0)) return null;
-            return new int[] { r, g, b, (alpha == null ? 255 : alpha) };
-        }
-        if (colorObj instanceof List<?>) {
-        	List<?> list = (List<?>) colorObj;
-            if (list.size() < 3) return null;
-            Integer r = safeParseInt(list.get(0));
-            Integer g = safeParseInt(list.get(1));
-            Integer b = safeParseInt(list.get(2));
-            Integer alpha = (list.size() >= 4) ? safeParseInt(list.get(3)) : 255;
-            if (r == null || g == null || b == null) return null;
-            if (r < 0 || g < 0 || b < 0 || (alpha != null && alpha < 0)) return null;
-            return new int[] { r, g, b, (alpha == null ? 255 : alpha) };
-        }
+        System.out.println("Returning null for extractRgba");
         return null;
     }
 
-    private static Integer safeParseInt(Object v) {
+    private Integer safeParseInt(Object v) {
         if (v == null) return null;
         if (v instanceof Number) return ((Number)v).intValue();
         try {
@@ -388,7 +409,7 @@ public final class VehicleWrapper {
         return null;
     }
 
-    private static Double safeParseDouble(Object o) {
+    private Double safeParseDouble(Object o) {
         if (o == null) return null;
         if (o instanceof Number) return ((Number)o).doubleValue();
         try {
@@ -500,15 +521,19 @@ public final class VehicleWrapper {
      * @param typeId
      * @return
      */
-    public int[] getColor(String typeId) {
+    public int[] getColorRGBA(String typeId) {
 		if (traci.getConnection() == null || !traci.isConnected()) return new int[] {0, 0, 0, 0};
         try {
 			Object colorObj = traci.getConnection().do_job_get(Vehicle.getColor(typeId));
+			// System.out.println(colorObj.getClass());
 			int[] rgba = extractRgba(colorObj);
-			if (rgba != null) return rgba;
+			if (rgba != null) {
+				return rgba;
+			}
         } catch (Exception e) {
 			LOGGER.log(Level.FINE, "Failed to fetch color for " + typeId, e);
         }
+        System.out.println("Returning {0, 0, 0, 0} for getColorRGBA");
         return new int[] {0, 0, 0, 0}; // error
     }
 
@@ -519,30 +544,34 @@ public final class VehicleWrapper {
      * @param typeId
      * @param newColor (4 integers r, g, b, a)
      */
-    public void setColor(String typeId, int[] newColor) {
+    public void setColorRGBA(String typeId, int[] newColor) {
         if (traci.getConnection() == null || !traci.isConnected()) {
             LOGGER.fine("setColor ignored: not connected");
             return;
         }
     	try {
-    		SumoColor color = new SumoColor(newColor[0], newColor[1], newColor[2], newColor[3]);
+    		assert(newColor[0] >= 0 && newColor[0] <= 255 &&
+    			newColor[1] >= 0 && newColor[1] <= 255 &&
+    			newColor[2] >= 0 && newColor[2] <= 255 &&
+    			newColor[3] >= 0 && newColor[3] <= 255);
+    		// when using java to save, the byte is signed, even though SumoColor uses ubyte
+    		SumoColor color = new SumoColor((byte)newColor[0], (byte)newColor[1], (byte)newColor[2], (byte)newColor[3]);
             traci.getConnection().do_job_set(Vehicle.setColor(typeId, color));
-//	        try {
-//	            synchronized (traci) {
-//	                SumoTraciConnection conn = traci.getConnection();
-//	                if (conn != null) {
-//	                    conn.do_job_set(Vehicle.setParameter(id, "color", rgba));
-//	                }
-//	            }
-//	        } catch (Exception ignored) {}
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to set color for " + typeId, e);
         }
     }
+    /**
+     * Inject new vehicle to the vehicle cache
+     * @param vehicleId
+     * @param routeOrEdgeId
+     * @param speed
+     * @param color
+     */
     public void addVehicle(String vehicleId, String routeOrEdgeId, double speed, Color color) {
 		if (traci.getConnection() == null || !traci.isConnected()) return;
         try {
-                        if (color == null) color = Color.RED;
+        	if (color == null) color = Color.RED;
 			// Remember requested color for rendering.
 			preferredVehicleColors.put(vehicleId, color);
 
@@ -833,8 +862,7 @@ public final class VehicleWrapper {
         try {
             traci.getConnection().do_job_set(Vehicle.setMaxSpeed(vehId, maxSpeed));   // set max speed
             traci.getConnection().do_job_set(Vehicle.setSpeed(vehId, actualSpeed));   // set current speed
-            setColor(vehId, new int[] {r, g, b, a});
-//          this.getConnection().do_job_set(Vehicle.setParameter(id, "color", color)); // set vehicle color
+            setColorRGBA(vehId, new int[] {r, g, b, a});
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to configure vehicle " + vehId, e);
         }
@@ -857,8 +885,7 @@ public final class VehicleWrapper {
      * @param fallback value to return if conversion fails
      * @return double value or fallback
      */
-    @SuppressWarnings("unused")
-	private static double toDouble(Object res, double fallback) {
+	private double toDouble(Object res, double fallback) {
         if (res instanceof Number) return ((Number) res).doubleValue();
         try {
             return res != null ? Double.parseDouble(res.toString()) : fallback;
@@ -874,7 +901,7 @@ public final class VehicleWrapper {
      * @return double[2] position or ZERO_POS if conversion fails
      */
     @SuppressWarnings("unused")
-	private static double[] toPosition(Object res) {
+	private double[] toPosition(Object res) {
         if (res instanceof double[] && ((double[])res).length >= 2) return (double[])res;
         if (res instanceof Object[] && ((Object[])res).length >= 2) {
         	Object[] a = (Object[])res;
@@ -888,10 +915,9 @@ public final class VehicleWrapper {
      * @param speed speed to validate
      * @return true if speed is valid
      */
-    private static boolean isValidSpeed(double speed) {
+    private boolean isValidSpeed(double speed) {
         return !Double.isNaN(speed) && speed >= 0.0;
     }
-
     /**
      * Clamps a value to the specified range [min, max].
      * @param v value to clamp
@@ -899,10 +925,9 @@ public final class VehicleWrapper {
      * @param max maximum allowed value
      * @return clamped value
      */
-    private static double clamp(double v, double min, double max) {
+    private double clamp(double v, double min, double max) {
         return Math.max(min, Math.min(v, max));
     }
-
 	/**
      * Fetch current vehicle angles (heading in degrees) from SUMO.
      * Angle is measured from North (0 degrees) clockwise.
@@ -946,6 +971,7 @@ public final class VehicleWrapper {
 
     /**
      * Fetch current vehicle types from SUMO.
+     * optains a new list every time
      * Returns the vehicle type ID for each vehicle (e.g., "car", "bus", "motorcycle").
      * @return map of vehicle id to vehicle type string
      */
@@ -992,16 +1018,15 @@ public final class VehicleWrapper {
 
         for (String id : ids) {
             try {
-                // TODO: Color is always [0 0 0] --> always black
-                // TODO: Have to fix the bug
-                int[] color = getColor(id);
-                String colorStr = color[0] + "-" + color[1] + "-" + color[2]; // R-G-B ID     0 0 0 For Black
-                double speed = getSpeed(id);
-                double[] pos = getPosition(id); // returns [x, y]
-                String edge = getEdgeId(id);
+                // DONE: fixed color bug
+                int[] color = getColorRGBA(id);
+                String colorStr = color[0] + "-" + color[1] + "-" + color[2] + "-" + color[3]; // R-G-B-A ID     0 0 0 0 For Black
+                double speed = this.getSpeed(id);
+                double[] pos = this.getPosition(id); // returns [x, y]
+                String edge = this.getEdgeId(id);
 
                 // Format: Vehicle-ID, Color, Speed, PosX, PosY, Egde-ID, Empty, Empty, Empty [no Vehicle Data]
-                String row = String.format("%s;%s;%.2f;%.2f;%.2f;%s",
+                String row = String.format("%s,%s,%.2f,%.2f,%.2f,%s,",
                         id, colorStr, speed, pos[0], pos[1], edge
                 );
 
@@ -1020,5 +1045,4 @@ public final class VehicleWrapper {
 //    getDistance()
 //    getSignals()
 //    getAcceleration()
-//    getAngle()
 }

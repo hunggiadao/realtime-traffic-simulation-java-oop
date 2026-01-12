@@ -4,6 +4,8 @@ import de.tudresden.sumo.cmd.Trafficlight;
 import de.tudresden.sumo.config.Constants;
 //import de.tudresden.sumo.objects.SumoTLSProgram;
 import de.tudresden.sumo.util.SumoCommand;
+import de.tudresden.sumo.objects.SumoLink;
+import de.tudresden.sumo.objects.SumoLinkList;
 import de.tudresden.sumo.objects.SumoTLSController;
 import de.tudresden.sumo.objects.SumoTLSProgram;
 import de.tudresden.sumo.objects.SumoTLSPhase;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,12 +22,24 @@ import java.util.logging.Logger;
  * Wrapper class for Traffic Lights in SUMO.
  * Used to get traffic light IDs and their states.
  */
-public final class TrafficLightWrapper {
+public class TrafficLightWrapper {
     private static final Logger LOGGER = Logger.getLogger(TrafficLightWrapper.class.getName());
     private final TraCIConnector traci;
     
+    private boolean isPaused;
+    
     public TrafficLightWrapper(TraCIConnector traci) {
     	this.traci = Objects.requireNonNull(traci, "traci");
+    	this.isPaused = false;
+    }
+    
+    // Getter Function for isPaused
+    public boolean isPaused() {
+        return isPaused;
+    }
+    // Pauses the Simulation
+    public void togglePauseSimulation() {
+        this.isPaused = !this.isPaused;
     }
     
     /**
@@ -186,6 +201,36 @@ public final class TrafficLightWrapper {
     	}
     }
     /**
+	 * get the number of phases for this TL
+	 * @param id
+	 * @return
+	 */
+	public int getTrafficLightPhaseCount(String id) {
+		if (this.traci.getConnection() == null || !this.traci.isConnected()) return -1; // error
+		try {
+			int count = -1; // default, if no change then there is an error
+			SumoTLSController cont = (SumoTLSController) this.getRGBDefinition(id);
+			if (cont == null) {
+				// trafWrapper failed, resorting to manual call
+				System.out.println("trafWrapper failed, resorting to manual call");
+				Object def = this.traci.getConnection().do_job_get(Trafficlight.getCompleteRedYellowGreenDefinition(id));
+				System.out.println("The actual class is: " + def.getClass().getName());
+				
+				if (def instanceof SumoTLSController) {
+					cont = (SumoTLSController) def;
+				}
+			}
+			// there is only 1 key in the HashMap, the key is "0"
+			SumoTLSProgram prog = (SumoTLSProgram) cont.get("0");
+			count = prog.phases.size();
+			System.out.println("Number of Phases: " + count);
+			return count;
+		} catch (Exception e) {
+			return -1;
+		}
+	}
+	
+    /**
      * Returns the index of the current phase within the list
      * of all phases of the traffic light.
      * @param id
@@ -202,13 +247,13 @@ public final class TrafficLightWrapper {
     }
     /**
      * Sets the phase of the traffic light to the given index
+     * Requires prechecking the newIndex
      * The given index must be between 0 and length(phases)
      * @param id
      * @param newIndex
      */
     public void setPhaseIndex(String id, int newIndex) {
-    	// TODO: need to figure out how to calulation length(phases)
-    	// since there is no native method
+    	// out of bound index is already checked by the caller of this function
     	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
             LOGGER.fine("Cannot set phase index: connection not available");
     	}
@@ -314,16 +359,55 @@ public final class TrafficLightWrapper {
     	}
     	return new ArrayList<String>(); // error
     }
-
-
-    private boolean isPaused = false;
-    // Getter Function for isPaused
-    public boolean isPaused() {
-        return isPaused;
-    }
-    // Pauses the Simulation
-    public void togglePauseSimulation() {
-        this.isPaused = !this.isPaused;
+    
+    /**
+     * get all the links controlled by this TL
+     * @param tlId
+     * @return list of controlled links by this TL
+     */
+    public List<SumoLink> getTrafficLightLinks(String tlId) {
+		if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+			return Collections.emptyList();
+		}
+		try {
+			Object obj = this.traci.getConnection().do_job_get(Trafficlight.getControlledLinks(tlId));
+			List<SumoLink> out = new ArrayList<>();
+			flattenControlledLinks(obj, out);
+			return out;
+		} catch (Exception e) {
+			return Collections.emptyList();
+		}
+	}
+    /**
+     * parse and add each item in obj to out
+     * @param obj compound object that holds data for SumoLinkList
+     * @param out List of SumoLinks, destination for the parse
+     */
+    public static void flattenControlledLinks(Object obj, List<SumoLink> out) {
+		if (obj == null) return;
+		if (obj instanceof SumoLink) {
+			out.add((SumoLink) obj);
+			return;
+		}
+		if (obj instanceof SumoLinkList) {
+			for (Object o : (SumoLinkList) obj) {
+				flattenControlledLinks(o, out);
+			}
+			return;
+		}
+		if (obj instanceof java.lang.Iterable<?>) {
+			for (Object o : (java.lang.Iterable<?>) obj) {
+				flattenControlledLinks(o, out);
+			}
+			return;
+		}
+		Class<?> c = obj.getClass();
+		if (c.isArray()) {
+			int n = java.lang.reflect.Array.getLength(obj);
+			for (int i = 0; i < n; i++) {
+				flattenControlledLinks(java.lang.reflect.Array.get(obj, i), out);
+			}
+		}
     }
 
     /**
@@ -344,8 +428,8 @@ public final class TrafficLightWrapper {
                     phaseState = "default";
                 }
 
-                // Format: ID;Name;Index
-                String row = String.format("%s;%s;%d", id, phaseState, phaseIndex);
+                // Format: ID,Name,Index,
+                String row = String.format("%s,%s,%d", id, phaseState, phaseIndex);
 
                 exportRows.add(row);
             } catch (Exception e) {
@@ -354,7 +438,11 @@ public final class TrafficLightWrapper {
         }
         return exportRows;
     }
-
+    
+    // to be implemented if necessary
+    //    addConstraint();
+	//    removeConstraint();
+	//    updateConstraints();
 }
 
 
