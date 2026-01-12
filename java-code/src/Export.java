@@ -10,6 +10,10 @@ import java.io.PrintWriter;
 import java.io.FileNotFoundException;
 
 public class Export {
+	
+	public Export() {
+		// empty default constructor
+	}
 
     /**
      * Creates a PDF document containing the simulation results in a table.
@@ -34,7 +38,7 @@ public class Export {
             // Create Table (10 columns: Step,ID, Color, PosX, PosY, Edge, TL-ID, State, Index)
             PdfPTable table = new PdfPTable(10);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{1,2f, 2f, 2f, 1.5f, 1.5f, 1.5f, 2f, 2f, 2f, 1.2f});
+            table.setWidths(new float[]{1, 2f, 2f, 2f, 1.5f, 1.5f, 1.5f, 2f, 2f, 2f});
 
             // Add Header Cells
             Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
@@ -46,20 +50,19 @@ public class Export {
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 table.addCell(cell);
             }
-            Font dataFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8);
+            
             // Add Data Rows
+            Font dataFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8);            
             for (String row : data) {
-                String[] parts = row.split(";", -1);
+                String[] parts = row.split(",", -1); // must split into 10 parts
                 for(String part : parts){
                     PdfPCell cell = new PdfPCell(new Phrase(part, dataFont));
                     cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                     table.addCell(cell);
                 }
             }
-
             document.add(table);
-            System.out.println("PDF successfully created: " + fileName);
-
+//            System.out.println("PDF successfully created: " + fileName);
         } catch (Exception e) {
             System.err.println("Export Error: " + e.getMessage());
             e.printStackTrace();
@@ -75,7 +78,8 @@ public class Export {
         File cvsFile = new File(fileName);
 
         try (PrintWriter pw = new PrintWriter(cvsFile)){
-            pw.println("Step;Vehicle-ID;Color;Speed;PosX;PosY;Edge;TrafficLight-ID;Current State;Current Index");
+        	// first line
+            pw.println("Step,Vehicle-ID,Color,Speed,PosX,PosY,Edge,TrafficLight-ID,Current State,Current Index");
 
             for (String entry : data) {
                 pw.println(entry);
@@ -85,3 +89,34 @@ public class Export {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

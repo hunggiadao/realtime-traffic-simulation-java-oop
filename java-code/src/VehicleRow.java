@@ -5,11 +5,11 @@ import javafx.beans.property.StringProperty;
 import javafx.scene.paint.Color;
 
 public class VehicleRow {
-
-    private final StringProperty id = new SimpleStringProperty();
-    private final DoubleProperty speed = new SimpleDoubleProperty();
-    private final StringProperty edge = new SimpleStringProperty();
-    private final Color color;
+	// private fields
+    private StringProperty id = new SimpleStringProperty();
+    private DoubleProperty speed = new SimpleDoubleProperty();
+    private StringProperty edge = new SimpleStringProperty();
+    private Color color; // not SumoColor
 
     public VehicleRow(String id, double speed, String edge, Color color) {
         this.id.set(id);
@@ -18,17 +18,19 @@ public class VehicleRow {
         this.color = color;
     }
 
-    public String getId() { return id.get(); }
-    public void setId(String v) { id.set(v); }
-    public StringProperty idProperty() { return id; }
+    public String getId() {return this.id.get();}
+    public void setId(String v) {this.id.set(v);}
+    public StringProperty idProperty() {return this.id;}
 
-    public double getSpeed() { return speed.get(); }
-    public void setSpeed(double v) { speed.set(v); }
-    public DoubleProperty speedProperty() { return speed; }
+    public double getSpeed() {return this.speed.get();}
+    public void setSpeed(double v) {this.speed.set(v);}
+    public DoubleProperty speedProperty() {return this.speed;}
 
-    public String getEdge() { return edge.get(); }
-    public void setEdge(String v) { edge.set(v); }
-    public StringProperty edgeProperty() { return edge; }
+    public String getEdge() {return this.edge.get();}
+    public void setEdge(String v) {this.edge.set(v);}
+    public StringProperty edgeProperty() {return this.edge;}
 
-    public Color getColor() { return color; }
+    public Color getColor() {return this.color;}
+    public void setColor(Color newColor) {this.color = newColor;}
+    public StringProperty colorProperty() {return new SimpleStringProperty(this.color.toString());}
 }

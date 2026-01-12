@@ -31,11 +31,11 @@ import org.w3c.dom.NodeList;
 public class MapView extends Pane {
     private static final Logger LOGGER = Logger.getLogger(MapView.class.getName());
     private static class LaneShape {
-        final String laneId;
-        final String edgeId;
-        final int laneIndex;
-        final List<Point2D> polyline;
-        final double widthMeters;
+        String laneId;
+        String edgeId;
+        int laneIndex;
+        List<Point2D> polyline;
+        double widthMeters;
         LaneShape(String id, List<Point2D> p, double w) {
             this.laneId = id;
             LaneKey k = parseLaneKey(id);
@@ -47,8 +47,8 @@ public class MapView extends Pane {
     }
 
     private static final class LaneKey {
-        final String edgeId;
-        final int laneIndex;
+        String edgeId;
+        int laneIndex;
         LaneKey(String edgeId, int laneIndex) {
             this.edgeId = edgeId;
             this.laneIndex = laneIndex;
@@ -72,9 +72,9 @@ public class MapView extends Pane {
     }
 
 	private static class JunctionShape {
-        final String id;
-        final boolean hasTrafficLight;
-		final List<Point2D> polygon;
+        String id;
+        boolean hasTrafficLight;
+		List<Point2D> polygon;
 		
         JunctionShape(String id, boolean trafficLight, List<Point2D> p) {
             this.id = id;
@@ -84,8 +84,8 @@ public class MapView extends Pane {
 	}
 
     private static final class TextMarker {
-        final String text;
-        final Point2D world;
+        String text;
+        Point2D world;
         
         TextMarker(String text, Point2D world) {
             this.text = text;
@@ -93,12 +93,12 @@ public class MapView extends Pane {
         }
     }
 
-    private final Canvas canvas = new Canvas();
-    private final List<LaneShape> lanes = new ArrayList<>();
-	private final Map<String, LaneShape> lanesById = new HashMap<>();
-	private final List<JunctionShape> junctions = new ArrayList<>();
-    private final Map<String, Point2D> edgeLabelWorldPos = new HashMap<>();
-    private final List<TextMarker> trafficLightMarkers = new ArrayList<>();
+    private Canvas canvas = new Canvas();
+    private List<LaneShape> lanes = new ArrayList<>();
+	private Map<String, LaneShape> lanesById = new HashMap<>();
+	private List<JunctionShape> junctions = new ArrayList<>();
+    private Map<String, Point2D> edgeLabelWorldPos = new HashMap<>();
+    private List<TextMarker> trafficLightMarkers = new ArrayList<>();
     private Map<String, Point2D> vehiclePositions;
 	private Map<String, Color> vehicleColors;
     private Map<String, String> vehicleLaneIds;
@@ -108,8 +108,8 @@ public class MapView extends Pane {
     private Map<String, String> vehicleTypes;
 
     // Per-vehicle render smoothing state (keeps headings stable at junctions)
-    private final Map<String, Point2D> lastVehicleWorldPos = new HashMap<>();
-    private final Map<String, Point2D> smoothedVehicleDir = new HashMap<>();
+    private Map<String, Point2D> lastVehicleWorldPos = new HashMap<>();
+    private Map<String, Point2D> smoothedVehicleDir = new HashMap<>();
 	private Map<String, Color> laneSignalColors;
     private double minX = 0, maxX = 1, minY = 0, maxY = 1;
 
@@ -520,12 +520,15 @@ public class MapView extends Pane {
         Point2D dirWorld = null;
 
         // (1) Lane tangent in world coordinates (x right, y up)
-        if (lane != null && lane.polyline != null && lane.polyline.size() >= 2 && worldPos != null) {
-            dirWorld = laneTangentAt(worldPos, lane.polyline);
-        }
+        // causes cars to not turn when changing lanes in a straight edge
+//        if (lane != null && lane.polyline != null && lane.polyline.size() >= 2 && worldPos != null) {
+////        	System.out.println("using lane tangent");
+//            dirWorld = laneTangentAt(worldPos, lane.polyline);
+//        }
 
         // (2) Movement delta (world coordinates)
         if (dirWorld == null && worldPos != null && vehicleId != null) {
+//        	System.out.println("using movement delta");
             Point2D prev = lastVehicleWorldPos.get(vehicleId);
             if (prev != null) {
                 double dx = worldPos.getX() - prev.getX();
@@ -536,9 +539,10 @@ public class MapView extends Pane {
                 }
             }
         }
-
+        
         // (3) SUMO angle fallback (world coordinates)
         if (dirWorld == null) {
+//        	System.out.println("using SUMO fallback");
             double angleRad = Math.toRadians(angleDegrees);
             // SUMO 0° = North (+Y), 90° = East (+X)
             dirWorld = new Point2D(Math.sin(angleRad), Math.cos(angleRad));
@@ -550,7 +554,7 @@ public class MapView extends Pane {
 
         // Smooth direction to avoid jitter / sudden flips at junctions.
         // Small alpha => smoother but more lag; medium value is a good compromise.
-        final double alpha = 0.28;
+        final double alpha = 0.1;
         if (vehicleId != null) {
             Point2D prevDir = smoothedVehicleDir.get(vehicleId);
             if (prevDir != null) {
@@ -592,7 +596,8 @@ public class MapView extends Pane {
         // This function returns the car length in screen pixels.
         return Math.max(8.5, 12.0 * carSizeMulForZoom(mapScale));
     }
-
+    
+    // set x and y components to between -1 and 1
     private static Point2D normalize(Point2D v) {
         if (v == null) return new Point2D(1.0, 0.0);
         double len = Math.hypot(v.getX(), v.getY());

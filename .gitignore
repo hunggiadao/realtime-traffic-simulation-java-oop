@@ -21,6 +21,8 @@ out
 
 # for all subdirectories
 **Zone.Identifier
+csvExport.*
+pdfExport.*
 
 # Eclipse artifacts (keep local, do not track)
 /java-code/.project
