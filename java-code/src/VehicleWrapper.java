@@ -7,6 +7,7 @@ import de.tudresden.sumo.util.SumoCommand;
 import de.tudresden.sumo.objects.SumoStage;
 import de.tudresden.sumo.objects.SumoStringList;
 import it.polito.appeal.traci.SumoTraciConnection;
+import de.tudresden.sumo.objects.SumoPosition2D;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -54,7 +55,14 @@ public class VehicleWrapper {
     public VehicleWrapper(TraCIConnector traci) {
         this.traci = Objects.requireNonNull(traci, "traci");
     }
-
+    
+    /**
+     * for debugging
+     * @return
+     */
+    public TraCIConnector getTraCI() {
+    	return this.traci;
+    }
     /**
      * Returns the number of vehicles currently running within the scenario.
      */
@@ -265,8 +273,10 @@ public class VehicleWrapper {
             }
 
             for (String id : ids) {
-				Object posObj = traci.getConnection().do_job_get(Vehicle.getPosition(id));
-                Point2D p = extractPoint(posObj);
+//				Object posObj = traci.getConnection().do_job_get(Vehicle.getPosition(id));
+//                Point2D p = extractPoint(posObj);
+            	double[] pos = this.getPosition(id);
+            	Point2D p = new Point2D(pos[0], pos[1]);
                 if (p != null) out.put(id, p);
             }
         } catch (Exception e) {
@@ -341,8 +351,6 @@ public class VehicleWrapper {
 				if (x != null && y != null) {
 					return new Point2D(x, y);
 				}
-//                try {
-//                } catch (NumberFormatException ignored) {}
             }
         }
 
@@ -457,11 +465,8 @@ public class VehicleWrapper {
     public double[] getPosition(String vehId) {
 		if (traci.getConnection() == null || !traci.isConnected()) return new double[] {0, 0};
         try {
-            Object posObj = traci.getConnection().do_job_get(Vehicle.getPosition(vehId));
-            Point2D p = extractPoint(posObj);
-            if (p != null) {
-                return new double[] { p.getX(), p.getY() };
-            }
+        	SumoPosition2D pos = (SumoPosition2D)traci.getConnection().do_job_get(Vehicle.getPosition(vehId));
+        	return new double[] {pos.x, pos.y};
         } catch (Exception e) {
 			LOGGER.log(Level.FINE, "Failed to fetch position for " + vehId, e);
         }
@@ -1034,6 +1039,7 @@ public class VehicleWrapper {
                 String colorStr = color[0] + "-" + color[1] + "-" + color[2] + "-" + color[3]; // R-G-B-A ID     0 0 0 0 For Black
                 double speed = this.getSpeed(id);
                 double[] pos = this.getPosition(id); // returns [x, y]
+//                System.out.println(pos[0] + " " + pos[1]);
                 String edge = this.getEdgeId(id);
 
                 // Format: Vehicle-ID, Color, Speed, PosX, PosY, Egde-ID, Empty, Empty, Empty [no Vehicle Data]

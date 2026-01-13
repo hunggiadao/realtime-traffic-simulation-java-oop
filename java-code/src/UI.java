@@ -114,7 +114,7 @@ public class UI {
 	private VehicleWrapper vehicleWrapper;
 	private TrafficLightWrapper trafWrapper;
 	private EdgeWrapper edgeWrapper;
-	private InfrastructureWrapper infraWrapper;
+	private InfrastructureWrapper infWrapper;
     private UIKeys keyController;
 	private int stepLengthMs = 50; // default 50
 	private double stepLengthSeconds = 0.05; // default 0.05
@@ -133,6 +133,29 @@ public class UI {
 	public UI() {
 		// called when FXML is loaded
 	}
+
+    /**
+     * for debugging
+     * @return
+     */
+    public TraCIConnector getTraCI() {
+    	return this.connector;
+    }
+    public VehicleWrapper getVehWrapper() {
+    	return this.vehicleWrapper;
+    }
+    public TrafficLightWrapper getTrafWrapper() {
+    	return this.trafWrapper;
+    }
+    public EdgeWrapper getEdgeWrapper() {
+    	return this.edgeWrapper;
+    }
+    public InfrastructureWrapper getInfWrapper() {
+    	return this.infWrapper;
+    }
+    public UIKeys getUIKeyWrapper() {
+    	return this.keyController;
+    }
 
 	@FXML
 	private void initialize() {
@@ -455,18 +478,16 @@ public class UI {
 				return;
 			}
 
-			// Heavy TraCI queries off the UI thread
-			List<String> spawnEdges = localConnector.getGoodSpawnEdgeIds();
+		vehicleWrapper = new VehicleWrapper(localConnector);
+		trafWrapper = new TrafficLightWrapper(localConnector);
+        keyController = new UIKeys(trafWrapper, this);
+        edgeWrapper = new EdgeWrapper(localConnector, vehicleWrapper);
+        infWrapper = new InfrastructureWrapper(localConnector);
 
 			Platform.runLater(() -> {
 				// Adopt the connected instance on the UI thread
 				connector = localConnector;
 				resetSessionStats();
-				vehicleWrapper = new VehicleWrapper(connector);
-				trafWrapper = new TrafficLightWrapper(connector);
-				keyController = new UIKeys(trafWrapper, this);
-				edgeWrapper = new EdgeWrapper(connector, vehicleWrapper);
-				infraWrapper = new InfrastructureWrapper(connector);
 
 				if (cpInjectColor != null) {
 					cpInjectColor.setValue(Color.RED);
@@ -487,10 +508,11 @@ public class UI {
 					});
 				}
 
-				// Populate spawnable edge list (already computed)
-				if (cmbInjectEdge != null) {
-					cmbInjectEdge.getItems().setAll(spawnEdges);
-					if (!spawnEdges.isEmpty()) cmbInjectEdge.getSelectionModel().select(0);
+				// Populate spawnable edge list
+				if (cmbInjectEdge != null && edgeWrapper != null) {
+					List<String> edges = edgeWrapper.getEdgeIDs();
+					cmbInjectEdge.getItems().setAll(edges);
+					if (!edges.isEmpty()) cmbInjectEdge.getSelectionModel().select(0);
 				}
 
 				// Populate traffic light list (UI work)
@@ -937,7 +959,7 @@ public class UI {
 	 * @param tol tolerance amount
 	 * @return
 	 */
-	private static boolean isSimilarColor(Color actual, Color target, double tol) {
+	public static boolean isSimilarColor(Color actual, Color target, double tol) {
 		if (actual == null || target == null) return false;
 		return Math.abs(actual.getRed() - target.getRed()) <= tol
 				&& Math.abs(actual.getGreen() - target.getGreen()) <= tol
@@ -1202,7 +1224,8 @@ public class UI {
                 }
                 // Export the Data
                 Export exporter = new Export();
-                exporter.createPDF(file.getAbsolutePath(), "Sumo Simulation Report", currentData);
+                // pdf export needs more data for metrics and stats
+                exporter.createPDF(file.getAbsolutePath(), "Sumo Simulation Report", currentData, this);
                 System.out.println("PDF successfully created: " + file.getAbsolutePath());
                 LOGGER.fine("Sumo-PDF Export successful saved in: " + file.getAbsolutePath());
             } catch (Exception e) {
@@ -1238,6 +1261,7 @@ public class UI {
                 }
                 Export exporter = new Export();
                 exporter.createCSV(file.getAbsolutePath(), currentData);
+                System.out.println("CSV successfully created: " + file.getAbsolutePath());
                 LOGGER.fine("Sumo-CSV Export successful saved in: " + file.getAbsolutePath());
             } catch (Exception e) {
                 LOGGER.warning("Failed to export CSV from Sumo-UI: " + e.getMessage());
