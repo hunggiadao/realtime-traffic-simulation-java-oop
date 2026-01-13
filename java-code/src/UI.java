@@ -1099,6 +1099,7 @@ public class UI {
                 }
                 Export exporter = new Export();
                 exporter.createCSV(file.getAbsolutePath(), currentData);
+                System.out.println("CSV successfully created: " + file.getAbsolutePath());
                 LOGGER.fine("Sumo-CSV Export successful saved in: " + file.getAbsolutePath());
             } catch (Exception e) {
                 LOGGER.warning("Failed to export CSV from Sumo-UI: " + e.getMessage());

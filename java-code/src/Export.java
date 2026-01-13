@@ -35,15 +35,15 @@ public class Export {
             p.setSpacingAfter(20);
             document.add(p);
 
-            // Create Table (10 columns: Step,ID, Color, PosX, PosY, Edge, TL-ID, State, Index)
+            // Create Table (10 columns:)
             PdfPTable table = new PdfPTable(10);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{1, 2f, 2f, 2f, 1.5f, 1.5f, 1.5f, 2f, 2f, 2f});
+            table.setWidths(new float[]{1, 3f, 2f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 3f, 1.5f});
 
             // Add Header Cells
             Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
-            String[] headers = {"Step", "Vehicle-ID", "Color", "Speed", "PosX", "PosY", "Edge",
-                                "TrafficLight-ID", "Current State", "Current Index"};
+            String[] headers = {"Step", "Vehicle-ID", "Color [R-G-B-A]", "Speed [m/s]", "PosX", "PosY", "Edge",
+                                "TrafficLight-ID", "Current State", "Phase Index"};
 
             for (String header : headers) {
                 PdfPCell cell = new PdfPCell(new Phrase(header, headerFont));
@@ -79,7 +79,7 @@ public class Export {
 
         try (PrintWriter pw = new PrintWriter(cvsFile)){
         	// first line
-            pw.println("Step,Vehicle-ID,Color,Speed,PosX,PosY,Edge,TrafficLight-ID,Current State,Current Index");
+            pw.println("Step,Vehicle-ID,Color [R-G-B-A],Speed [m/s],PosX,PosY,Edge,TrafficLight-ID,Current State,Phase Index");
 
             for (String entry : data) {
                 pw.println(entry);
