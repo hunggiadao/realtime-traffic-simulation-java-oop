@@ -33,6 +33,13 @@ public class TrafficLightWrapper {
     	this.isPaused = false;
     }
     
+    /**
+     * for debugging
+     * @return
+     */
+    public TraCIConnector getTraCI() {
+    	return this.traci;
+    }
     // Getter Function for isPaused
     public boolean isPaused() {
         return isPaused;
@@ -41,7 +48,6 @@ public class TrafficLightWrapper {
     public void togglePauseSimulation() {
         this.isPaused = !this.isPaused;
     }
-    
     /**
      * Gets a list of all traffic light IDs in the map.
      * @return List of Traffic light IDs
