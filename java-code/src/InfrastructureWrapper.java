@@ -96,6 +96,63 @@ public class InfrastructureWrapper {
         }
     }
 
+    /**
+     * Gets the start position of the bus stop on the lane (distance from lane start in meters).
+     * @param busStopId The ID of the bus stop.
+     * @return The start position in meters, or -1.0 if error.
+     */
+    public double getBusStopStartPos(String busStopId) {
+        if (isReady() == false) return -1.0;
+        if (busStopId == null || busStopId.isEmpty()) return -1.0;
+
+        try {
+            Object pos = connector.getConnection().do_job_get(BusStop.getStartPos(busStopId));
+            if (pos instanceof Number) {
+                return ((Number) pos).doubleValue();
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.FINE, "[Infra] Bus stop start pos error for " + busStopId, ex);
+        }
+        return -1.0;
+    }
+
+    /**
+     * Gets the end position of the bus stop on the lane (distance from lane start in meters).
+     * @param busStopId The ID of the bus stop.
+     * @return The end position in meters, or -1.0 if error.
+     */
+    public double getBusStopEndPos(String busStopId) {
+        if (isReady() == false) return -1.0;
+        if (busStopId == null || busStopId.isEmpty()) return -1.0;
+
+        try {
+            Object pos = connector.getConnection().do_job_get(BusStop.getEndPos(busStopId));
+            if (pos instanceof Number) {
+                return ((Number) pos).doubleValue();
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.FINE, "[Infra] Bus stop end pos error for " + busStopId, ex);
+        }
+        return -1.0;
+    }
+
+    /**
+     * Gets the name of the bus stop.
+     * @param busStopId The ID of the bus stop.
+     * @return The name string, or empty string if error.
+     */
+    public String getBusStopName(String busStopId) {
+        if (isReady() == false) return "";
+        if (busStopId == null || busStopId.isEmpty()) return "";
+
+        try {
+            Object name = connector.getConnection().do_job_get(BusStop.getName(busStopId));
+            return (name != null) ? name.toString() : "";
+        } catch (Exception ex) {
+            return "";
+        }
+    }
+
     // ============================================================
     // 2. EDGE LOGIC
     // ============================================================

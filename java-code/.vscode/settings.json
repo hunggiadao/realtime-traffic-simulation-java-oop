@@ -21,5 +21,10 @@
     "src"
   ],
   "java.errors.incompleteClasspath.severity": "ignore",
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "chat.tools.terminal.autoApprove": {
+    "gradle -q run": true,
+    "Set-Location": true,
+    "gradle run": true
+  }
 }

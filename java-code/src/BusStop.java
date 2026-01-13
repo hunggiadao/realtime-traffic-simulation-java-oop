@@ -16,8 +16,18 @@ public class BusStop {
     // Variable ID for Person Number.
     public static final int VAR_PERSON_NUMBER = 0x67;
 
+    // Variable ID for Start Position (distance from lane start).
+    public static final int VAR_START_POS = 0x44;
+
+    // Variable ID for End Position (distance from lane start).
+    public static final int VAR_END_POS = 0x45;
+
+    // Variable ID for Name.
+    public static final int VAR_NAME = 0x1b;
+
     // --- TraCI data types ---
     private static final int TYPE_INTEGER = 0x09;
+    private static final int TYPE_DOUBLE = 0x0B;
     private static final int TYPE_STRING = 0x0C;
     private static final int TYPE_STRINGLIST = 0x0E;
     private static final int ID_LIST = 0x00;
@@ -47,5 +57,32 @@ public class BusStop {
      */
     public static SumoCommand getPersonCount(String stopID) {
         return new SumoCommand(CMD_GET_BUSSTOP_VARIABLE, VAR_PERSON_NUMBER, stopID, TYPE_INTEGER);
+    }
+
+    /**
+     * Returns the start position of the bus stop on the lane (distance from lane start in meters).
+     * @param stopID The ID of the bus stop
+     * @return SumoCommand to get the start position
+     */
+    public static SumoCommand getStartPos(String stopID) {
+        return new SumoCommand(CMD_GET_BUSSTOP_VARIABLE, VAR_START_POS, stopID, TYPE_DOUBLE);
+    }
+
+    /**
+     * Returns the end position of the bus stop on the lane (distance from lane start in meters).
+     * @param stopID The ID of the bus stop
+     * @return SumoCommand to get the end position
+     */
+    public static SumoCommand getEndPos(String stopID) {
+        return new SumoCommand(CMD_GET_BUSSTOP_VARIABLE, VAR_END_POS, stopID, TYPE_DOUBLE);
+    }
+
+    /**
+     * Returns the name of the bus stop.
+     * @param stopID The ID of the bus stop
+     * @return SumoCommand to get the name
+     */
+    public static SumoCommand getName(String stopID) {
+        return new SumoCommand(CMD_GET_BUSSTOP_VARIABLE, VAR_NAME, stopID, TYPE_STRING);
     }
 }

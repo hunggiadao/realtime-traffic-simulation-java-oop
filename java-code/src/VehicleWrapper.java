@@ -970,10 +970,12 @@ public class VehicleWrapper {
     }
 
     /**
-     * Fetch current vehicle types from SUMO.
-     * optains a new list every time
-     * Returns the vehicle type ID for each vehicle (e.g., "car", "bus", "motorcycle").
-     * @return map of vehicle id to vehicle type string
+     * Fetch current vehicle types/classes from SUMO.
+     * Obtains a new list every time.
+     * Returns the vehicle class for each vehicle (e.g., "passenger", "bus", "motorcycle").
+     * This uses Vehicle.getVehicleClass() to get the actual vClass (bus, car, etc.)
+     * which is more reliable than type ID for determining vehicle shape.
+     * @return map of vehicle id to vehicle class string
      */
     public Map<String, String> getVehicleTypes() {
         Map<String, String> out = new HashMap<>();
@@ -992,7 +994,16 @@ public class VehicleWrapper {
 
             for (String id : ids) {
                 try {
-                    // Get vehicle type ID from SUMO
+                    // First try to get vehicle class (vClass) - more reliable for shape detection
+                    // vClass values: "passenger", "bus", "truck", "motorcycle", "bicycle", etc.
+                    Object vClassObj = traci.getConnection().do_job_get(Vehicle.getVehicleClass(id));
+                    if (vClassObj != null) {
+                        String vClass = vClassObj.toString().toLowerCase();
+                        out.put(id, vClass);
+                        continue;
+                    }
+                    
+                    // Fallback: Get vehicle type ID from SUMO
                     Object typeObj = traci.getConnection().do_job_get(Vehicle.getTypeID(id));
                     if (typeObj != null) {
                         out.put(id, typeObj.toString());

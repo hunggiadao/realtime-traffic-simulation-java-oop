@@ -114,6 +114,7 @@ public class UI {
 	private VehicleWrapper vehicleWrapper;
 	private TrafficLightWrapper trafWrapper;
 	private EdgeWrapper edgeWrapper;
+	private InfrastructureWrapper infraWrapper;
     private UIKeys keyController;
 	private int stepLengthMs = 50; // default 50
 	private double stepLengthSeconds = 0.05; // default 0.05
@@ -434,56 +435,77 @@ public class UI {
 		// Path to SUMO (headless calculation only, render inside JavaFX)
 		String sumoBinary = resolveSumoBinary();
 
-		connector = new TraCIConnector(sumoBinary, cfgFile.getPath(), (double)stepLengthSeconds);
-		boolean ok = connector.connect();
-		if (!ok) {
-			setStatusText("Status: Connection failed");
-			return;
+		if (btnConnect != null) {
+			btnConnect.setDisable(true);
+			btnConnect.setText("Connecting...");
 		}
+		setStatusText("Status: Connecting...");
 
-		// New session: clear old chart/table stats.
-		resetSessionStats();
+		Thread connectThread = new Thread(() -> {
+			TraCIConnector localConnector = new TraCIConnector(sumoBinary, cfgFile.getPath(), (double)stepLengthSeconds);
+			boolean ok = localConnector.connect();
+			if (!ok) {
+				Platform.runLater(() -> {
+					setStatusText("Status: Connection failed");
+					if (btnConnect != null) {
+						btnConnect.setDisable(false);
+						btnConnect.setText("Connect");
+					}
+				});
+				return;
+			}
 
-		vehicleWrapper = new VehicleWrapper(connector);
-		trafWrapper = new TrafficLightWrapper(connector);
-        keyController = new UIKeys(trafWrapper, this);
-        edgeWrapper = new EdgeWrapper(connector, vehicleWrapper);
+			// Heavy TraCI queries off the UI thread
+			List<String> spawnEdges = localConnector.getGoodSpawnEdgeIds();
 
-		if (cpInjectColor != null) {
-			// Reset injection color on (re)connect.
-			cpInjectColor.setValue(Color.RED);
-		}
+			Platform.runLater(() -> {
+				// Adopt the connected instance on the UI thread
+				connector = localConnector;
+				resetSessionStats();
+				vehicleWrapper = new VehicleWrapper(connector);
+				trafWrapper = new TrafficLightWrapper(connector);
+				keyController = new UIKeys(trafWrapper, this);
+				edgeWrapper = new EdgeWrapper(connector, vehicleWrapper);
+				infraWrapper = new InfrastructureWrapper(connector);
 
-		startConnectionMonitor();
+				if (cpInjectColor != null) {
+					cpInjectColor.setValue(Color.RED);
+				}
 
-		int lanes = loadNetworkForMap(cfgFile.getPath());
-		if (lanes <= 0) {
-			setStatusText("Loaded SUMO, but net file missing/empty");
-		} else {
-			setStatusText("Loaded SUMO, net lanes: " + lanes);
-		}
+				startConnectionMonitor();
 
-		// Populate spawnable edge list
-		List<String> edges = connector.getGoodSpawnEdgeIds();
-		if (cmbInjectEdge != null) {
-			cmbInjectEdge.getItems().setAll(edges);
-			if (!edges.isEmpty()) cmbInjectEdge.getSelectionModel().select(0);
-		}
+				// Load network asynchronously (parsing can be large)
+				// Bus stops are loaded AFTER network is ready (in the callback)
+				File netFile = resolveNetFile(cfgFile.getPath());
+				if (mapView != null) {
+					mapView.loadNetworkAsync(netFile, lanes -> {
+						if (lanes <= 0) setStatusText("Loaded SUMO, but net file missing/empty");
+						else setStatusText("Loaded SUMO, net lanes: " + lanes);
+						
+						// Load bus stops AFTER network is loaded so lane positions are available
+						loadBusStopsForMap();
+					});
+				}
 
-		// Populate traffic light list
-		populateTrafficLights();
-		
-		// populate autostart vehicles
-		List<String> ids = vehicleWrapper.getVehicleIds();
-		for (String id : ids) {
-			int[] c = vehicleWrapper.getColorRGBA(id);
-			System.out.println(c.toString());
-			Color jfc = Color.rgb(c[0], c[1], c[2], (double)c[3] / 255);
-			vehicleWrapper.addVehicle(id, vehicleWrapper.getEdgeId(id), vehicleWrapper.getSpeed(id), jfc);
-		}
+				// Populate spawnable edge list (already computed)
+				if (cmbInjectEdge != null) {
+					cmbInjectEdge.getItems().setAll(spawnEdges);
+					if (!spawnEdges.isEmpty()) cmbInjectEdge.getSelectionModel().select(0);
+				}
 
-		setConnectedUI();
-		updateAfterStep(); // initial values (step 0, 0s)
+				// Populate traffic light list (UI work)
+				populateTrafficLights();
+
+				setConnectedUI();
+				updateAfterStep();
+				if (btnConnect != null) {
+					btnConnect.setDisable(false);
+					btnConnect.setText("Disconnect");
+				}
+			});
+		}, "ConnectSUMO");
+		connectThread.setDaemon(true);
+		connectThread.start();
 	}
 
 	@FXML
@@ -575,6 +597,123 @@ public class UI {
 		File netFile = resolveNetFile(configPath);
 		return mapView.loadNetwork(netFile);
 	}
+
+	/**
+	 * Load bus stop data and update the map view.
+	 * Runs asynchronously to avoid blocking the UI thread.
+	 * Called once after connecting to SUMO.
+	 */
+	private void loadBusStopsForMap() {
+		if (mapView == null) return;
+
+		// Parse from SUMO config/additional files instead of TraCI.
+		// The custom TraCI busstop vars can desync the stream if the varId is unsupported.
+		new Thread(() -> {
+			List<String[]> busStopData = new ArrayList<>();
+			try {
+				String configPath = (txtConfigPath != null) ? txtConfigPath.getText().trim() : "";
+				File cfgFile = resolveConfigFile(configPath);
+				String cfgPath = (cfgFile != null) ? cfgFile.getPath() : configPath;
+				List<File> additionalFiles = resolveAdditionalFiles(cfgPath);
+				busStopData = parseBusStopsFromAdditionalFiles(additionalFiles);
+				LOGGER.info("Parsed " + busStopData.size() + " bus stops from config");
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to load bus stops for map (from files)", e);
+			}
+
+			final List<String[]> finalData = busStopData;
+			Platform.runLater(() -> {
+				if (mapView != null) {
+					mapView.updateBusStops(finalData);
+				}
+			});
+		}, "BusStopLoader").start();
+	}
+
+	private List<File> resolveAdditionalFiles(String configPath) {
+		List<File> out = new ArrayList<>();
+		if (configPath == null || configPath.isEmpty()) return out;
+		try {
+			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(configPath));
+			doc.getDocumentElement().normalize();
+			NodeList nodes = doc.getElementsByTagName("additional-files");
+			if (nodes.getLength() <= 0) return out;
+
+			Element el = (Element) nodes.item(0);
+			String value = el.getAttribute("value");
+			if (value == null || value.trim().isEmpty()) return out;
+
+			Path cfg = Paths.get(configPath).toAbsolutePath().normalize();
+			Path base = cfg.getParent();
+			String[] parts = value.split(",");
+			for (String p : parts) {
+				if (p == null) continue;
+				String trimmed = p.trim();
+				if (trimmed.isEmpty()) continue;
+				File candidate = (base != null) ? base.resolve(trimmed).toFile() : new File(trimmed);
+				if (candidate.exists()) {
+					out.add(candidate);
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.FINE, "Failed to resolve additional-files from config", e);
+		}
+		return out;
+	}
+
+	private List<String[]> parseBusStopsFromAdditionalFiles(List<File> additionalFiles) {
+		List<String[]> out = new ArrayList<>();
+		if (additionalFiles == null || additionalFiles.isEmpty()) return out;
+		for (File f : additionalFiles) {
+			if (f == null || !f.exists()) continue;
+			try {
+				Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(f);
+				doc.getDocumentElement().normalize();
+				NodeList stops = doc.getElementsByTagName("busStop");
+				for (int i = 0; i < stops.getLength(); i++) {
+					Element s = (Element) stops.item(i);
+					String id = s.getAttribute("id");
+					String laneId = s.getAttribute("lane");
+					if (laneId == null || laneId.isEmpty()) continue;
+					String name = s.hasAttribute("name") ? s.getAttribute("name") : "";
+
+					double startPos = parseDoubleOrDefault(s.getAttribute("startPos"), 0.0);
+					double endPos = parseDoubleOrDefault(s.getAttribute("endPos"), startPos + 10.0);
+					if (endPos < startPos) {
+						double tmp = startPos;
+						startPos = endPos;
+						endPos = tmp;
+					}
+
+					String label = (name != null && !name.isEmpty()) ? name : ((id != null && !id.isEmpty()) ? id : "busStop");
+					String stopId = (id != null && !id.isEmpty()) ? id : label;
+
+					out.add(new String[] {
+						stopId,
+						label,
+						laneId,
+						String.valueOf(startPos),
+						String.valueOf(endPos)
+					});
+				}
+			} catch (Exception e) {
+				LOGGER.log(Level.FINE, "Failed to parse bus stops from " + f.getName(), e);
+			}
+		}
+		return out;
+	}
+
+	private double parseDoubleOrDefault(String s, double def) {
+		if (s == null) return def;
+		try {
+			String t = s.trim();
+			if (t.isEmpty()) return def;
+			return Double.parseDouble(t);
+		} catch (Exception ignored) {
+			return def;
+		}
+	}
+
 	private File resolveNetFile(String configPath) {
 		if (configPath == null || configPath.isEmpty()) return null;
 		try {
