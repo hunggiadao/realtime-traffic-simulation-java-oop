@@ -74,22 +74,22 @@ public class MapView extends Pane {
         return new LaneKey(edgeId, idx);
     }
 
-	private static class JunctionShape {
+    private static class JunctionShape {
         String id;
         boolean hasTrafficLight;
-		List<Point2D> polygon;
-		
+        List<Point2D> polygon;
+
         JunctionShape(String id, boolean trafficLight, List<Point2D> p) {
             this.id = id;
             this.hasTrafficLight = trafficLight;
-			this.polygon = p;
-		}
-	}
+            this.polygon = p;
+        }
+    }
 
     private static final class TextMarker {
         String text;
         Point2D world;
-        
+
         TextMarker(String text, Point2D world) {
             this.text = text;
             this.world = world;
@@ -128,12 +128,12 @@ public class MapView extends Pane {
     // Overlay canvas: dynamic elements (vehicles, traffic signals)
     private Canvas canvas = new Canvas();
     private List<LaneShape> lanes = new ArrayList<>();
-	private Map<String, LaneShape> lanesById = new HashMap<>();
-	private List<JunctionShape> junctions = new ArrayList<>();
+    private Map<String, LaneShape> lanesById = new HashMap<>();
+    private List<JunctionShape> junctions = new ArrayList<>();
     private Map<String, Point2D> edgeLabelWorldPos = new HashMap<>();
     private List<TextMarker> trafficLightMarkers = new ArrayList<>();
     private Map<String, Point2D> vehiclePositions;
-	private Map<String, Color> vehicleColors;
+    private Map<String, Color> vehicleColors;
     private Map<String, String> vehicleLaneIds;
     // Vehicle angles in degrees (heading from North, clockwise)
     private Map<String, Double> vehicleAngles;
@@ -143,7 +143,7 @@ public class MapView extends Pane {
     // Per-vehicle render smoothing state (keeps headings stable at junctions)
     private Map<String, Point2D> lastVehicleWorldPos = new HashMap<>();
     private Map<String, Point2D> smoothedVehicleDir = new HashMap<>();
-	private Map<String, Color> laneSignalColors;
+    private Map<String, Color> laneSignalColors;
     private List<BusStopMarker> busStops = new ArrayList<>();
     private double minX = 0, maxX = 1, minY = 0, maxY = 1;
 
@@ -173,8 +173,8 @@ public class MapView extends Pane {
      */
     public int loadNetwork(File netFile) {
                 lanes.clear();
-		lanesById.clear();
-		junctions.clear();
+        lanesById.clear();
+        junctions.clear();
         edgeLabelWorldPos.clear();
         trafficLightMarkers.clear();
         int laneCount = 0;
@@ -204,15 +204,15 @@ public class MapView extends Pane {
                 // Skip internal helper junctions
                 List<Point2D> poly = parseShape(j.getAttribute("shape"));
                 if (poly.isEmpty()) continue;
-			junctions.add(new JunctionShape(jId, isTl, poly));
+            junctions.add(new JunctionShape(jId, isTl, poly));
                 allPoints.addAll(poly);
 
-			if (isTl && jId != null && !jId.isEmpty()) {
-				Point2D c = centroid(poly);
-				if (c != null) {
-					trafficLightMarkers.add(new TextMarker("TL " + jId, c));
-				}
-			}
+            if (isTl && jId != null && !jId.isEmpty()) {
+                Point2D c = centroid(poly);
+                if (c != null) {
+                    trafficLightMarkers.add(new TextMarker("TL " + jId, c));
+                }
+            }
             }
 
             NodeList laneNodes = doc.getElementsByTagName("lane");
@@ -229,11 +229,11 @@ public class MapView extends Pane {
                 }
                 List<Point2D> polyline = parseShape(shape);
                 if (polyline.isEmpty()) continue;
-				LaneShape ls = new LaneShape(laneId, polyline, width);
-				lanes.add(ls);
-				if (laneId != null && !laneId.isEmpty()) {
-					lanesById.put(laneId, ls);
-				}
+                LaneShape ls = new LaneShape(laneId, polyline, width);
+                lanes.add(ls);
+                if (laneId != null && !laneId.isEmpty()) {
+                    lanesById.put(laneId, ls);
+                }
                 allPoints.addAll(polyline);
                 laneCount++;
             }
@@ -432,8 +432,8 @@ public class MapView extends Pane {
      * Update vehicle positions, colors, lane IDs, angles, and types for rendering.
      * This overload supports realistic vehicle shapes with proper orientation.
      */
-    public void updateVehicles(Map<String, Point2D> positions, Map<String, Color> colors, 
-                               Map<String, String> laneIds, Map<String, Double> angles, 
+    public void updateVehicles(Map<String, Point2D> positions, Map<String, Color> colors,
+                               Map<String, String> laneIds, Map<String, Double> angles,
                                Map<String, String> types) {
         this.vehiclePositions = positions;
         this.vehicleColors = colors;
@@ -456,11 +456,11 @@ public class MapView extends Pane {
      */
     /**
      * Updates the list of bus stops to be rendered on the map.
-     * 
+     *
      * Bus stop position: ON THE LANE (where bus actually stops)
      * The "H" sign and waiting area will be drawn offset to the sidewalk side.
      * This way bus and bus stop are logically together.
-     * 
+     *
      * @param busStopData List of bus stop data arrays [id, name, laneId, startPos, endPos]
      */
     public void updateBusStops(List<String[]> busStopData) {
@@ -475,31 +475,31 @@ public class MapView extends Pane {
                         double startPos = Double.parseDouble(data[3]);
                         double endPos = Double.parseDouble(data[4]);
                         BusStopMarker marker = new BusStopMarker(id, name, laneId, startPos, endPos);
-                        
+
                         // Get lane geometry for positioning
                         LaneShape lane = lanesById.get(laneId);
                         if (lane != null && lane.polyline != null && lane.polyline.size() >= 2) {
                             marker.laneWidth = lane.widthMeters;
-                            
+
                             // Calculate total lane length
                             double laneLength = 0.0;
                             for (int i = 1; i < lane.polyline.size(); i++) {
                                 laneLength += lane.polyline.get(i).distance(lane.polyline.get(i - 1));
                             }
                             if (laneLength > 0.001) {
-                                // Find midpoint of bus stop along lane
-                                double midPos = (startPos + endPos) / 2.0;
-                                double t = Math.max(0.0, Math.min(1.0, midPos / laneLength));
-                                Point2D lanePos = pointAlongPolyline(lane.polyline, t);
-                                if (lanePos != null) {
-                                    // Store position ON THE LANE (where bus stops)
-                                    // The drawing code will offset the sign to the sidewalk
-                                    marker.worldPos = lanePos;
-                                    marker.direction = laneTangentAt(lanePos, lane.polyline);
+                                // Anchor to the START of the stop segment.
+                                // SUMO stops are defined as [startPos, endPos] along a lane; vehicles stop at that segment.
+                                // By anchoring to startPos and drawing a rectangle of stopLength forward,
+                                // the bus will visually sit "inside" the stop area.
+                                double tStart = Math.max(0.0, Math.min(1.0, startPos / laneLength));
+                                Point2D lanePosStart = pointAlongPolyline(lane.polyline, tStart);
+                                if (lanePosStart != null) {
+                                    marker.worldPos = lanePosStart;
+                                    marker.direction = laneTangentAt(lanePosStart, lane.polyline);
                                 }
                             }
                         }
-                        
+
                         // Only add markers with valid computed positions
                         if (marker.worldPos != null) {
                             busStops.add(marker);
@@ -759,7 +759,7 @@ public class MapView extends Pane {
         Color signYellow = Color.web("#FFD600");   // Yellow "H" sign
         Color signBorder = Color.web("#333333");   // Dark border
         Color waitingArea = Color.web("#B0BEC5"); // Light gray waiting area
-        
+
         for (BusStopMarker stop : busStops) {
             if (stop.worldPos == null) continue;
 
@@ -784,17 +784,37 @@ public class MapView extends Pane {
             double ry = fx;
 
             // Size based on zoom
-            double baseSize = clamp(8.0 + userScale * 2.0, 10.0, 30.0);
+            // IMPORTANT: allow shrinking when zoomed out (userScale < 1)
+            // so bus stops don't become huge/overlapping at far zoom.
+            double baseSize = clamp(6.0 + userScale * 2.0, 6.0, 30.0);
             double laneWidthPx = stop.laneWidth * scale;
-            
+
+            // Zoom boost for "max zoom only" thickness increase
+            // 0.0 at <=2x zoom, approaches 1.0 around >=4x zoom.
+            double zoomBoost = clamp((userScale - 2.0) / 2.0, 0.0, 1.0);
+
             // --- Draw waiting area (long and thick rectangle at road edge) ---
-            double areaLen = clamp(stop.stopLength * scale * 1.0, baseSize * 8.0, baseSize * 16.0);
-            double areaWid = baseSize * 0.8; // Thicker for visibility
-            
+            // The stop rectangle represents the stop segment length.
+            // Clamp prevents it being too long at far zoom, but allow bigger at max zoom
+            // so buses visually fit into the station area.
+            double lenMul = 0.90 + 0.30 * zoomBoost; // 0.90 (far) -> 1.20 (max zoom)
+            double maxLen = baseSize * (8.0 + 10.0 * zoomBoost); // 8x..18x baseSize
+            double areaLen = clamp(stop.stopLength * scale * lenMul, baseSize * 2.0, maxLen);
+
+            // Make it thicker mainly at high zoom.
+            double areaWid = baseSize * (0.65 + 0.35 * zoomBoost); // 0.65..1.00
+
             // Offset just outside the road edge (not overlapping road)
             double sidewalkOffset = laneWidthPx * 0.55 + areaWid * 0.5;
-            double signX = cx + rx * sidewalkOffset;
-            double signY = cy + ry * sidewalkOffset;
+
+            // Anchor point is stop START on the lane. Shift half of the area forward so the
+            // rectangle covers [start..end] rather than being centered at the start.
+            double rectCx = cx + fx * (areaLen * 0.5);
+            double rectCy = cy + fy * (areaLen * 0.5);
+
+            // Apply sidewalk offset after the forward shift.
+            double signX = rectCx + rx * sidewalkOffset;
+            double signY = rectCy + ry * sidewalkOffset;
             g.setFill(waitingArea);
             g.setStroke(Color.GRAY);
             g.setLineWidth(1.0);
@@ -817,25 +837,33 @@ public class MapView extends Pane {
             double hSize = clamp(baseSize * 0.6, 8.0, 20.0);
             double hX = signX;  // Center of rectangle
             double hY = signY;  // Center of rectangle
-            
+
             // Yellow circle with "H"
             g.setFill(signYellow);
             g.fillOval(hX - hSize/2, hY - hSize/2, hSize, hSize);
             g.setStroke(signBorder);
             g.setLineWidth(1.5);
             g.strokeOval(hX - hSize/2, hY - hSize/2, hSize, hSize);
-            
+
             // Draw "H" letter
             g.setFill(signBorder);
             double fontSize = hSize * 0.6;
             g.setFont(Font.font("Arial", FontWeight.BOLD, fontSize));
             g.fillText("H", hX - fontSize * 0.3, hY + fontSize * 0.35);
 
-            // --- Draw label if zoomed in ---
-            if (userScale >= 3.0) {
+            // --- Draw label with the SAME behavior as road/traffic labels ---
+            // drawLabels() hides labels when scale < 0.8 and uses a zoom-scaled font.
+            if (scale >= 0.8) {
                 String label = (stop.name != null && !stop.name.isEmpty()) ? stop.name : stop.id;
                 if (label != null && !label.isEmpty()) {
-                    drawTag(g, hX + hSize/2 + 4, hY - hSize/2 - 4, label, signYellow, signBorder);
+                    Font oldFont = g.getFont();
+                    double labelFontSize = clamp(10.0 + (userScale - 1.0) * 2.0, 10.0, 16.0);
+                    g.setFont(Font.font(labelFontSize));
+
+                    // Match the same label style as road edges and traffic lights
+                    drawTag(g, hX + hSize / 2 + 6, hY - hSize / 2 - 6, label, Color.WHITE, Color.web("#333333"));
+
+                    g.setFont(oldFont);
                 }
             }
         }
@@ -912,7 +940,7 @@ public class MapView extends Pane {
                 }
             }
         }
-        
+
         // (3) SUMO angle fallback (world coordinates)
         if (dirWorld == null) {
 //        	System.out.println("using SUMO fallback");
@@ -981,11 +1009,11 @@ public class MapView extends Pane {
 
     /**
      * Returns the bus length in screen pixels for a given zoom level.
-     * Buses are approximately 1.8x longer than cars (reduced from 2.5x for better visibility).
+     * Kept proportional to cars (uses the same zoom multiplier) but slightly longer.
      */
     private double busLengthPxForZoom(double mapScale) {
-        // Reduced bus size: was 28.0, now 18.0 base multiplier
-        return Math.max(12.0, 18.0 * carSizeMulForZoom(mapScale));
+        // Slightly longer: ~1.8x car length at typical zooms.
+        return Math.max(13.0, 22.0 * carSizeMulForZoom(mapScale));
     }
 
     /**
@@ -996,7 +1024,7 @@ public class MapView extends Pane {
         double length = busLengthPxForZoom(mapScale);
         return length * 0.32; // Slightly wider ratio for better proportions
     }
-    
+
     // set x and y components to between -1 and 1
     private static Point2D normalize(Point2D v) {
         if (v == null) return new Point2D(1.0, 0.0);
@@ -1053,12 +1081,12 @@ public class MapView extends Pane {
         double width = length * 0.45;
         double halfLen = length / 2.0;
         double halfWid = width / 2.0;
-        
+
         // Calculate the 4 corners of the car body
         // Front-right, Front-left, Back-left, Back-right
         double[] xPoints = new double[4];
         double[] yPoints = new double[4];
-        
+
         // Front-right corner
         xPoints[0] = cx + fx * halfLen + rx * halfWid;
         yPoints[0] = cy + fy * halfLen + ry * halfWid;
@@ -1071,16 +1099,16 @@ public class MapView extends Pane {
         // Back-right corner
         xPoints[3] = cx - fx * halfLen + rx * halfWid;
         yPoints[3] = cy - fy * halfLen + ry * halfWid;
-        
+
         // Draw car body outline for visibility
         g.setStroke(Color.WHITE);
         g.setLineWidth(1.0);
         g.strokePolygon(xPoints, yPoints, 4);
-        
+
         // Draw car body fill
         g.setFill(color);
         g.fillPolygon(xPoints, yPoints, 4);
-        
+
         // Draw windshield (front window) - darker shade
         Color windowColor = color.darker().darker();
         double windowLen = length * 0.2;
@@ -1088,7 +1116,7 @@ public class MapView extends Pane {
         double windowHalfWid = windowWid / 2.0;
         // Window position: slightly behind the front
         double windowOffset = halfLen - windowLen * 0.8;
-        
+
         double[] wxPoints = new double[4];
         double[] wyPoints = new double[4];
         wxPoints[0] = cx + fx * windowOffset + rx * windowHalfWid;
@@ -1099,21 +1127,21 @@ public class MapView extends Pane {
         wyPoints[2] = cy + fy * (windowOffset - windowLen) - ry * windowHalfWid;
         wxPoints[3] = cx + fx * (windowOffset - windowLen) + rx * windowHalfWid;
         wyPoints[3] = cy + fy * (windowOffset - windowLen) + ry * windowHalfWid;
-        
+
         g.setFill(windowColor);
         g.fillPolygon(wxPoints, wyPoints, 4);
-        
+
         // Draw headlights (small circles at front corners)
         g.setFill(Color.YELLOW);
         double lightSize = width * 0.22;
         double lightOffset = halfLen - lightSize * 0.5;
         double lightSide = halfWid - lightSize * 0.3;
-        
+
         // Right headlight
         double lx1 = cx + fx * lightOffset + rx * lightSide;
         double ly1 = cy + fy * lightOffset + ry * lightSide;
         g.fillOval(lx1 - lightSize / 2, ly1 - lightSize / 2, lightSize, lightSize);
-        
+
         // Left headlight
         double lx2 = cx + fx * lightOffset - rx * lightSide;
         double ly2 = cy + fy * lightOffset - ry * lightSide;
@@ -1134,11 +1162,11 @@ public class MapView extends Pane {
         double width = busWidthPxForZoom(mapScale);
         double halfLen = length / 2.0;
         double halfWid = width / 2.0;
-        
+
         // Calculate the 4 corners of the bus body
         double[] xPoints = new double[4];
         double[] yPoints = new double[4];
-        
+
         // Front-right corner
         xPoints[0] = cx + fx * halfLen + rx * halfWid;
         yPoints[0] = cy + fy * halfLen + ry * halfWid;
@@ -1151,33 +1179,33 @@ public class MapView extends Pane {
         // Back-right corner
         xPoints[3] = cx - fx * halfLen + rx * halfWid;
         yPoints[3] = cy - fy * halfLen + ry * halfWid;
-        
+
         // Draw bus body outline for visibility
         g.setStroke(Color.WHITE);
         g.setLineWidth(1.2);
         g.setLineDashes(null);
         g.strokePolygon(xPoints, yPoints, 4);
-        
+
         // Draw bus body fill
         g.setFill(color);
         g.fillPolygon(xPoints, yPoints, 4);
-        
+
         // Draw multiple windows along the bus (characteristic bus look)
         Color windowColor = color.darker().darker();
         g.setFill(windowColor);
-        
+
         double windowLen = length * 0.08;
         double windowWid = width * 0.55;
         double windowHalfWid = windowWid / 2.0;
-        
+
         // Draw 4 windows evenly spaced along the bus
         int numWindows = 4;
         double windowSpacing = length * 0.18;
         double firstWindowOffset = halfLen - windowLen * 1.2;
-        
+
         for (int w = 0; w < numWindows; w++) {
             double windowOffset = firstWindowOffset - w * windowSpacing;
-            
+
             double[] wxPoints = new double[4];
             double[] wyPoints = new double[4];
             wxPoints[0] = cx + fx * windowOffset + rx * windowHalfWid;
@@ -1188,35 +1216,35 @@ public class MapView extends Pane {
             wyPoints[2] = cy + fy * (windowOffset - windowLen) - ry * windowHalfWid;
             wxPoints[3] = cx + fx * (windowOffset - windowLen) + rx * windowHalfWid;
             wyPoints[3] = cy + fy * (windowOffset - windowLen) + ry * windowHalfWid;
-            
+
             g.fillPolygon(wxPoints, wyPoints, 4);
         }
-        
+
         // Draw headlights (small circles at front corners)
         g.setFill(Color.YELLOW);
         double lightSize = width * 0.25;
         double lightOffset = halfLen - lightSize * 0.4;
         double lightSide = halfWid - lightSize * 0.2;
-        
+
         // Right headlight
         double lx1 = cx + fx * lightOffset + rx * lightSide;
         double ly1 = cy + fy * lightOffset + ry * lightSide;
         g.fillOval(lx1 - lightSize / 2, ly1 - lightSize / 2, lightSize, lightSize);
-        
+
         // Left headlight
         double lx2 = cx + fx * lightOffset - rx * lightSide;
         double ly2 = cy + fy * lightOffset - ry * lightSide;
         g.fillOval(lx2 - lightSize / 2, ly2 - lightSize / 2, lightSize, lightSize);
-        
+
         // Draw tail lights (red at back)
         g.setFill(Color.RED);
         double tailLightOffset = -halfLen + lightSize * 0.4;
-        
+
         // Right tail light
         double tx1 = cx + fx * tailLightOffset + rx * lightSide;
         double ty1 = cy + fy * tailLightOffset + ry * lightSide;
         g.fillOval(tx1 - lightSize / 2, ty1 - lightSize / 2, lightSize, lightSize);
-        
+
         // Left tail light
         double tx2 = cx + fx * tailLightOffset - rx * lightSide;
         double ty2 = cy + fy * tailLightOffset - ry * lightSide;

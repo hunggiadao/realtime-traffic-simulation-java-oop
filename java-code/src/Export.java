@@ -13,10 +13,10 @@ import java.time.format.DateTimeFormatter;
 import javafx.scene.paint.Color;
 
 public class Export {
-	
-	public Export() {
-		// empty default constructor
-	}
+
+    public Export() {
+        // empty default constructor
+    }
 
     /**
      * Creates a PDF document containing the simulation results in a table.
@@ -38,13 +38,13 @@ public class Export {
             Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
             Font tableTopFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
             Font dataFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
-            
+
             // Add Title
             Paragraph p = new Paragraph(title, titleFont);
             p.setAlignment(Element.ALIGN_CENTER);
             p.setSpacingAfter(20);
             document.add(p);
-            
+
             // Add misc data: date, time, general stats
             LocalDateTime now = LocalDateTime.now();
             DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -61,24 +61,24 @@ public class Export {
 //            double fastestEdgeSpeed = 0;					// avg speed on the fastest edge DONE
 //            int numBusstops = ui.getInfWrapper().getBusStopIds().size();	// number of bus stops
             double avgVehPerEdge = ui.getEdgeWrapper().getAvgVehiclesPerEdge();	// avg numVehPerEdge DONE
-            
+
             System.out.println("Doing edge loop"); // takes very long
             List<String> eIDs = ui.getEdgeWrapper().getEdgeIDs();
             int eIDsize = eIDs.size();
             int ii = 1;
             double quo = 0;
             for (String eID : eIDs) {
-            	if ((double)ii / eIDsize >= quo) {
-            		System.out.printf("\tcompleted %.1f%%\n", quo * 100);
-            		quo += 0.1;
-            	}
-            	sumLanes += ui.getEdgeWrapper().getLaneNumberOfEdge(eID);
-            	ii++;
-            	
-            	if (ui.getEdgeWrapper().getNumVehicle(eID) == 0) continue; // skip empty edges to speed up
-            	sumWaitTime += ui.getEdgeWrapper().getWaitingTimeSum(eID);
-            	int ca = ui.getEdgeWrapper().getLastStepHaltingNumber(eID);
-            	sumHaltingVehs += ca;
+                if ((double)ii / eIDsize >= quo) {
+                    System.out.printf("\tcompleted %.1f%%\n", quo * 100);
+                    quo += 0.1;
+                }
+                sumLanes += ui.getEdgeWrapper().getLaneNumberOfEdge(eID);
+                ii++;
+
+                if (ui.getEdgeWrapper().getNumVehicle(eID) == 0) continue; // skip empty edges to speed up
+                sumWaitTime += ui.getEdgeWrapper().getWaitingTimeSum(eID);
+                int ca = ui.getEdgeWrapper().getLastStepHaltingNumber(eID);
+                sumHaltingVehs += ca;
 //            	if (ca > slowestEdgeVehCount) {
 //            		slowestEdge = eID;
 //            		slowestEdgeVehCount = ca;
@@ -96,25 +96,25 @@ public class Export {
             double avgVehSpeed = 0;			// DONE
             System.out.println("Doing vehicle loop");
             for (String vID : ui.getVehWrapper().getVehicleIds()) {
-            	avgVehSpeed += ui.getVehWrapper().getSpeed(vID);
-            	if (ui.getVehWrapper().getSpeed(vID) > fastestVehSpeed) {
-            		fastestVeh = vID;
-            		fastestVehSpeed = ui.getVehWrapper().getSpeed(vID);
-            	}
-            	if (ui.getVehWrapper().getSpeed(vID) < slowestVehSpeed) {
-            		slowestVeh = vID;
-            		slowestVehSpeed = ui.getVehWrapper().getSpeed(vID);
-            	}
+                avgVehSpeed += ui.getVehWrapper().getSpeed(vID);
+                if (ui.getVehWrapper().getSpeed(vID) > fastestVehSpeed) {
+                    fastestVeh = vID;
+                    fastestVehSpeed = ui.getVehWrapper().getSpeed(vID);
+                }
+                if (ui.getVehWrapper().getSpeed(vID) < slowestVehSpeed) {
+                    slowestVeh = vID;
+                    slowestVehSpeed = ui.getVehWrapper().getSpeed(vID);
+                }
             }
             avgVehSpeed = avgVehSpeed / sumVehicles;
-            
+
             // create table for metrics
             p = new Paragraph("Statistics and Metrics", headerFont);
             p.setAlignment(Element.ALIGN_LEFT);
             p.setSpacingBefore(20);
             p.setSpacingAfter(10);
             document.add(p);
-            
+
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(60);
             table.setWidths(new float[]{2f, 1f});
@@ -156,7 +156,7 @@ public class Export {
             table.addCell(new PdfPCell(new Phrase("Average vehicle speed", dataFont)));
             table.addCell(new PdfPCell(new Phrase(avgVehSpeed + "", dataFont)));
             document.add(table);
-            
+
             // Add all data of TLs
             p = new Paragraph("All Traffic Light Data", headerFont);
             p.setAlignment(Element.ALIGN_LEFT);
@@ -175,33 +175,33 @@ public class Export {
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 table.addCell(cell);
             }
-            // Add Data Rows            
+            // Add Data Rows
             for (String row : data) {
                 String[] parts = row.split(",", -1); // must split into 10 parts
                 if (parts[7] == "") break; // blank data
                 for(int i = 0; i < 10; i++){
-                	switch (i) {
-	                	case 1:
-	                	case 2:
-	                	case 3:
-	                	case 4:
-	                	case 5:
-	                	case 6:
-	                		continue; // skip vehicle data
-	                	case 0:
-	                	case 7:
-	                	case 8:
-	                	case 9:
-		                    PdfPCell cell = new PdfPCell(new Phrase(parts[i], dataFont));
-		                    cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-		                    table.addCell(cell);
-		                    break;
-	                	default:
-                	}
+                    switch (i) {
+                        case 1:
+                        case 2:
+                        case 3:
+                        case 4:
+                        case 5:
+                        case 6:
+                            continue; // skip vehicle data
+                        case 0:
+                        case 7:
+                        case 8:
+                        case 9:
+                            PdfPCell cell = new PdfPCell(new Phrase(parts[i], dataFont));
+                            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                            table.addCell(cell);
+                            break;
+                        default:
+                    }
                 }
             }
             document.add(table);
-            
+
             // Add all data of vehicles
             p = new Paragraph("All Vehicle Data", headerFont);
             p.setAlignment(Element.ALIGN_LEFT);
@@ -215,13 +215,13 @@ public class Export {
             table.setHorizontalAlignment(Element.ALIGN_LEFT);
             // Add Header Cells
             headers = new String[] {"Step", "Vehicle-ID", "Color [R-G-B-A]", "Speed [m/s]",
-            	"PosX", "PosY", "Edge"};
+                "PosX", "PosY", "Edge"};
             for (String header : headers) {
                 PdfPCell cell = new PdfPCell(new Phrase(header, tableTopFont));
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 table.addCell(cell);
             }
-            // Add Data Rows            
+            // Add Data Rows
             for (String row : data) {
                 String[] parts = row.split(",", -1); // must split into 10 parts
                 if (parts[1] == "") break; // blank data
@@ -232,78 +232,78 @@ public class Export {
                 }
             }
             document.add(table);
-            
+
             // Filter: red cars only
             p = new Paragraph("Filter: Red Cars Only", headerFont);
             p.setAlignment(Element.ALIGN_LEFT);
             p.setSpacingBefore(20);
             p.setSpacingAfter(10);
             document.add(p);
-            
+
             table = new PdfPTable(7);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{1, 3f, 2f, 1.5f, 1.5f, 1.5f, 1.5f});
             table.setHorizontalAlignment(Element.ALIGN_LEFT);
             // Add Header Cells
             headers = new String[] {"Step", "Vehicle-ID", "Color [R-G-B-A]", "Speed [m/s]",
-            	"PosX", "PosY", "Edge"};
+                "PosX", "PosY", "Edge"};
             for (String header : headers) {
                 PdfPCell cell = new PdfPCell(new Phrase(header, tableTopFont));
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 table.addCell(cell);
             }
-            // Add Data Rows            
+            // Add Data Rows
             for (String row : data) {
                 String[] parts = row.split(",", -1); // must split into 10 parts
                 if (parts[1] == "") break; // blank data
                 String[] color = parts[2].split("-"); // 4 elements
                 Color actualc = Color.rgb(Integer.valueOf(color[0]),
-                						Integer.valueOf(color[1]),
-                						Integer.valueOf(color[2]),
-                						Double.valueOf(color[3]) / 255);
+                                        Integer.valueOf(color[1]),
+                                        Integer.valueOf(color[2]),
+                                        Double.valueOf(color[3]) / 255);
                 Color target = Color.rgb(255, 0, 0, 1.0);
                 if (UI.isSimilarColor(actualc, target, 0.18)) {
-                	// only use the first 7
-	                for(int i = 0; i < 7; i++) {
-	                    PdfPCell cell = new PdfPCell(new Phrase(parts[i], dataFont));
-	                    cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-	                    table.addCell(cell);
-	                }
+                    // only use the first 7
+                    for(int i = 0; i < 7; i++) {
+                        PdfPCell cell = new PdfPCell(new Phrase(parts[i], dataFont));
+                        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                        table.addCell(cell);
+                    }
                 }
             }
             document.add(table);
-            
+
             // Filter: congested vehicles only
             p = new Paragraph("Filter: Congested Vehicles Only", headerFont);
             p.setAlignment(Element.ALIGN_LEFT);
             p.setSpacingBefore(20);
             p.setSpacingAfter(10);
             document.add(p);
-            
+
             table = new PdfPTable(7);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{1, 3f, 2f, 1.5f, 1.5f, 1.5f, 1.5f});
             table.setHorizontalAlignment(Element.ALIGN_LEFT);
             // Add Header Cells
             headers = new String[] {"Step", "Vehicle-ID", "Color [R-G-B-A]", "Speed [m/s]",
-            	"PosX", "PosY", "Edge"};
+                "PosX", "PosY", "Edge"};
             for (String header : headers) {
                 PdfPCell cell = new PdfPCell(new Phrase(header, tableTopFont));
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 table.addCell(cell);
             }
-            // Add Data Rows            
+            // Add Data Rows
             for (String row : data) {
                 String[] parts = row.split(",", -1); // must split into 10 parts
                 if (parts[1] == "") break; // blank data
-                
+
                 if (Double.valueOf(parts[3]) <= 0.5) {
-                	// only use the first 7
-	                for(int i = 0; i < 7; i++) {
-	                    PdfPCell cell = new PdfPCell(new Phrase(parts[i], dataFont));
-	                    cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-	                    table.addCell(cell);
-	                }
+                    // only use the first 7
+                    for(int i = 0; i < 7; i++) {
+                        PdfPCell cell = new PdfPCell(new Phrase(parts[i], dataFont));
+                        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                        table.addCell(cell);
+                    }
                 }
             }
             document.add(table);
@@ -322,7 +322,7 @@ public class Export {
         File cvsFile = new File(fileName);
 
         try (PrintWriter pw = new PrintWriter(cvsFile)){
-        	// first line
+            // first line
             pw.println("Step,Vehicle-ID,Color [R-G-B-A],Speed [m/s],PosX,PosY,Edge,TrafficLight-ID,Current State,Phase Index");
 
             for (String entry : data) {
@@ -333,34 +333,3 @@ public class Export {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

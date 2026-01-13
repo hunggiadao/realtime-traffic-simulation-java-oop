@@ -4,7 +4,7 @@ import java.util.Objects;
  * VehicleState
  * ----------------
  * Immutable snapshot of a vehicle's state at a specific simulation step.
- * 
+ *
  * Characteristics:
  * - Immutable: all fields are final.
  * - Represents a single point in time (timestep) in the simulation.
@@ -30,7 +30,7 @@ public final class VehicleState {
 
     /**
      * Constructs a new VehicleState snapshot.
-     * 
+     *
      * @param id unique vehicle ID (non-null)
      * @param x X-coordinate
      * @param y Y-coordinate

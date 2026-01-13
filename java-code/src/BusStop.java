@@ -1,7 +1,7 @@
 import de.tudresden.sumo.util.SumoCommand;
 
 /**
- * Create BusStop's wrapper class due to lack of TraaS support. 
+ * Create BusStop's wrapper class due to lack of TraaS support.
  * Using refs from: https://github.com/eclipse-sumo/sumo/blob/main/tools/traci/constants.py
  */
 
@@ -11,7 +11,7 @@ public class BusStop {
     public static final int CMD_GET_BUSSTOP_VARIABLE = 0xaf;
 
     // Variable ID for Lane ID.
-    public static final int VAR_LANE_ID = 0x51; 
+    public static final int VAR_LANE_ID = 0x51;
 
     // Variable ID for Person Number.
     public static final int VAR_PERSON_NUMBER = 0x67;

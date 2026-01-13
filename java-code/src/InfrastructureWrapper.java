@@ -60,7 +60,7 @@ public class InfrastructureWrapper {
             }
         }
         catch(Exception ex){
-			LOGGER.log(Level.FINE, "[Infra] Bus stop IDs could not be retrieved", ex);
+            LOGGER.log(Level.FINE, "[Infra] Bus stop IDs could not be retrieved", ex);
         }
         return IDList;
     }
@@ -90,7 +90,7 @@ public class InfrastructureWrapper {
         try {
             Object number = connector.getConnection().do_job_get(BusStop.getPersonCount(busStopId));
             return (int) number;
-        } 
+        }
         catch(Exception ex) {
             return 0;
         }
@@ -163,9 +163,9 @@ public class InfrastructureWrapper {
         try {
             SumoStringList list = (SumoStringList) connector.getConnection().do_job_get(Edge.getIDList());
             edgeList.addAll(list);
-        } 
+        }
         catch(Exception ex) {
-			LOGGER.log(Level.FINE, "[Infra] Error retrieving edge IDs", ex);
+            LOGGER.log(Level.FINE, "[Infra] Error retrieving edge IDs", ex);
         }
 
         return edgeList;
@@ -193,9 +193,9 @@ public class InfrastructureWrapper {
         try {
             SumoStringList list = (SumoStringList) connector.getConnection().do_job_get(Lane.getIDList());
             lanes.addAll(list);
-        } 
+        }
         catch(Exception ex) {
-			LOGGER.log(Level.FINE, "[Infra] Error fetching lanesID", ex);
+            LOGGER.log(Level.FINE, "[Infra] Error fetching lanesID", ex);
         }
 
         return lanes;
@@ -212,7 +212,7 @@ public class InfrastructureWrapper {
 
         try {
             return (double) connector.getConnection().do_job_get(Lane.getMaxSpeed(laneID));
-        } 
+        }
         catch(Exception ex) {
             return 0.0;
         }
@@ -224,9 +224,9 @@ public class InfrastructureWrapper {
 
         try {
             return (double) connector.getConnection().do_job_get(Lane.getLength(laneID));
-        } 
+        }
         catch(Exception ex) {
-			LOGGER.log(Level.FINE, "Lane length error for laneID=" + laneID, ex);
+            LOGGER.log(Level.FINE, "Lane length error for laneID=" + laneID, ex);
             return 0.0;
         }
     }
@@ -252,12 +252,12 @@ public class InfrastructureWrapper {
             }
 
             connector.getConnection().do_job_set(Route.add(routeID, list));
-			LOGGER.fine("[Infra] Created route: " + routeID);
+            LOGGER.fine("[Infra] Created route: " + routeID);
             return true;
 
-        } 
+        }
         catch(Exception e) {
-			LOGGER.log(Level.FINE, "[Infra] Create route error", e);
+            LOGGER.log(Level.FINE, "[Infra] Create route error", e);
             return false;
         }
     }
@@ -269,9 +269,9 @@ public class InfrastructureWrapper {
         try {
             SumoStringList list = (SumoStringList) connector.getConnection().do_job_get(Route.getIDList());
             return list.contains(routeID);
-        } 
+        }
         catch(Exception ex) {
-			LOGGER.log(Level.FINE, "[Infra] Unable to check the route existence", ex);
+            LOGGER.log(Level.FINE, "[Infra] Unable to check the route existence", ex);
             return false;
         }
     }

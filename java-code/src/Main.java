@@ -16,14 +16,14 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         AppLogger.init();
-        
+
         // run with CLI parameters
         if (args.length > 0 && args[0].equalsIgnoreCase("cli")) {
             LOGGER.info("Starting console simulation (cli mode)");
             runConsoleSimulation();
             return;
         }
-        
+
         // run without parameters
         try {
             LOGGER.info("Launching JavaFX UI");
@@ -37,7 +37,7 @@ public class Main extends Application {
     /**
      * This function gets called automatically whenever the app starts
      */
-    public void start(Stage primaryStage) throws Exception {    	
+    public void start(Stage primaryStage) throws Exception {
         String location = "/ui/main_ui.fxml"; // for VS Code
         // String location = "main_ui.fxml"; // for Eclipse
 
@@ -45,11 +45,11 @@ public class Main extends Application {
         if (fxmlUrl == null) {
             throw new java.io.FileNotFoundException("Could not find " + location);
         }
-        
+
         // load new window
         FXMLLoader loader = new FXMLLoader(fxmlUrl);
         Parent root = loader.load();
-        
+
         // intialize UI controller
         UI controller = loader.getController();
         primaryStage.setOnCloseRequest(event -> {
@@ -59,7 +59,7 @@ public class Main extends Application {
             javafx.application.Platform.exit();
             System.exit(0);
         });
-        
+
         // window's properties
         primaryStage.setTitle("Real-time Traffic Simulation");
         primaryStage.setScene(new Scene(root));
@@ -92,7 +92,7 @@ public class Main extends Application {
                 if (!conn.step()) {
                     break;
                 }
-                
+
                 // ADD Data to CSV
 //                List<String> vehicleStepData = vehicleWrapper.getVehicleData();
 //                List<String> tlstepData = trafficLightWrapper.getTrafficLightData();
@@ -104,7 +104,7 @@ public class Main extends Application {
 //                    String tlPart = (j <  tlstepData.size() ) ? tlstepData.get(j) : ",,";
 //                    exportData.add(j + "," + vPart + tlPart);
 //                }
-                
+
                 // Example logging
                 int vehicleCount = vehicleWrapper.getVehicleCount();
                 double currentSpeed = vehicleWrapper.getSpeed("bus_64_0_0");

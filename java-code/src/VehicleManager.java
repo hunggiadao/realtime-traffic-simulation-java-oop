@@ -9,7 +9,7 @@ import java.util.*;
 public final class VehicleManager {
 
     private final TraCIConnector traci; // Connection to SUMO via TraCI
-	private final VehicleWrapper vehicleWrapper;
+    private final VehicleWrapper vehicleWrapper;
 
     // Current set of known vehicle IDs
     private final Set<String> vehicleIds;
@@ -24,8 +24,8 @@ public final class VehicleManager {
      */
     public VehicleManager(TraCIConnector traci, int estimatedVehicleCount) {
         this.traci = Objects.requireNonNull(traci, "traci");
-		this.vehicleWrapper = new VehicleWrapper(this.traci);
-		this.vehicleIds = new HashSet<>(estimatedVehicleCount);
+        this.vehicleWrapper = new VehicleWrapper(this.traci);
+        this.vehicleIds = new HashSet<>(estimatedVehicleCount);
         this.stateCache = new HashMap<>(estimatedVehicleCount);
     }
 
@@ -43,8 +43,8 @@ public final class VehicleManager {
          * @return true if present
          */
     public boolean hasVehicle(String id) {
-		return vehicleIds.contains(id);
-	}
+        return vehicleIds.contains(id);
+    }
 
     /**
      * Synchronizes the internal vehicle list with SUMO.
@@ -52,9 +52,9 @@ public final class VehicleManager {
      * - Removes vehicles that left the simulation
      */
     public void refreshVehicles() {
-		List<String> ids = vehicleWrapper.getVehicleIds();
-		vehicleIds.clear();
-		vehicleIds.addAll(ids);
+        List<String> ids = vehicleWrapper.getVehicleIds();
+        vehicleIds.clear();
+        vehicleIds.addAll(ids);
     }
 
     /**
@@ -62,11 +62,11 @@ public final class VehicleManager {
      * Must be called AFTER refreshVehicles() to ensure consistency.
      */
     public void updateAllStates() {
-		vehicleWrapper.applyPendingUpdates();
-		for (String id : vehicleIds) {
-			VehicleState state = vehicleWrapper.updateState(id);
-			stateCache.put(state.id, state);
-		}
+        vehicleWrapper.applyPendingUpdates();
+        for (String id : vehicleIds) {
+            VehicleState state = vehicleWrapper.updateState(id);
+            stateCache.put(state.id, state);
+        }
     }
 
     /**
