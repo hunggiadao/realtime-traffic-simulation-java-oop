@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 public class InfrastructureWrapper {
     private static final Logger LOGGER = Logger.getLogger(InfrastructureWrapper.class.getName());
 
-    private final TraCIConnector connector;
+    private TraCIConnector connector;
 
    /**
      * Set up the connector for SUMO infrastructure communication.

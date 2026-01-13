@@ -47,6 +47,14 @@ public class EdgeWrapper {
     		this.avgEdgeSpeeds.put(id, (double)-1); // -1 means there are no vehicles, different from 0
     	}
     }
+    
+    /**
+     * for debugging
+     * @return
+     */
+    public TraCIConnector getTraCI() {
+    	return this.traci;
+    }
     /**
      * Get all edge ids in this scenario
      * @return

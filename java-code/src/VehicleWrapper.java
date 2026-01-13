@@ -55,7 +55,14 @@ public class VehicleWrapper {
     public VehicleWrapper(TraCIConnector traci) {
         this.traci = Objects.requireNonNull(traci, "traci");
     }
-
+    
+    /**
+     * for debugging
+     * @return
+     */
+    public TraCIConnector getTraCI() {
+    	return this.traci;
+    }
     /**
      * Returns the number of vehicles currently running within the scenario.
      */
