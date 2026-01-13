@@ -2,6 +2,8 @@ import it.polito.appeal.traci.SumoTraciConnection;
 import de.tudresden.sumo.cmd.*;
 import de.tudresden.sumo.cmd.Vehicle;
 import de.tudresden.sumo.cmd.Trafficlight;
+import de.tudresden.sumo.cmd.Edge;
+import de.tudresden.sumo.cmd.Lane;
 import de.tudresden.sumo.objects.SumoPosition2D;
 
 import java.io.*; // for throwing exceptions
@@ -18,25 +20,26 @@ import java.util.logging.Logger;
  */
 public class TraCIConnector {
 	private static final Logger LOGGER = Logger.getLogger(TraCIConnector.class.getName());
+	
 	// member fields
 	private static String sumoBinary; // same across all objects
-
-	private final String configFile;
+	private String configFile;
 	private SumoTraciConnection connection;
-	private double stepLengthSeconds; // default is 1, but can change
-	private int delay; // we make the default 50
+	private int stepLengthMs; // default 1000, but we want 50
 	private boolean isConnected;
 	private int currentStep;
+	
 	// Cached network boundary (SUMO world coordinates)
 	private double netMinX;
 	private double netMinY;
 	private double netMaxX;
 	private double netMaxY;
 	private boolean netBoundsInitialized;
+	
 	// currently unused members, can implement later
 	
 	/**
-	 * Constructor with no data, for static subclass implementation, never used
+	 * Constructor with no data, never used
 	 * Unused
 	 */
 	public TraCIConnector() {
@@ -44,8 +47,7 @@ public class TraCIConnector {
 		TraCIConnector.sumoBinary = null;
 		this.configFile = null;
 		this.connection = null;
-		this.stepLengthSeconds = 0;
-		this.delay = 0;
+		this.stepLengthMs = 0;
 		this.isConnected = false;
 		this.currentStep = 0;
 	}
@@ -59,37 +61,33 @@ public class TraCIConnector {
 		TraCIConnector.sumoBinary = sumoBinary;
 		this.configFile = configFile;
 		this.connection = new SumoTraciConnection(sumoBinary, configFile);
-		this.stepLengthSeconds = 1;
-		this.delay = 50;
+		this.stepLengthMs = 1000; // SUMO default
 		this.isConnected = false;
 		this.currentStep = 0;
-		// currently unused members, can implement later
 	}
 	/**
-	 * Constructor with custom stepLength
+	 * Constructor with custom stepLengthSeconds
 	 * @param sumoBinary
 	 * @param configFile
-	 * @param stepLengthSeconds
+	 * @param stepLengthSeconds in seconds
 	 */
 	public TraCIConnector(String sumoBinary, String configFile, double stepLengthSeconds) {
 		// Initialize constructor
 		// call the default constructor, then change values we want
 		this(sumoBinary, configFile);
-		this.stepLengthSeconds = stepLengthSeconds;
+		this.stepLengthMs = (int)(stepLengthSeconds * 1000);
 	}
 	/**
-	 * Constructor with custom delay and stepLength
+	 * Constructor with custom stepLengthMs
 	 * @param sumoBinary
 	 * @param configFile
-	 * @param delay
-	 * @param stepLengthSeconds
+	 * @param stepLengthMs in ms
 	 */
-	public TraCIConnector(String sumoBinary, String configFile, int delay, double stepLengthSeconds) {
+	public TraCIConnector(String sumoBinary, String configFile, int stepLengthMs) {
 		// Initialize constructor
 		// call the default constructor, then change values we want
 		this(sumoBinary, configFile);
-		this.delay = delay;
-		this.stepLengthSeconds = stepLengthSeconds;
+		this.stepLengthMs = stepLengthMs;
 	}
 	
 	/**
@@ -102,9 +100,11 @@ public class TraCIConnector {
 		}
 		//  Start SUMO
 		try {
-			connection.addOption("start", "false");
-			connection.addOption("delay", this.delay + "");
-			connection.addOption("step-length", Double.toString(stepLengthSeconds));
+			connection.addOption("start", "false"); // set autostart to false
+			// delay and step-length must be equal to simulate real-time
+			connection.addOption("delay", this.stepLengthMs + ""); // in ms
+			connection.addOption("step-length", Double.toString((double)this.stepLengthMs / 1000)); // in seconds
+			connection.addOption("lateral-resolution", "0.1"); // makes lane changing smoother
 			connection.runServer(); // throws IOException
 			this.isConnected = true;
 			this.currentStep = 0;
@@ -203,7 +203,7 @@ public class TraCIConnector {
 		if (connection == null || !this.isConnected) {
 			return 0;
 		}
-		return this.currentStep * this.stepLengthSeconds;
+		return this.currentStep * ((double)this.stepLengthMs) / 1000;
 	}
 	
 	/**
@@ -227,13 +227,13 @@ public class TraCIConnector {
 		if (edgeId == null || edgeId.isEmpty()) {
 			return false;
 		}
-		// Internal / junction edges start with ':' in SUMO
+		// Internal / junction edges start with ':' in SUMO, not good
 		if (edgeId.startsWith(":")) {
 			return false;
 		}
 		try {
 			String laneId = edgeId + "_0";
-			Object lenObj = connection.do_job_get(de.tudresden.sumo.cmd.Lane.getLength(laneId));
+			Object lenObj = connection.do_job_get(Lane.getLength(laneId));
 			if (lenObj instanceof Double) {
 				double len = (Double) lenObj;
 				// Tune this threshold as needed; short edges are usually
@@ -254,13 +254,15 @@ public class TraCIConnector {
 	 * Get list of all edge IDs in the network
 	 * @return List of edge IDs
 	 */
-	public List<String> getEdgeIds() {
+	public List<String> getGoodSpawnEdgeIds() {
 		List<String> edges = new ArrayList<>();
 		if (connection == null || !this.isConnected) {
 			return edges;
 		}
+		
+		// check to see which edges are good spawning edges out of all
 		try {
-			Object response = connection.do_job_get(de.tudresden.sumo.cmd.Edge.getIDList());
+			Object response = connection.do_job_get(Edge.getIDList());
 			if (response instanceof String[]) {
 				for (String s : (String[]) response) {
 					if (isGoodSpawnEdge(s)) {
@@ -291,7 +293,6 @@ public class TraCIConnector {
 			throw new SimulationException("Failed to connect to SUMO");
 		}
 	}
-
 	/**
 	 * Advances the simulation by one step or throws a {@link SimulationException}.
 	 *

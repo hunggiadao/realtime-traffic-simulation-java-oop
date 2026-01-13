@@ -63,8 +63,8 @@
                   <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
                   <MenuButton mnemonicParsing="false" text="Export">
                     <items>
-                      <MenuItem mnemonicParsing="false" text="PDF" />
-                      <MenuItem mnemonicParsing="false" text="CSV" />
+                      <MenuItem mnemonicParsing="false" onAction="#handlePdfExport" text="PDF" />
+                      <MenuItem mnemonicParsing="false" onAction="#handleCSVExport" text="CSV" />
                     </items>
                   </MenuButton>
                </children>
@@ -94,7 +94,7 @@
                               <HBox prefHeight="100.0" prefWidth="200.0" spacing="6.0">
                                  <children>
                                     <Label text="Step (ms)" />
-                                    <TextField fx:id="txtStepMs" text="100" />
+                                    <TextField fx:id="txtStepMs" text="50" />
                                  </children>
                               </HBox>
                            </children>
@@ -119,7 +119,7 @@
                               <Label text="Vehicle color" />
                               <ColorPicker fx:id="cpInjectColor" minHeight="28.0" prefWidth="125.0" />
                               <Label text="Max speed (m/s)" />
-                              <TextField fx:id="txtInjectSpeed" text="10.0" />
+                              <TextField fx:id="txtInjectSpeed" text="100" />
                               <Button fx:id="btnInject" mnemonicParsing="false" onAction="#onInject" text="Inject" />
                            </children>
                         </VBox>
@@ -207,8 +207,9 @@
                         <TableView fx:id="vehicleTable" prefWidth="320.0">
                           <columns>
                             <TableColumn fx:id="colId" prefWidth="90.0" text="ID" />
-                            <TableColumn fx:id="colSpeed" prefWidth="90.0" text="Speed" />
-                              <TableColumn fx:id="colEdge" prefWidth="90.0" text="Edge" />
+                            <TableColumn fx:id="colSpeed" prefWidth="60.0" text="Speed" />
+                              <TableColumn fx:id="colEdge" prefWidth="60.0" text="Edge" />
+                              <TableColumn fx:id="colColor" text="Color" />
                           </columns>
                         </TableView>
                      </children></AnchorPane>
