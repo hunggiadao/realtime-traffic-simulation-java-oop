@@ -31,8 +31,8 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // String location = "/ui/main_ui.fxml"; // for VS Code
-        String location = "main_ui.fxml"; // for Eclipse
+        String location = "/ui/main_ui.fxml"; // for VS Code
+        // String location = "main_ui.fxml"; // for Eclipse
 
         URL fxmlUrl = getClass().getResource(location);
         if (fxmlUrl == null) {
