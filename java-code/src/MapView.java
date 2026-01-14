@@ -33,20 +33,118 @@ import org.w3c.dom.NodeList;
  */
 public class MapView extends Pane {
     private static final Logger LOGGER = Logger.getLogger(MapView.class.getName());
+
+    private static final class EdgeInfo {
+        final String edgeId;
+        final String from;
+        final String to;
+        final String name;
+        final String function;
+
+        EdgeInfo(String edgeId, String from, String to, String name, String function) {
+            this.edgeId = edgeId;
+            this.from = (from == null) ? "" : from;
+            this.to = (to == null) ? "" : to;
+            this.name = (name == null) ? "" : name;
+            this.function = (function == null) ? "" : function;
+        }
+
+        boolean isInternal() {
+            return edgeId != null && edgeId.startsWith(":") || "internal".equalsIgnoreCase(function);
+        }
+    }
+
     private static class LaneShape {
         String laneId;
         String edgeId;
         int laneIndex;
         List<Point2D> polyline;
         double widthMeters;
-        LaneShape(String id, List<Point2D> p, double w) {
+        String allow;
+        String disallow;
+        boolean bikeOnly;
+        boolean pedestrianOnly;
+        LaneShape(String id, List<Point2D> p, double w, String allow, String disallow) {
             this.laneId = id;
             LaneKey k = parseLaneKey(id);
             this.edgeId = (k != null) ? k.edgeId : null;
             this.laneIndex = (k != null) ? k.laneIndex : -1;
             this.polyline = p;
             this.widthMeters = w;
+            this.allow = (allow == null) ? "" : allow;
+            this.disallow = (disallow == null) ? "" : disallow;
+            this.bikeOnly = isBikeOnlyLane(id, this.allow);
+            this.pedestrianOnly = isPedestrianOnlyLane(id, this.allow);
         }
+    }
+
+    private static boolean isBikeOnlyLane(String laneId, String allowAttr) {
+        // SUMO bicycle lanes are typically encoded via lane permissions:
+        // <lane ... allow="bicycle" .../>
+        // We treat a lane as bicycle-only if 'bicycle' is allowed and no common motorized classes are allowed.
+        String allow = (allowAttr == null) ? "" : allowAttr.trim().toLowerCase(Locale.ROOT);
+        String id = (laneId == null) ? "" : laneId.toLowerCase(Locale.ROOT);
+        if (id.contains("bicycle") || id.contains("bike")) return true;
+        if (allow.isEmpty()) return false;
+        if (!allow.contains("bicycle")) return false;
+
+        // Token-ish check (whitespace separated classes).
+        String[] tokens = allow.split("\\s+");
+        boolean hasBicycle = false;
+        boolean hasMotor = false;
+        for (String t : tokens) {
+            if (t.isEmpty()) continue;
+            if ("bicycle".equals(t)) {
+                hasBicycle = true;
+                continue;
+            }
+            // If any common motorized class is allowed, it's not a bike-only lane.
+            if ("passenger".equals(t) || "bus".equals(t) || "truck".equals(t) || "taxi".equals(t) ||
+                "delivery".equals(t) || "motorcycle".equals(t) || "tram".equals(t) || "rail".equals(t)) {
+                hasMotor = true;
+            }
+        }
+        return hasBicycle && !hasMotor;
+    }
+
+    private static boolean isPedestrianOnlyLane(String laneId, String allowAttr) {
+        // SUMO sidewalk/footpath lanes are typically encoded via lane permissions:
+        // <lane ... allow="pedestrian" .../>
+        // These appear as gray paths in SUMO's GUI "standard" scheme.
+        String allow = (allowAttr == null) ? "" : allowAttr.trim().toLowerCase(Locale.ROOT);
+        String id = (laneId == null) ? "" : laneId.toLowerCase(Locale.ROOT);
+        if (id.contains("sidewalk") || id.contains("foot") || id.contains("ped")) return true;
+        if (allow.isEmpty()) return false;
+        if (!allow.contains("pedestrian")) return false;
+
+        String[] tokens = allow.split("\\s+");
+        boolean hasPed = false;
+        boolean hasMotor = false;
+        boolean hasBicycle = false;
+        for (String t : tokens) {
+            if (t.isEmpty()) continue;
+            if ("pedestrian".equals(t)) {
+                hasPed = true;
+                continue;
+            }
+            if ("bicycle".equals(t)) {
+                hasBicycle = true;
+                continue;
+            }
+            if ("passenger".equals(t) || "bus".equals(t) || "truck".equals(t) || "taxi".equals(t) ||
+                "delivery".equals(t) || "motorcycle".equals(t) || "tram".equals(t) || "rail".equals(t)) {
+                hasMotor = true;
+            }
+        }
+
+        // If it's mixed ped+bike, prefer treating it as bicycle lane visually (orange), not sidewalk.
+        if (hasBicycle) return false;
+        return hasPed && !hasMotor;
+    }
+
+    private static boolean isMotorLane(LaneShape lane) {
+        if (lane == null) return false;
+        return !lane.pedestrianOnly && !lane.bikeOnly;
     }
 
     private static final class LaneKey {
@@ -143,9 +241,18 @@ public class MapView extends Pane {
     // Per-vehicle render smoothing state (keeps headings stable at junctions)
     private Map<String, Point2D> lastVehicleWorldPos = new HashMap<>();
     private Map<String, Point2D> smoothedVehicleDir = new HashMap<>();
+    private long lastOverlayRedrawNs = 0L;
+    private double headingSmoothingAlpha = 0.22;
     private Map<String, Color> laneSignalColors;
     private List<BusStopMarker> busStops = new ArrayList<>();
     private double minX = 0, maxX = 1, minY = 0, maxY = 1;
+
+    private final Map<String, EdgeInfo> edgesById = new HashMap<>();
+
+    // Internal connector lanes (":...") that belong to bicycle movements.
+    // Populated from SUMO <connection via="..."> so we only draw the relevant dashed guides
+    // and avoid cluttering junctions on maps where bicycles are allowed on general lanes.
+    private final java.util.HashSet<String> bicycleConnectorLaneIds = new java.util.HashSet<>();
 
     // Render scheduling
     private boolean backgroundDirty = true;
@@ -177,6 +284,8 @@ public class MapView extends Pane {
         junctions.clear();
         edgeLabelWorldPos.clear();
         trafficLightMarkers.clear();
+        edgesById.clear();
+        bicycleConnectorLaneIds.clear();
         int laneCount = 0;
         if (netFile == null || !netFile.exists()) {
             LOGGER.warning("Net file missing: " + (netFile == null ? "null" : netFile.getPath()));
@@ -187,6 +296,21 @@ public class MapView extends Pane {
             Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(netFile);
             doc.getDocumentElement().normalize();
             List<Point2D> allPoints = new ArrayList<>();
+
+            // Parse edges (from/to) so we can reliably detect opposite-direction pairs.
+            NodeList edgeNodes = doc.getElementsByTagName("edge");
+            for (int i = 0; i < edgeNodes.getLength(); i++) {
+                Element e = (Element) edgeNodes.item(i);
+                if (!e.hasAttribute("id")) continue;
+                String edgeId = e.getAttribute("id");
+                if (edgeId == null || edgeId.isEmpty()) continue;
+                String function = e.hasAttribute("function") ? e.getAttribute("function") : "";
+                if (edgeId.startsWith(":") || "internal".equalsIgnoreCase(function)) continue;
+                String from = e.hasAttribute("from") ? e.getAttribute("from") : "";
+                String to = e.hasAttribute("to") ? e.getAttribute("to") : "";
+                String name = e.hasAttribute("name") ? e.getAttribute("name") : "";
+                edgesById.put(edgeId, new EdgeInfo(edgeId, from, to, name, function));
+            }
 
             // Parse junction shapes (for nicer black junction areas like SUMO GUI)
             NodeList juncNodes = doc.getElementsByTagName("junction");
@@ -206,7 +330,6 @@ public class MapView extends Pane {
                 if (poly.isEmpty()) continue;
             junctions.add(new JunctionShape(jId, isTl, poly));
                 allPoints.addAll(poly);
-
             if (isTl && jId != null && !jId.isEmpty()) {
                 Point2D c = centroid(poly);
                 if (c != null) {
@@ -221,6 +344,8 @@ public class MapView extends Pane {
                 if (!lane.hasAttribute("shape")) continue;
                 String laneId = lane.hasAttribute("id") ? lane.getAttribute("id") : null;
                 String shape = lane.getAttribute("shape");
+                String allow = lane.hasAttribute("allow") ? lane.getAttribute("allow") : "";
+                String disallow = lane.hasAttribute("disallow") ? lane.getAttribute("disallow") : "";
                 double width = 3.2;
                 if (lane.hasAttribute("width")) {
                     try {
@@ -229,13 +354,61 @@ public class MapView extends Pane {
                 }
                 List<Point2D> polyline = parseShape(shape);
                 if (polyline.isEmpty()) continue;
-                LaneShape ls = new LaneShape(laneId, polyline, width);
+                LaneShape ls = new LaneShape(laneId, polyline, width, allow, disallow);
                 lanes.add(ls);
                 if (laneId != null && !laneId.isEmpty()) {
                     lanesById.put(laneId, ls);
                 }
                 allPoints.addAll(polyline);
                 laneCount++;
+            }
+
+            // Parse connections to identify internal connector lanes used by bicycle movements.
+            // This is the most robust way to decide which ":..." lanes should be drawn as dashed
+            // bicycle guides (matches SUMO behavior without map-specific rules).
+            NodeList connNodes = doc.getElementsByTagName("connection");
+            for (int i = 0; i < connNodes.getLength(); i++) {
+                Element c = (Element) connNodes.item(i);
+                if (!c.hasAttribute("via")) continue;
+                String via = c.getAttribute("via");
+                if (via == null || via.isEmpty()) continue;
+
+                String fromEdge = c.hasAttribute("from") ? c.getAttribute("from") : "";
+                String toEdge = c.hasAttribute("to") ? c.getAttribute("to") : "";
+                String fromLane = c.hasAttribute("fromLane") ? c.getAttribute("fromLane") : "";
+                String toLane = c.hasAttribute("toLane") ? c.getAttribute("toLane") : "";
+
+                boolean fromBike = false;
+                boolean toBike = false;
+
+                if (!fromEdge.isEmpty() && !fromLane.isEmpty()) {
+                    LaneShape fl = lanesById.get(fromEdge + "_" + fromLane);
+                    fromBike = (fl != null) && fl.bikeOnly;
+                }
+                if (!toEdge.isEmpty() && !toLane.isEmpty()) {
+                    LaneShape tl = lanesById.get(toEdge + "_" + toLane);
+                    toBike = (tl != null) && tl.bikeOnly;
+                }
+
+                // If lane indices are missing/unusual, fall back to checking whether the edge has ANY bike-only lane.
+                if (!fromBike && !fromEdge.isEmpty() && fromLane.isEmpty()) {
+                    for (LaneShape l : lanes) {
+                        if (l == null) continue;
+                        if (!fromEdge.equals(l.edgeId)) continue;
+                        if (l.bikeOnly) { fromBike = true; break; }
+                    }
+                }
+                if (!toBike && !toEdge.isEmpty() && toLane.isEmpty()) {
+                    for (LaneShape l : lanes) {
+                        if (l == null) continue;
+                        if (!toEdge.equals(l.edgeId)) continue;
+                        if (l.bikeOnly) { toBike = true; break; }
+                    }
+                }
+
+                if (fromBike || toBike) {
+                    bicycleConnectorLaneIds.add(via);
+                }
             }
 
             // Build edge label positions from lanes (one label per edge).
@@ -275,9 +448,11 @@ public class MapView extends Pane {
     private static final class NetworkData {
         List<LaneShape> lanes = new ArrayList<>();
         Map<String, LaneShape> lanesById = new HashMap<>();
+        Map<String, EdgeInfo> edgesById = new HashMap<>();
         List<JunctionShape> junctions = new ArrayList<>();
         Map<String, Point2D> edgeLabelWorldPos = new HashMap<>();
         List<TextMarker> trafficLightMarkers = new ArrayList<>();
+        java.util.HashSet<String> bicycleConnectorLaneIds = new java.util.HashSet<>();
         double minX = 0, maxX = 1, minY = 0, maxY = 1;
         int laneCount = 0;
     }
@@ -321,6 +496,20 @@ public class MapView extends Pane {
             doc.getDocumentElement().normalize();
             List<Point2D> allPoints = new ArrayList<>();
 
+            NodeList edgeNodes = doc.getElementsByTagName("edge");
+            for (int i = 0; i < edgeNodes.getLength(); i++) {
+                Element e = (Element) edgeNodes.item(i);
+                if (!e.hasAttribute("id")) continue;
+                String edgeId = e.getAttribute("id");
+                if (edgeId == null || edgeId.isEmpty()) continue;
+                String function = e.hasAttribute("function") ? e.getAttribute("function") : "";
+                if (edgeId.startsWith(":") || "internal".equalsIgnoreCase(function)) continue;
+                String from = e.hasAttribute("from") ? e.getAttribute("from") : "";
+                String to = e.hasAttribute("to") ? e.getAttribute("to") : "";
+                String name = e.hasAttribute("name") ? e.getAttribute("name") : "";
+                out.edgesById.put(edgeId, new EdgeInfo(edgeId, from, to, name, function));
+            }
+
             NodeList juncNodes = doc.getElementsByTagName("junction");
             for (int i = 0; i < juncNodes.getLength(); i++) {
                 Element j = (Element) juncNodes.item(i);
@@ -351,6 +540,8 @@ public class MapView extends Pane {
                 if (!lane.hasAttribute("shape")) continue;
                 String laneId = lane.hasAttribute("id") ? lane.getAttribute("id") : null;
                 String shape = lane.getAttribute("shape");
+                String allow = lane.hasAttribute("allow") ? lane.getAttribute("allow") : "";
+                String disallow = lane.hasAttribute("disallow") ? lane.getAttribute("disallow") : "";
                 double width = 3.2;
                 if (lane.hasAttribute("width")) {
                     try {
@@ -359,13 +550,58 @@ public class MapView extends Pane {
                 }
                 List<Point2D> polyline = parseShape(shape);
                 if (polyline.isEmpty()) continue;
-                LaneShape ls = new LaneShape(laneId, polyline, width);
+                LaneShape ls = new LaneShape(laneId, polyline, width, allow, disallow);
                 out.lanes.add(ls);
                 if (laneId != null && !laneId.isEmpty()) {
                     out.lanesById.put(laneId, ls);
                 }
                 allPoints.addAll(polyline);
                 out.laneCount++;
+            }
+
+            // Identify bicycle connector internals via SUMO <connection via="...">.
+            NodeList connNodes = doc.getElementsByTagName("connection");
+            for (int i = 0; i < connNodes.getLength(); i++) {
+                Element c = (Element) connNodes.item(i);
+                if (!c.hasAttribute("via")) continue;
+                String via = c.getAttribute("via");
+                if (via == null || via.isEmpty()) continue;
+
+                String fromEdge = c.hasAttribute("from") ? c.getAttribute("from") : "";
+                String toEdge = c.hasAttribute("to") ? c.getAttribute("to") : "";
+                String fromLane = c.hasAttribute("fromLane") ? c.getAttribute("fromLane") : "";
+                String toLane = c.hasAttribute("toLane") ? c.getAttribute("toLane") : "";
+
+                boolean fromBike = false;
+                boolean toBike = false;
+
+                if (!fromEdge.isEmpty() && !fromLane.isEmpty()) {
+                    LaneShape fl = out.lanesById.get(fromEdge + "_" + fromLane);
+                    fromBike = (fl != null) && fl.bikeOnly;
+                }
+                if (!toEdge.isEmpty() && !toLane.isEmpty()) {
+                    LaneShape tl = out.lanesById.get(toEdge + "_" + toLane);
+                    toBike = (tl != null) && tl.bikeOnly;
+                }
+
+                if (!fromBike && !fromEdge.isEmpty() && fromLane.isEmpty()) {
+                    for (LaneShape l : out.lanes) {
+                        if (l == null) continue;
+                        if (!fromEdge.equals(l.edgeId)) continue;
+                        if (l.bikeOnly) { fromBike = true; break; }
+                    }
+                }
+                if (!toBike && !toEdge.isEmpty() && toLane.isEmpty()) {
+                    for (LaneShape l : out.lanes) {
+                        if (l == null) continue;
+                        if (!toEdge.equals(l.edgeId)) continue;
+                        if (l.bikeOnly) { toBike = true; break; }
+                    }
+                }
+
+                if (fromBike || toBike) {
+                    out.bicycleConnectorLaneIds.add(via);
+                }
             }
 
             for (LaneShape lane : out.lanes) {
@@ -398,13 +634,17 @@ public class MapView extends Pane {
         junctions.clear();
         edgeLabelWorldPos.clear();
         trafficLightMarkers.clear();
+        edgesById.clear();
+        bicycleConnectorLaneIds.clear();
 
         if (data != null) {
             lanes.addAll(data.lanes);
             lanesById.putAll(data.lanesById);
+            edgesById.putAll(data.edgesById);
             junctions.addAll(data.junctions);
             edgeLabelWorldPos.putAll(data.edgeLabelWorldPos);
             trafficLightMarkers.addAll(data.trafficLightMarkers);
+            bicycleConnectorLaneIds.addAll(data.bicycleConnectorLaneIds);
             minX = data.minX;
             maxX = data.maxX;
             minY = data.minY;
@@ -440,6 +680,16 @@ public class MapView extends Pane {
         this.vehicleLaneIds = laneIds;
         this.vehicleAngles = angles;
         this.vehicleTypes = types;
+
+        // Keep smoothing caches bounded, but avoid doing O(n) work every frame.
+        // Only prune when caches grow significantly beyond the current visible set.
+        if (positions != null && !positions.isEmpty()) {
+            int p = positions.size();
+            if (lastVehicleWorldPos.size() > p * 2 + 100 || smoothedVehicleDir.size() > p * 2 + 100) {
+                lastVehicleWorldPos.keySet().retainAll(positions.keySet());
+                smoothedVehicleDir.keySet().retainAll(positions.keySet());
+            }
+        }
         scheduleOverlayRedraw();
     }
 
@@ -558,11 +808,18 @@ public class MapView extends Pane {
         Color roadEdge = Color.web("#000000");
         Color roadFill = Color.web("#101010");
         Color laneLine = Color.web("#d0d0d0");
+        // SUMO "standard" scheme
+        // - bicycle lanes: orange/brown
+        // - pedestrian paths/sidewalks: gray
+        Color bikeLaneFill = Color.web("#d7a08b");
+        Color pedPathFill = Color.web("#bdbdbd");
 
-        g.setLineCap(StrokeLineCap.ROUND);
+        // Default stroke style for the scene.
         g.setLineJoin(StrokeLineJoin.ROUND);
 
-        // Junction polygons
+        // Junction polygons (base intersection surface).
+        // This is drawn BEFORE lane borders/separators so the junction doesn't become a gray "blob".
+        // SUMO-GUI typically shows a clean junction surface; connector internals are optional.
         g.setFill(roadFill);
         for (JunctionShape j : junctions) {
             if (j.polygon.isEmpty()) continue;
@@ -578,21 +835,362 @@ public class MapView extends Pane {
         }
 
         // Lanes/roads
+        // PERF/QUALITY:
+        // Rendering each lane with a thick outer border causes double-drawn borders between adjacent lanes
+        // (two lane boundaries overlap), which makes roads look different from SUMO-GUI.
+        // Instead:
+        //  1) Draw the road fill for all lanes.
+        //  2) Draw ONLY the outer road border (outermost lanes).
+        //  3) Draw ONE separator per lane boundary (no duplicates).
+
+        // Precompute lane-index ranges per non-internal edge.
+        Map<String, int[]> edgeLaneRange = new HashMap<>(); // edgeId -> [minIdx,maxIdx]
+        Map<String, Map<Integer, LaneShape>> edgeLanesByIndex = new HashMap<>(); // edgeId -> (laneIndex -> lane)
         for (LaneShape lane : lanes) {
-            double laneScreenWidth = Math.max(1.5, lane.widthMeters * scale);
-            double outerW = laneScreenWidth + 1.2;
-
-            strokePolyline(g, lane.polyline, h, scale, outerW, roadEdge, null);
-            strokePolyline(g, lane.polyline, h, scale, laneScreenWidth, roadFill, null);
-
-            if (laneScreenWidth >= 6.0) {
-                strokePolyline(g, lane.polyline, h, scale, 1.1, laneLine, new double[]{10, 10});
-            }
-
-            if (laneScreenWidth >= 5.0) {
-                drawLaneEdges(g, lane.polyline, h, scale, laneScreenWidth, laneLine);
+            if (lane == null || lane.edgeId == null || lane.edgeId.isEmpty()) continue;
+            if (lane.edgeId.startsWith(":")) continue; // internal lanes handled separately
+            if (lane.laneIndex < 0) continue;
+            edgeLanesByIndex.computeIfAbsent(lane.edgeId, k -> new HashMap<>()).put(lane.laneIndex, lane);
+            int[] mm = edgeLaneRange.get(lane.edgeId);
+            if (mm == null) {
+                edgeLaneRange.put(lane.edgeId, new int[]{lane.laneIndex, lane.laneIndex});
+            } else {
+                if (lane.laneIndex < mm[0]) mm[0] = lane.laneIndex;
+                if (lane.laneIndex > mm[1]) mm[1] = lane.laneIndex;
             }
         }
+
+        // Roads: use square/flat caps so road ends look like rectangles (closer to SUMO GUI).
+        // We restore ROUND caps later for arrows/markers.
+        g.setLineCap(StrokeLineCap.BUTT);
+
+        // Pass 1: draw road fill (continuous areas).
+        // Draw motor lanes first, then special lanes (bike/ped) on top so their colors are not covered.
+        for (int pass = 0; pass < 2; pass++) {
+            for (LaneShape lane : lanes) {
+                if (lane == null || lane.polyline == null || lane.polyline.size() < 2) continue;
+                double laneScreenWidth = Math.max(1.5, lane.widthMeters * scale);
+                boolean internal = (lane.edgeId != null) && lane.edgeId.startsWith(":");
+
+                if (internal) {
+                    // Internal connector lanes are rendered later (after junction fill) so they don't clutter the intersection.
+                    continue;
+                }
+
+                boolean motor = isMotorLane(lane);
+                if ((pass == 0) != motor) continue;
+
+                // Non-internal lanes: draw fill only (no per-lane outer border).
+                // Slightly widen fill to hide tiny gaps between strokes, but keep it small to avoid
+                // double-overdraw bands (which can look like a "super dark" separator).
+                Color fill = roadFill;
+                if (lane.pedestrianOnly) fill = pedPathFill;
+                if (lane.bikeOnly) fill = bikeLaneFill;
+                strokePolyline(g, lane.polyline, h, scale, laneScreenWidth + 0.25, fill, null, StrokeLineCap.BUTT);
+            }
+        }
+
+        // Pass 2: draw borders + separators for non-internal edges.
+        for (LaneShape lane : lanes) {
+            if (lane == null || lane.polyline == null || lane.polyline.size() < 2) continue;
+            if (lane.edgeId == null || lane.edgeId.isEmpty()) continue;
+            if (lane.edgeId.startsWith(":")) continue;
+            if (lane.laneIndex < 0) continue;
+            int[] mm = edgeLaneRange.get(lane.edgeId);
+            if (mm == null) continue;
+
+            double laneScreenWidth = Math.max(1.5, lane.widthMeters * scale);
+
+            // Outer border: only for outermost lanes.
+            double borderW = clamp(laneScreenWidth * 0.22, 1.4, 2.8);
+            if (lane.laneIndex == mm[0]) {
+                // Rightmost lane (SUMO lane index 0 is rightmost in edge direction): draw right border.
+                drawLaneSingleEdge(g, lane.polyline, h, scale, laneScreenWidth, roadEdge, borderW, -1);
+            }
+            if (lane.laneIndex == mm[1]) {
+                // Leftmost lane: draw left border.
+                drawLaneSingleEdge(g, lane.polyline, h, scale, laneScreenWidth, roadEdge, borderW, +1);
+            }
+
+            // Lane separator: draw one boundary per lane (between this lane and its neighbor).
+            // Using the right edge avoids duplicates when indices increase leftwards.
+            if (lane.laneIndex > mm[0]) {
+                double sepW = clamp(laneScreenWidth * 0.12, 0.9, 1.6);
+                boolean dash = false;
+                LaneShape neighbor = null;
+                Map<Integer, LaneShape> byIdx = edgeLanesByIndex.get(lane.edgeId);
+                if (byIdx != null) {
+                    // Find the immediate neighbor lane on the "right".
+                    // Some nets use non-contiguous lane indices, so laneIndex-1 may not exist.
+                    neighbor = byIdx.get(lane.laneIndex - 1);
+                    if (neighbor == null) {
+                        for (int idx = lane.laneIndex - 2; idx >= mm[0]; idx--) {
+                            neighbor = byIdx.get(idx);
+                            if (neighbor != null) break;
+                        }
+                    }
+                    // User rule:
+                    // - Dashed means 2+ lanes in SAME direction (within the same edge).
+                    // - Solid center divider means OPPOSITE directions (handled in Pass 2b).
+                    // Therefore: only dash between motor lanes within the edge.
+                    if (neighbor != null && isMotorLane(lane) && isMotorLane(neighbor)) {
+                        dash = true;
+                    }
+                } else {
+                    dash = false;
+                }
+                if (dash) {
+                    // SUMO shows same-direction multi-lane separators as dashed lines between lanes.
+                    // Use the midline between the two lane center polylines, not an offset boundary,
+                    // because some nets have irregular lane geometries where boundary-offset is wrong.
+                    List<Point2D> bAligned = (neighbor != null) ? neighbor.polyline : null;
+                    if (bAligned != null && lane.polyline != null && lane.polyline.size() >= 2 && bAligned.size() >= 2) {
+                        double dStart = lane.polyline.get(0).distance(bAligned.get(0));
+                        double dEnd = lane.polyline.get(0).distance(bAligned.get(bAligned.size() - 1));
+                        if (dEnd < dStart) {
+                            bAligned = new ArrayList<>(bAligned);
+                            java.util.Collections.reverse(bAligned);
+                        }
+                    }
+                    List<Point2D> center = buildAveragedCenterline(lane.polyline, bAligned, 32);
+                    if (center.size() >= 2) {
+                        strokePolyline(g, center, h, scale,
+                                clamp(sepW, 1.0, 1.8),
+                                Color.web("#f2f2f2").deriveColor(0, 1, 1, 0.90),
+                                new double[]{12, 12},
+                                StrokeLineCap.BUTT);
+                    }
+                } else {
+                    drawLaneSingleEdge(g, lane.polyline, h, scale, laneScreenWidth, laneLine, sepW, -1);
+                }
+            }
+        }
+
+        // Pass 2b: solid centerline for two-way roads (opposite-direction edge pairs).
+        // SUMO draws a solid divider between opposite-direction edges (A: from->to, B: to->from).
+        // We pair edges using net topology (from/to IDs) rather than geometry heuristics to avoid
+        // incorrect cross-pairing that can "destroy" the map.
+        {
+            final class EdgeRep {
+                final String edgeId;
+                final List<LaneShape> motorLanes;
+                final Point2D start;
+                final Point2D end;
+                final double len;
+                final Point2D dir;
+
+                EdgeRep(String edgeId, List<LaneShape> motorLanes) {
+                    this.edgeId = edgeId;
+                    this.motorLanes = motorLanes;
+                    List<Point2D> p = motorLanes.get(0).polyline;
+                    this.start = p.get(0);
+                    this.end = p.get(p.size() - 1);
+                    this.len = polylineLength(p);
+                    // Use a direction estimate away from the junction endpoints.
+                    // Endpoints can include curved junction geometry which makes opposite edges
+                    // fail the dot-product test even though they are true two-way pairs.
+                    this.dir = polylineDirectionMid(p);
+                }
+            }
+
+            final class LanePair {
+                final LaneShape aLane;
+                final List<Point2D> bAligned;
+                final double avgDist;
+                LanePair(LaneShape aLane, List<Point2D> bAligned, double avgDist) {
+                    this.aLane = aLane;
+                    this.bAligned = bAligned;
+                    this.avgDist = avgDist;
+                }
+            }
+
+            java.util.function.BiFunction<EdgeRep, EdgeRep, LanePair> bestLanePair = (a, b) -> {
+                if (a == null || b == null) return null;
+                if (a.motorLanes == null || b.motorLanes == null) return null;
+                if (a.motorLanes.isEmpty() || b.motorLanes.isEmpty()) return null;
+                LaneShape bestA = null;
+                List<Point2D> bestBAligned = null;
+                double bestDist = Double.POSITIVE_INFINITY;
+
+                for (LaneShape la : a.motorLanes) {
+                    if (la == null || la.polyline == null || la.polyline.size() < 2) continue;
+                    for (LaneShape lb : b.motorLanes) {
+                        if (lb == null || lb.polyline == null || lb.polyline.size() < 2) continue;
+
+                        List<Point2D> bAligned = lb.polyline;
+                        double dStart = la.polyline.get(0).distance(bAligned.get(0));
+                        double dEnd = la.polyline.get(0).distance(bAligned.get(bAligned.size() - 1));
+                        if (dEnd < dStart) {
+                            bAligned = new ArrayList<>(bAligned);
+                            java.util.Collections.reverse(bAligned);
+                        }
+
+                        double avgDist = averagePolylineDistanceMid(la.polyline, bAligned, 18);
+                        if (avgDist < bestDist) {
+                            bestDist = avgDist;
+                            bestA = la;
+                            bestBAligned = bAligned;
+                        }
+                    }
+                }
+
+                if (bestA == null || bestBAligned == null || !Double.isFinite(bestDist)) return null;
+                return new LanePair(bestA, bestBAligned, bestDist);
+            };
+
+            Map<String, EdgeRep> repByEdge = new HashMap<>();
+            for (Map.Entry<String, int[]> e : edgeLaneRange.entrySet()) {
+                String edgeId = e.getKey();
+                int[] mm = e.getValue();
+                Map<Integer, LaneShape> byIdx = edgeLanesByIndex.get(edgeId);
+                if (byIdx == null) continue;
+
+                // Collect all MOTOR lanes for this edge.
+                // We'll later choose the lane that is closest to the opposite edge so the divider
+                // lands on the true median (works for 1-lane and multi-lane roads).
+                List<LaneShape> motor = new ArrayList<>();
+                for (int idx = mm[0]; idx <= mm[1]; idx++) {
+                    LaneShape cand = byIdx.get(idx);
+                    if (cand == null) continue;
+                    if (!isMotorLane(cand)) continue;
+                    if (cand.polyline == null || cand.polyline.size() < 2) continue;
+                    motor.add(cand);
+                }
+                // If the edge has no motor lane at all (pure sidewalk/bike edge), skip it.
+                if (!motor.isEmpty()) {
+                    // Keep ordering stable (lower lane index first) if possible.
+                    motor.sort(Comparator.comparingInt(ls -> ls.laneIndex));
+                    repByEdge.put(edgeId, new EdgeRep(edgeId, motor));
+                }
+            }
+
+            Map<String, List<EdgeRep>> repsByFromTo = new HashMap<>();
+            for (EdgeRep r : repByEdge.values()) {
+                EdgeInfo info = edgesById.get(r.edgeId);
+                if (info == null) continue;
+                if (info.from.isEmpty() || info.to.isEmpty()) continue;
+                String key = info.from + "->" + info.to;
+                repsByFromTo.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
+            }
+
+            // Pair each edge with candidates that swap from/to; choose the best local match.
+            Map<String, String> pairs = new HashMap<>();
+            for (EdgeRep a : repByEdge.values()) {
+                if (pairs.containsKey(a.edgeId)) continue;
+                EdgeInfo ai = edgesById.get(a.edgeId);
+                if (ai == null || ai.from.isEmpty() || ai.to.isEmpty()) continue;
+
+                List<EdgeRep> candidates = repsByFromTo.get(ai.to + "->" + ai.from);
+                if (candidates == null || candidates.isEmpty()) continue;
+
+                // Strong preference: SUMO often uses opposite IDs like E62 and -E62.
+                // If that counterpart exists and is a candidate, pick it.
+                String preferredId = a.edgeId.startsWith("-") ? a.edgeId.substring(1) : ("-" + a.edgeId);
+                EdgeRep preferred = repByEdge.get(preferredId);
+                if (preferred != null && candidates.contains(preferred) && !pairs.containsKey(preferred.edgeId)) {
+                    pairs.put(a.edgeId, preferred.edgeId);
+                    pairs.put(preferred.edgeId, a.edgeId);
+                    continue;
+                }
+
+                EdgeRep best = null;
+                double bestScore = Double.POSITIVE_INFINITY;
+
+                for (EdgeRep b : candidates) {
+                    if (b == null) continue;
+                    if (b.edgeId.equals(a.edgeId)) continue;
+                    if (pairs.containsKey(b.edgeId)) continue;
+
+                    // Must be opposite direction visually.
+                    double dot = a.dir.getX() * b.dir.getX() + a.dir.getY() * b.dir.getY();
+                    if (dot > -0.55) continue;
+
+                    // Score using the closest motor-lane pair between the two edges.
+                    LanePair lp = bestLanePair.apply(a, b);
+                    if (lp == null) continue;
+                    double avgDist = lp.avgDist;
+                    double lenDiff = Math.abs(a.len - b.len);
+                    double score = avgDist + 0.05 * lenDiff;
+
+                    // Skip obviously-wrong pairs (too far apart).
+                    double maxDist = Math.max(7.0, Math.min(35.0, Math.min(a.len, b.len) * 0.20));
+                    if (avgDist > maxDist) continue;
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        best = b;
+                    }
+                }
+
+                if (best != null) {
+                    pairs.put(a.edgeId, best.edgeId);
+                    pairs.put(best.edgeId, a.edgeId);
+                }
+            }
+
+            // Draw each pair once.
+            java.util.HashSet<String> drawn = new java.util.HashSet<>();
+            for (Map.Entry<String, String> p : pairs.entrySet()) {
+                String aId = p.getKey();
+                String bId = p.getValue();
+                if (aId == null || bId == null) continue;
+                String canonical = (aId.compareTo(bId) < 0) ? (aId + "|" + bId) : (bId + "|" + aId);
+                if (drawn.contains(canonical)) continue;
+                drawn.add(canonical);
+
+                EdgeRep a = repByEdge.get(aId);
+                EdgeRep b = repByEdge.get(bId);
+                if (a == null || b == null) continue;
+
+                LanePair lp = bestLanePair.apply(a, b);
+                if (lp == null) continue;
+                List<Point2D> center = buildAveragedCenterline(lp.aLane.polyline, lp.bAligned, 30);
+                if (center.size() < 2) continue;
+
+                double wPx = clamp(1.4 * userScale, 1.2, 2.6);
+                strokePolyline(g, center, h, scale,
+                        wPx,
+                        Color.web("#f2f2f2").deriveColor(0, 1, 1, 0.95),
+                        null,
+                        StrokeLineCap.BUTT);
+            }
+        }
+
+        // Pass 2c: dashed bicycle connector lanes inside junctions (SUMO-style).
+        // SUMO shows bicycle turning connectors as dashed white curves over the junction surface.
+        // These are typically internal lanes whose edgeId starts with ':' and allow bicycles.
+        {
+            double dashLen = clamp(6.0 * Math.sqrt(clamp(userScale, 1.0, 25.0)), 5.0, 14.0);
+            double[] dashes = new double[]{dashLen, dashLen};
+            Color guide = Color.web("#f2f2f2").deriveColor(0, 1, 1, 0.75);
+
+            for (LaneShape lane : lanes) {
+                if (lane == null || lane.polyline == null || lane.polyline.size() < 2) continue;
+                if (lane.edgeId == null || !lane.edgeId.startsWith(":")) continue;
+                if (lane.pedestrianOnly) continue;
+
+                // Draw only internal lanes that are actual bicycle connectors according to SUMO connections,
+                // plus any internal lanes that are explicitly bike-only.
+                boolean isBikeConnector = lane.bikeOnly;
+                if (!isBikeConnector && lane.laneId != null && !lane.laneId.isEmpty()) {
+                    isBikeConnector = bicycleConnectorLaneIds.contains(lane.laneId);
+                }
+                if (!isBikeConnector) continue;
+
+                double laneScreenWidth = Math.max(1.5, lane.widthMeters * scale);
+                double wPx = clamp(laneScreenWidth * 0.10, 0.9, 1.7);
+
+                // Use the previous style: dashed boundaries (reads like a dedicated connector lane).
+                drawLaneSingleEdge(g, lane.polyline, h, scale, laneScreenWidth, guide, wPx, -1, dashes);
+                drawLaneSingleEdge(g, lane.polyline, h, scale, laneScreenWidth, guide, wPx, +1, dashes);
+            }
+        }
+
+        // Restore round caps for small UI strokes (arrows, labels, markers).
+        g.setLineCap(StrokeLineCap.ROUND);
+
+        // NOTE: We only draw bicycle connector internals (not all connectors),
+        // to match SUMO's visuals without cluttering the junction.
 
         drawLabels(g, h, scale);
         drawRoadDirectionArrows(g, h, scale, Color.web("#bdbdbd"));
@@ -605,6 +1203,14 @@ public class MapView extends Pane {
         double w = canvas.getWidth();
         double h = canvas.getHeight();
         if (w <= 0 || h <= 0) return;
+
+        // Compute a single smoothing alpha for this redraw (prevents per-vehicle exp/nanoTime cost).
+        long nowNs = System.nanoTime();
+        double dtSec = (lastOverlayRedrawNs == 0L) ? 0.0 : Math.max(0.0, (nowNs - lastOverlayRedrawNs) / 1_000_000_000.0);
+        lastOverlayRedrawNs = nowNs;
+        final double tauSec = 0.14; // smaller => more responsive; larger => smoother
+        double alpha = (dtSec <= 0.0) ? 0.30 : (1.0 - Math.exp(-dtSec / tauSec));
+        headingSmoothingAlpha = clamp(alpha, 0.18, 0.95);
 
         GraphicsContext g = canvas.getGraphicsContext2D();
         // Overlay is transparent; clear only this canvas.
@@ -631,19 +1237,11 @@ public class MapView extends Pane {
                     String laneId = vehicleLaneIds.get(vehicleId);
                     LaneShape lane = (laneId != null) ? lanesById.get(laneId) : null;
                     laneForHeading = lane;
-                    if (lane != null && lane.polyline != null && lane.polyline.size() >= 2 && worldPos != null) {
-                        double offsetMeters = Math.max(0.35, lane.widthMeters * 0.22);
-                        double sign = ((laneId.hashCode() & 1) == 0) ? 1.0 : -1.0;
-                        drawWorld = offsetAlongLaneNormal(worldPos, lane.polyline, offsetMeters * sign);
-                    }
                 }
 
                 Point2D tp = transform(drawWorld, h, scale);
 
-                double angleDegrees = 0.0;
-                if (vehicleAngles != null && vehicleAngles.containsKey(vehicleId)) {
-                    angleDegrees = vehicleAngles.get(vehicleId);
-                }
+                Double angleDegrees = (vehicleAngles != null) ? vehicleAngles.get(vehicleId) : null;
 
                 String vehicleType = "car";
                 if (vehicleTypes != null && vehicleTypes.containsKey(vehicleId)) {
@@ -730,7 +1328,7 @@ public class MapView extends Pane {
             double y2 = cy + ny * (lineLen / 2.0);
 
             Color c = (e.getValue() != null) ? e.getValue() : Color.RED;
-            g.setLineDashes(null);
+            g.setLineDashes();
 
             // Outline for readability on dark roads
             g.setStroke(Color.WHITE);
@@ -818,7 +1416,7 @@ public class MapView extends Pane {
             g.setFill(waitingArea);
             g.setStroke(Color.GRAY);
             g.setLineWidth(1.0);
-            g.setLineDashes(null);
+            g.setLineDashes();
             // Rectangle aligned with lane direction
             double[] areaX = new double[4];
             double[] areaY = new double[4];
@@ -912,13 +1510,30 @@ public class MapView extends Pane {
      * Uses vector-based drawing for smooth rotation at any angle.
      */
     private void drawVehicleShape(GraphicsContext g, String vehicleId, Point2D worldPos, LaneShape lane,
-                                  double x, double y, double angleDegrees,
+                                  double x, double y, Double angleDegrees,
                                   String vehicleType, Color color, double scale) {
-        // This function computes a stable heading direction for the car:
-        // 1) Prefer lane tangent (smooth on curves)
-        // 2) Fallback to movement delta (smooth at merges)
-        // 3) Fallback to SUMO angle
+        // This function computes a stable heading direction:
+        // 1) Prefer motion direction (best for lane changes)
+        // 2) Prefer lane tangent when speed is ~0 (stable at stops)
+        // 3) Prefer SUMO angle (works even if position updates are throttled)
+        // For SUMO angle, we auto-detect the convention to avoid 90°-off headings.
         Point2D dirWorld = null;
+
+        Point2D prevWorld = (vehicleId != null) ? lastVehicleWorldPos.get(vehicleId) : null;
+        Point2D movementDirWorld = null;
+        if (prevWorld != null && worldPos != null) {
+            double mdx = worldPos.getX() - prevWorld.getX();
+            double mdy = worldPos.getY() - prevWorld.getY();
+            double mlen = Math.hypot(mdx, mdy);
+            if (mlen > 1e-6) {
+                movementDirWorld = new Point2D(mdx / mlen, mdy / mlen);
+            }
+        }
+
+        Point2D laneDirWorld = null;
+        if (lane != null && lane.polyline != null && lane.polyline.size() >= 2 && worldPos != null) {
+            laneDirWorld = laneTangentAt(worldPos, lane.polyline);
+        }
 
         // (1) Lane tangent in world coordinates (x right, y up)
         // causes cars to not turn when changing lanes in a straight edge
@@ -927,37 +1542,68 @@ public class MapView extends Pane {
 //            dirWorld = laneTangentAt(worldPos, lane.polyline);
 //        }
 
-        // (2) Movement delta (world coordinates)
-        if (dirWorld == null && worldPos != null && vehicleId != null) {
-//        	System.out.println("using movement delta");
-            Point2D prev = lastVehicleWorldPos.get(vehicleId);
-            if (prev != null) {
-                double dx = worldPos.getX() - prev.getX();
-                double dy = worldPos.getY() - prev.getY();
-                double len = Math.hypot(dx, dy);
-                if (len > 1e-6) {
-                    dirWorld = new Point2D(dx / len, dy / len);
+        // (1) Motion direction (world coordinates)
+        if (movementDirWorld != null) {
+            dirWorld = movementDirWorld;
+        }
+
+        // (2) If we're not moving (or missing prev), use lane tangent for stability.
+        if (dirWorld == null && laneDirWorld != null) {
+            dirWorld = laneDirWorld;
+        }
+
+        // (3) SUMO angle (world coordinates) when available.
+        if (dirWorld == null && angleDegrees != null) {
+            double angleRad = Math.toRadians(angleDegrees);
+
+            // Two common conventions seen in projects:
+            // A) 0° = East (+X), 90° = North (+Y)  => (cos, sin)
+            // B) 0° = North (+Y), 90° = East (+X)  => (sin, cos)
+            Point2D candA = new Point2D(Math.cos(angleRad), Math.sin(angleRad));
+            Point2D candB = new Point2D(Math.sin(angleRad), Math.cos(angleRad));
+
+            Point2D ref = (movementDirWorld != null) ? movementDirWorld : laneDirWorld;
+            if (ref == null && vehicleId != null) {
+                // Use previous smoothed direction as a tie-breaker (convert back to world-like by unflipping Y).
+                Point2D prevScreen = smoothedVehicleDir.get(vehicleId);
+                if (prevScreen != null) {
+                    ref = new Point2D(prevScreen.getX(), -prevScreen.getY());
                 }
+            }
+
+            if (ref != null) {
+                double dotA = candA.getX() * ref.getX() + candA.getY() * ref.getY();
+                double dotB = candB.getX() * ref.getX() + candB.getY() * ref.getY();
+                dirWorld = (dotA >= dotB) ? candA : candB;
+            } else {
+                dirWorld = candA;
             }
         }
 
-        // (3) SUMO angle fallback (world coordinates)
-        if (dirWorld == null) {
-//        	System.out.println("using SUMO fallback");
-            double angleRad = Math.toRadians(angleDegrees);
-            // SUMO 0° = North (+Y), 90° = East (+X)
-            dirWorld = new Point2D(Math.sin(angleRad), Math.cos(angleRad));
-        }
+        // (4) Final fallback
+        if (dirWorld == null) dirWorld = new Point2D(1.0, 0.0);
 
         // Convert world direction to screen direction (screen Y is flipped)
         Point2D dirScreen = new Point2D(dirWorld.getX(), -dirWorld.getY());
         dirScreen = normalize(dirScreen);
 
         // Smooth direction to avoid jitter / sudden flips at junctions.
-        // Small alpha => smoother but more lag; medium value is a good compromise.
-        final double alpha = 0.1;
         if (vehicleId != null) {
+            boolean isBus = (vehicleType != null) && vehicleType.toLowerCase().contains("bus");
+
+            // Buses should rotate more responsively; otherwise the back-shift can look like drifting.
+            double alpha = isBus ? clamp(headingSmoothingAlpha * 1.75, 0.35, 0.98) : headingSmoothingAlpha;
+
             Point2D prevDir = smoothedVehicleDir.get(vehicleId);
+            if (prevDir != null) {
+                // If the direction flips ~180°, vector blending can collapse to near-zero.
+                // Snap in that case to avoid weird spins.
+                double dot = prevDir.getX() * dirScreen.getX() + prevDir.getY() * dirScreen.getY();
+                if (dot < -0.55) {
+                    prevDir = null;
+                }
+            }
+
             if (prevDir != null) {
                 Point2D blended = new Point2D(
                         prevDir.getX() * (1.0 - alpha) + dirScreen.getX() * alpha,
@@ -965,6 +1611,7 @@ public class MapView extends Pane {
                 );
                 dirScreen = normalize(blended);
             }
+
             smoothedVehicleDir.put(vehicleId, dirScreen);
             if (worldPos != null) {
                 lastVehicleWorldPos.put(vehicleId, worldPos);
@@ -1183,7 +1830,7 @@ public class MapView extends Pane {
         // Draw bus body outline for visibility
         g.setStroke(Color.WHITE);
         g.setLineWidth(1.2);
-        g.setLineDashes(null);
+        g.setLineDashes();
         g.strokePolygon(xPoints, yPoints, 4);
 
         // Draw bus body fill
@@ -1287,6 +1934,90 @@ public class MapView extends Pane {
         return polyline.get(polyline.size() - 1);
     }
 
+    private List<Point2D> buildAveragedCenterline(List<Point2D> a, List<Point2D> b, int samples) {
+        List<Point2D> out = new ArrayList<>();
+        if (a == null || b == null || a.size() < 2 || b.size() < 2) return out;
+        int n = Math.max(2, samples);
+        for (int i = 0; i < n; i++) {
+            double t = (n == 1) ? 0.0 : ((double) i / (double) (n - 1));
+            Point2D pa = pointAlongPolyline(a, t);
+            Point2D pb = pointAlongPolyline(b, t);
+            if (pa == null || pb == null) continue;
+            out.add(new Point2D((pa.getX() + pb.getX()) * 0.5, (pa.getY() + pb.getY()) * 0.5));
+        }
+        return out;
+    }
+
+    private double polylineLength(List<Point2D> poly) {
+        if (poly == null || poly.size() < 2) return 0.0;
+        double sum = 0.0;
+        for (int i = 1; i < poly.size(); i++) {
+            sum += poly.get(i).distance(poly.get(i - 1));
+        }
+        return sum;
+    }
+
+    private double averagePolylineDistance(List<Point2D> a, List<Point2D> b, int samples) {
+        if (a == null || b == null || a.size() < 2 || b.size() < 2) return Double.POSITIVE_INFINITY;
+        int n = Math.max(4, samples);
+        double sum = 0.0;
+        int used = 0;
+        for (int i = 0; i < n; i++) {
+            double t = (double) i / (double) (n - 1);
+            Point2D pa = pointAlongPolyline(a, t);
+            Point2D pb = pointAlongPolyline(b, t);
+            if (pa == null || pb == null) continue;
+            sum += pa.distance(pb);
+            used++;
+        }
+        if (used == 0) return Double.POSITIVE_INFINITY;
+        return sum / (double) used;
+    }
+
+    private double averagePolylineDistanceMid(List<Point2D> a, List<Point2D> b, int samples) {
+        if (a == null || b == null || a.size() < 2 || b.size() < 2) return Double.POSITIVE_INFINITY;
+        int n = Math.max(4, samples);
+        double sum = 0.0;
+        int used = 0;
+        // Ignore the ends (junction curvature) and compare the mid-section.
+        double t0 = 0.15;
+        double t1 = 0.85;
+        for (int i = 0; i < n; i++) {
+            double u = (double) i / (double) (n - 1);
+            double t = t0 + (t1 - t0) * u;
+            Point2D pa = pointAlongPolyline(a, t);
+            Point2D pb = pointAlongPolyline(b, t);
+            if (pa == null || pb == null) continue;
+            sum += pa.distance(pb);
+            used++;
+        }
+        if (used == 0) return Double.POSITIVE_INFINITY;
+        return sum / (double) used;
+    }
+
+    private Point2D polylineDirectionMid(List<Point2D> poly) {
+        if (poly == null || poly.size() < 2) return new Point2D(0, 0);
+        Point2D a = pointAlongPolyline(poly, 0.20);
+        Point2D b = pointAlongPolyline(poly, 0.80);
+        if (a == null || b == null) return polylineDirection(poly);
+        double dx = b.getX() - a.getX();
+        double dy = b.getY() - a.getY();
+        double len = Math.hypot(dx, dy);
+        if (len < 1e-9) return new Point2D(0, 0);
+        return new Point2D(dx / len, dy / len);
+    }
+
+    private Point2D polylineDirection(List<Point2D> poly) {
+        if (poly == null || poly.size() < 2) return new Point2D(0, 0);
+        Point2D a = poly.get(0);
+        Point2D b = poly.get(poly.size() - 1);
+        double dx = b.getX() - a.getX();
+        double dy = b.getY() - a.getY();
+        double len = Math.hypot(dx, dy);
+        if (len < 1e-9) return new Point2D(0, 0);
+        return new Point2D(dx / len, dy / len);
+    }
+
     private Point2D offsetAlongLaneNormal(Point2D worldPos, List<Point2D> lanePolyline, double offsetMeters) {
         if (worldPos == null || lanePolyline == null || lanePolyline.size() < 2) return worldPos;
         double bestDist2 = Double.POSITIVE_INFINITY;
@@ -1331,11 +2062,17 @@ public class MapView extends Pane {
     }
 
     private void strokePolyline(GraphicsContext g, List<Point2D> worldPolyline, double height, double scale,
-                             double width, Color stroke, double[] dashes) {
+                             double width, Color stroke, double[] dashes, StrokeLineCap cap) {
         if (worldPolyline == null || worldPolyline.size() < 2) return;
+        g.save();
         g.setLineWidth(width);
         g.setStroke(stroke);
-        g.setLineDashes(dashes);
+        // Be explicit: JavaFX can retain the previous dash state if we pass null,
+        // which makes "solid" lines (like the 2-way divider) appear dashed.
+        if (dashes == null) g.setLineDashes();
+        else g.setLineDashes(dashes);
+        if (cap != null) g.setLineCap(cap);
+
         Point2D p0 = transform(worldPolyline.get(0), height, scale);
         g.beginPath();
         g.moveTo(p0.getX(), p0.getY());
@@ -1344,14 +2081,15 @@ public class MapView extends Pane {
             g.lineTo(pi.getX(), pi.getY());
         }
         g.stroke();
-        g.setLineDashes(null);
+        g.restore();
     }
+
 
     private void drawLaneEdges(GraphicsContext g, List<Point2D> worldPolyline, double height, double scale,
                               double laneScreenWidth, Color stroke) {
         if (worldPolyline == null || worldPolyline.size() < 2) return;
         g.setStroke(stroke);
-        g.setLineDashes(null);
+        g.setLineDashes();
         g.setLineWidth(Math.max(0.9, Math.min(1.4, laneScreenWidth * 0.12)));
 
         for (int i = 1; i < worldPolyline.size(); i++) {
@@ -1375,6 +2113,145 @@ public class MapView extends Pane {
         }
     }
 
+    /**
+     * Draw only one boundary of a lane polyline.
+     * sideSign: +1 draws the "left" side (along lane direction), -1 draws the "right" side.
+     */
+    private void drawLaneSingleEdge(GraphicsContext g, List<Point2D> worldPolyline, double height, double scale,
+                                   double laneScreenWidth, Color stroke, double lineWidth, int sideSign) {
+        drawLaneSingleEdge(g, worldPolyline, height, scale, laneScreenWidth, stroke, lineWidth, sideSign, null);
+    }
+
+    private void drawLaneSingleEdge(GraphicsContext g, List<Point2D> worldPolyline, double height, double scale,
+                                   double laneScreenWidth, Color stroke, double lineWidth, int sideSign,
+                                   double[] dashes) {
+        if (worldPolyline == null || worldPolyline.size() < 2) return;
+        g.save();
+        g.setStroke(stroke);
+        if (dashes == null) g.setLineDashes();
+        else g.setLineDashes(dashes);
+        g.setLineWidth(lineWidth);
+        // Ensure square end-caps for borders/separators too.
+        g.setLineCap(StrokeLineCap.BUTT);
+
+        // IMPORTANT:
+        // If we draw dashed lines segment-by-segment (strokeLine per segment), JavaFX resets the
+        // dash phase each segment. With short segments (common in SUMO polylines), the result can
+        // look like a solid line or like dashes are missing.
+        // For dashed separators, draw a single continuous path.
+        if (dashes != null) {
+            List<Point2D> pts = buildOffsetPolylineScreen(worldPolyline, height, scale, laneScreenWidth, sideSign);
+            if (pts.size() >= 2) {
+                Point2D p0 = pts.get(0);
+                g.beginPath();
+                g.moveTo(p0.getX(), p0.getY());
+                for (int i = 1; i < pts.size(); i++) {
+                    Point2D pi = pts.get(i);
+                    g.lineTo(pi.getX(), pi.getY());
+                }
+                g.stroke();
+                g.restore();
+                return;
+            }
+        }
+
+        int sign = (sideSign >= 0) ? 1 : -1;
+        for (int i = 1; i < worldPolyline.size(); i++) {
+            Point2D w1 = worldPolyline.get(i - 1);
+            Point2D w2 = worldPolyline.get(i);
+            Point2D p1 = transform(w1, height, scale);
+            Point2D p2 = transform(w2, height, scale);
+            double dx = p2.getX() - p1.getX();
+            double dy = p2.getY() - p1.getY();
+            double len = Math.hypot(dx, dy);
+            if (len < 0.0001) continue;
+            double nx = -dy / len;
+            double ny = dx / len;
+
+            double offset = Math.max(1.8, laneScreenWidth / 2.0);
+            double ox = nx * offset * sign;
+            double oy = ny * offset * sign;
+            g.strokeLine(p1.getX() + ox, p1.getY() + oy,
+                    p2.getX() + ox, p2.getY() + oy);
+        }
+
+        g.restore();
+    }
+
+    /**
+     * Builds a screen-space polyline offset to one side of a lane.
+     * Offset is in screen pixels so it stays visually consistent across zoom levels.
+     */
+    private List<Point2D> buildOffsetPolylineScreen(List<Point2D> worldPolyline, double height, double scale,
+                                                    double laneScreenWidth, int sideSign) {
+        List<Point2D> out = new ArrayList<>();
+        if (worldPolyline == null || worldPolyline.size() < 2) return out;
+
+        int sign = (sideSign >= 0) ? 1 : -1;
+        double offset = Math.max(1.8, laneScreenWidth / 2.0) * sign;
+
+        // Transform all points once.
+        int n = worldPolyline.size();
+        Point2D[] p = new Point2D[n];
+        for (int i = 0; i < n; i++) {
+            p[i] = transform(worldPolyline.get(i), height, scale);
+        }
+
+        // Compute normals per segment in screen space.
+        double[] nx = new double[n - 1];
+        double[] ny = new double[n - 1];
+        for (int i = 0; i < n - 1; i++) {
+            double dx = p[i + 1].getX() - p[i].getX();
+            double dy = p[i + 1].getY() - p[i].getY();
+            double len = Math.hypot(dx, dy);
+            if (len < 1e-6) {
+                nx[i] = 0;
+                ny[i] = 0;
+            } else {
+                nx[i] = -dy / len;
+                ny[i] = dx / len;
+            }
+        }
+
+        // Offset each vertex by the averaged adjacent normals.
+        for (int i = 0; i < n; i++) {
+            double ax, ay;
+            if (i == 0) {
+                ax = nx[0];
+                ay = ny[0];
+            } else if (i == n - 1) {
+                ax = nx[n - 2];
+                ay = ny[n - 2];
+            } else {
+                ax = nx[i - 1] + nx[i];
+                ay = ny[i - 1] + ny[i];
+            }
+            double alen = Math.hypot(ax, ay);
+            if (alen < 1e-6) {
+                // Fallback to any available normal.
+                if (i > 0) {
+                    ax = nx[i - 1];
+                    ay = ny[i - 1];
+                    alen = Math.hypot(ax, ay);
+                }
+                if (alen < 1e-6 && i < n - 1) {
+                    ax = nx[i];
+                    ay = ny[i];
+                    alen = Math.hypot(ax, ay);
+                }
+            }
+            if (alen < 1e-6) {
+                out.add(p[i]);
+            } else {
+                ax /= alen;
+                ay /= alen;
+                out.add(new Point2D(p[i].getX() + ax * offset, p[i].getY() + ay * offset));
+            }
+        }
+
+        return out;
+    }
+
     private void drawRoadDirectionArrows(GraphicsContext g, double height, double scale, Color stroke) {
         // Group lanes by edgeId so arrows are drawn once per road direction.
         Map<String, List<LaneShape>> byEdge = new HashMap<>();
@@ -1387,7 +2264,7 @@ public class MapView extends Pane {
         if (byEdge.isEmpty()) return;
 
         g.setStroke(stroke);
-        g.setLineDashes(null);
+        g.setLineDashes();
         g.setLineCap(StrokeLineCap.ROUND);
         g.setLineJoin(StrokeLineJoin.ROUND);
 

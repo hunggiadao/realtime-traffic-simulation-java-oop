@@ -1,25 +1,37 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.geometry.Point2D;
 import javafx.scene.chart.LineChart;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.TilePane;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import javafx.scene.paint.Color;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
+import javafx.util.Duration;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
@@ -30,8 +42,12 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -63,6 +79,9 @@ public class UI {
     @FXML private Button btnStep;
     @FXML private Slider sliderSpeed;
 
+    // Top-right export menu
+    @FXML private MenuButton btnExport;
+
     // Left Simulation tab
     @FXML private TextField txtConfigPath;
     @FXML private TextField txtStepMs;
@@ -72,7 +91,6 @@ public class UI {
     @FXML private ComboBox<String> cmbInjectEdge;
     @FXML private TextField txtInjectCount;
     @FXML private ColorPicker cpInjectColor;
-    @FXML private TextField txtInjectSpeed;
     @FXML private Button btnInject;
 
     // Filter tab
@@ -85,6 +103,17 @@ public class UI {
     @FXML private LineChart<Number, Number> vehicleCountChart;
     @FXML private NumberAxis vehicleCountChartXAxis;
     @FXML private NumberAxis vehicleCountChartYAxis;
+
+    @FXML private LineChart<Number, Number> avgSpeedChart;
+    @FXML private NumberAxis avgSpeedChartXAxis;
+    @FXML private NumberAxis avgSpeedChartYAxis;
+
+    @FXML private BarChart<String, Number> speedDistChart;
+    @FXML private CategoryAxis speedDistChartXAxis;
+    @FXML private NumberAxis speedDistChartYAxis;
+
+    @FXML private PieChart vehicleColorPie;
+    @FXML private TilePane vehicleColorLegendBox;
 
     @FXML private TableView<VehicleRow> vehicleTable;
     @FXML private TableColumn<VehicleRow, String> colId;
@@ -107,7 +136,278 @@ public class UI {
     // Data
     private ObservableList<VehicleRow> vehicleData = FXCollections.observableArrayList();
     private XYChart.Series<Number, Number> vehicleSeries;
+    private XYChart.Series<Number, Number> avgSpeedSeries;
+    private XYChart.Series<String, Number> speedDistSeries;
+
+    @SuppressWarnings("unchecked")
+    private final XYChart.Data<String, Number>[] speedDistBucketData = new XYChart.Data[4];
+    private final Timeline[] speedDistBucketAnim = new Timeline[4];
+    private static final Duration SPEED_DIST_ANIM_DURATION = Duration.millis(350);
+
+    private static final String[] SPEED_BUCKET_LABELS = new String[]{"0-2", "2-5", "5-10", "10+"};
+
+    // Show exactly 4 groups max in BOTH the pie and legend: Top 3 + Others
+    private static final int MAX_COLOR_SLICES = 3; // top N, rest grouped into Others
+    private static final int MAX_COLOR_LEGEND_ITEMS = 4;
+
+    private int lastVehicleColorPieTotal = -1;
+    private int lastVehicleColorPieSignature = 0;
+
+    // Keep a fixed set of pie slices and only update their values.
+    // This avoids a JavaFX PieChart bug where reordering/replacing data can throw:
+    // "Children: duplicate children added".
+    private final PieChart.Data[] vehicleColorPieSlots = new PieChart.Data[MAX_COLOR_SLICES + 1];
+    private boolean vehicleColorPieSlotsInitialized = false;
+    private final String[] vehicleColorPieSlotCss = new String[MAX_COLOR_SLICES + 1];
+
+    public static final class PieSliceExport {
+        public final String label;
+        public final double value;
+        public final String cssColor;
+
+        public PieSliceExport(String label, double value, String cssColor) {
+            this.label = label;
+            this.value = value;
+            this.cssColor = cssColor;
+        }
+    }
+
+    private long speedDistSamples = 0L;
+    private final double[] speedDistPctSum = new double[]{0.0, 0.0, 0.0, 0.0};
+
+    private static final class ChartSnapshot {
+        final int vehicleCount;
+        final double avgSpeed;
+        final int[] speedBuckets;
+
+        ChartSnapshot(int vehicleCount, double avgSpeed, int[] speedBuckets) {
+            this.vehicleCount = vehicleCount;
+            this.avgSpeed = avgSpeed;
+            this.speedBuckets = speedBuckets;
+        }
+    }
+
+    private ChartSnapshot lastChartSnapshot;
     private MapView mapView;
+
+    private String colorKey(Color c) {
+        // Match the table's format (JavaFX Color.toString() => 0xrrggbbaa)
+        if (c == null) return "0x000000ff";
+        return c.toString();
+    }
+
+    private String cssColorFromKey(String colorKey) {
+        // Convert 0xrrggbbaa to #rrggbb for CSS. Fallback to gray.
+        if (colorKey == null) return "#9E9E9E";
+        String s = colorKey.trim();
+        if (s.startsWith("0x") && s.length() == 10) {
+            return "#" + s.substring(2, 8);
+        }
+        if (s.startsWith("#") && (s.length() == 7 || s.length() == 4)) {
+            return s;
+        }
+        return "#9E9E9E";
+    }
+
+    private void setVehicleColorLegendVisible(boolean visible) {
+        if (vehicleColorLegendBox == null) return;
+        vehicleColorLegendBox.setVisible(visible);
+        vehicleColorLegendBox.setManaged(visible);
+    }
+
+    private void updateVehicleColorLegend(List<String> labels, List<String> cssColors) {
+        if (vehicleColorLegendBox == null) return;
+
+        vehicleColorLegendBox.getChildren().clear();
+        if (labels == null || labels.isEmpty()) {
+            setVehicleColorLegendVisible(false);
+            return;
+        }
+
+        int n = Math.min(labels.size(), cssColors != null ? cssColors.size() : labels.size());
+        n = Math.min(n, MAX_COLOR_LEGEND_ITEMS);
+        for (int i = 0; i < n; i++) {
+            String text = labels.get(i);
+            String css = (cssColors != null) ? cssColors.get(i) : "#9E9E9E";
+
+            Rectangle swatch = new Rectangle(10, 10);
+            swatch.setArcWidth(3);
+            swatch.setArcHeight(3);
+            try {
+                swatch.setFill(Color.web(css));
+            } catch (Exception ignored) {
+                swatch.setFill(Color.web("#9E9E9E"));
+            }
+
+            javafx.scene.control.Label lbl = new javafx.scene.control.Label(text);
+            lbl.setWrapText(true);
+            HBox row = new HBox(8, swatch, lbl);
+            vehicleColorLegendBox.getChildren().add(row);
+        }
+
+        setVehicleColorLegendVisible(true);
+    }
+
+    private void updateVehicleColorPie(Map<String, Integer> bucketCounts, Map<String, String> bucketHex) {
+        if (vehicleColorPie == null) return;
+
+        if (!vehicleColorPieSlotsInitialized) {
+            // initialize() should do this, but be defensive for any edge cases.
+            ObservableList<PieChart.Data> init = FXCollections.observableArrayList();
+            for (int i = 0; i < vehicleColorPieSlots.length; i++) {
+                vehicleColorPieSlots[i] = new PieChart.Data("", 0.0);
+                final int idx = i;
+                vehicleColorPieSlots[i].nodeProperty().addListener((obs, oldN, newN) -> {
+                    if (newN != null) {
+                        String css = vehicleColorPieSlotCss[idx];
+                        if (css != null && !css.isEmpty()) {
+                            newN.setStyle("-fx-pie-color: " + css + ";");
+                        }
+                    }
+                });
+                init.add(vehicleColorPieSlots[i]);
+            }
+            vehicleColorPie.setData(init);
+            vehicleColorPieSlotsInitialized = true;
+        }
+
+        if (bucketCounts == null || bucketCounts.isEmpty()) {
+            for (PieChart.Data d : vehicleColorPieSlots) {
+                if (d != null) {
+                    d.setName("");
+                    d.setPieValue(0.0);
+                }
+            }
+            Arrays.fill(vehicleColorPieSlotCss, null);
+            vehicleColorPie.setTitle("Vehicle Colors (0)");
+            updateVehicleColorLegend(Collections.emptyList(), Collections.emptyList());
+            return;
+        }
+
+        List<Map.Entry<String, Integer>> entries = new ArrayList<>(bucketCounts.entrySet());
+        entries.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        int total = 0;
+        for (Map.Entry<String, Integer> e : entries) total += e.getValue();
+
+        int kept = 0;
+        int others = 0;
+
+        List<String> legendLabels = new ArrayList<>();
+        List<String> legendCss = new ArrayList<>();
+
+        // Fill top slots
+        for (Map.Entry<String, Integer> e : entries) {
+            if (kept >= MAX_COLOR_SLICES) {
+                others += e.getValue();
+                continue;
+            }
+
+            String key = e.getKey();
+            int count = e.getValue();
+            int pct = (total > 0) ? (int) Math.round(100.0 * (double) count / (double) total) : 0;
+            String display = key + " (" + pct + "%)";
+            String hex = cssColorFromKey(key);
+
+            PieChart.Data slot = vehicleColorPieSlots[kept];
+            if (slot != null) {
+                slot.setName(display);
+                slot.setPieValue(count);
+                vehicleColorPieSlotCss[kept] = hex;
+                if (slot.getNode() != null) {
+                    slot.getNode().setStyle("-fx-pie-color: " + hex + ";");
+                }
+            }
+
+            // Legend: cap to 4 items total. Prefer showing Others if there are many colors.
+            int remainingSlotsForTopColors = (others > 0) ? (MAX_COLOR_LEGEND_ITEMS - 1) : MAX_COLOR_LEGEND_ITEMS;
+            if (legendLabels.size() < remainingSlotsForTopColors) {
+                legendLabels.add(display);
+                legendCss.add(hex);
+            }
+            kept++;
+        }
+
+        // Clear remaining top slots
+        for (int i = kept; i < MAX_COLOR_SLICES; i++) {
+            PieChart.Data slot = vehicleColorPieSlots[i];
+            if (slot != null) {
+                slot.setName("");
+                slot.setPieValue(0.0);
+            }
+            vehicleColorPieSlotCss[i] = null;
+        }
+
+        // Others slot
+        PieChart.Data othersSlot = vehicleColorPieSlots[MAX_COLOR_SLICES];
+        if (othersSlot != null) {
+            if (others > 0) {
+                int pct = (total > 0) ? (int) Math.round(100.0 * (double) others / (double) total) : 0;
+                String label = "Others (" + pct + "%)";
+                othersSlot.setName(label);
+                othersSlot.setPieValue(others);
+                vehicleColorPieSlotCss[MAX_COLOR_SLICES] = "#9E9E9E";
+                if (othersSlot.getNode() != null) {
+                    othersSlot.getNode().setStyle("-fx-pie-color: #9E9E9E;");
+                }
+
+                if (legendLabels.size() < MAX_COLOR_LEGEND_ITEMS) {
+                    legendLabels.add(label);
+                    legendCss.add("#9E9E9E");
+                }
+            } else {
+                othersSlot.setName("");
+                othersSlot.setPieValue(0.0);
+                vehicleColorPieSlotCss[MAX_COLOR_SLICES] = null;
+            }
+        }
+
+        vehicleColorPie.setTitle("Vehicle Colors (" + total + ")");
+        updateVehicleColorLegend(legendLabels, legendCss);
+    }
+
+    private int computeVehicleColorPieSignature(Map<String, Integer> bucketCounts) {
+        if (bucketCounts == null || bucketCounts.isEmpty()) return 0;
+        List<Map.Entry<String, Integer>> entries = new ArrayList<>(bucketCounts.entrySet());
+        entries.sort((a, b) -> a.getKey().compareToIgnoreCase(b.getKey()));
+        int h = 1;
+        for (Map.Entry<String, Integer> e : entries) {
+            h = 31 * h + e.getKey().hashCode();
+            h = 31 * h + e.getValue();
+        }
+        return h;
+    }
+
+    private void updateVehicleColorPieThrottled(Map<String, Integer> bucketCounts, Map<String, String> bucketHex) {
+        if (vehicleColorPie == null) return;
+
+        int total = 0;
+        if (bucketCounts != null) {
+            for (int c : bucketCounts.values()) total += c;
+        }
+        int signature = computeVehicleColorPieSignature(bucketCounts);
+
+        boolean dataChanged = (total != lastVehicleColorPieTotal) || (signature != lastVehicleColorPieSignature);
+        boolean totalDecreased = (lastVehicleColorPieTotal >= 0) && (total < lastVehicleColorPieTotal);
+
+        boolean shouldUpdate;
+        if (!running) {
+            // When paused/stepping, update immediately when something changes.
+            shouldUpdate = dataChanged;
+        } else {
+            long now = System.nanoTime();
+            // While running, keep the same cadence as other charts, but don't lie:
+            // if vehicles disappear (total decreases) or distribution changes, refresh immediately.
+            shouldUpdate = (totalDecreased && dataChanged)
+                    || ((lastVehicleColorPieUpdateNs == 0L) || ((now - lastVehicleColorPieUpdateNs) >= VEHICLE_CHART_UPDATE_INTERVAL_NS)) && dataChanged;
+            if (shouldUpdate) lastVehicleColorPieUpdateNs = now;
+        }
+
+        if (!shouldUpdate) return;
+        lastVehicleColorPieTotal = total;
+        lastVehicleColorPieSignature = signature;
+        updateVehicleColorPie(bucketCounts, bucketHex);
+    }
 
     // SUMO / TraCI
     private TraCIConnector connector;
@@ -122,9 +422,57 @@ public class UI {
     private boolean running = false; // default false
     private long lastStepNs = 0; // default 0
 
+    // Chart throttling: reduce point spam by adding a data point at most every 5 seconds while running.
+    private static final long VEHICLE_CHART_UPDATE_INTERVAL_NS = 5_000_000_000L;
+    private long lastVehicleChartUpdateNs = 0L;
+
+    // Pie chart throttling: keep consistent cadence with Map Overview charts.
+    private long lastVehicleColorPieUpdateNs = 0L;
+
     // Settings + background monitor thread (explicit extra thread beyond main/JavaFX)
     private UserSettings userSettings = new UserSettings();
     private ScheduledExecutorService monitorExecutor;
+
+    // Map/vehicle refresh can be expensive (per-vehicle TraCI calls). If the user
+    // runs with very small step lengths, refreshing every step can overload SUMO.
+    private static final long MAP_UPDATE_MIN_INTERVAL_NS = 100_000_000L; // 100ms
+    private long lastMapUpdateNs = 0L;
+    private boolean pendingMapRefresh = false;
+
+    // Injecting vehicles can be very expensive (multiple TraCI set/get calls + routing).
+    // Users reported SUMO may terminate if injection happens at arbitrary cadences.
+    // To keep things stable, rate-limit injections while running.
+    private static final long INJECT_MIN_INTERVAL_NS = 100_000_000L; // 100ms
+    private static final double DEFAULT_INJECT_SPEED_MS = 100.0;
+    private static final class PendingInjection {
+        final String routeId;
+        final Color color;
+
+        PendingInjection(String routeId, Color color) {
+            this.routeId = routeId;
+            this.color = color;
+        }
+    }
+    private final Deque<PendingInjection> pendingInjections = new ArrayDeque<>();
+    private long nextInjectionNs = 0L;
+    private long injectSeq = 0L;
+
+    private void processPendingInjections(long nowNs) {
+        if (pendingInjections.isEmpty()) return;
+        if (connector == null || vehicleWrapper == null || !connector.isConnected()) {
+            pendingInjections.clear();
+            return;
+        }
+        if (nextInjectionNs != 0L && nowNs < nextInjectionNs) return;
+
+        PendingInjection req = pendingInjections.pollFirst();
+        if (req == null) return;
+
+        String vehId = "inj_" + (++injectSeq);
+        vehicleWrapper.addVehicle(vehId, req.routeId, DEFAULT_INJECT_SPEED_MS, req.color);
+        nextInjectionNs = nowNs + INJECT_MIN_INTERVAL_NS;
+        pendingMapRefresh = true;
+    }
 
     // Cache phase counts per traffic light (used to safely wrap phase +/-)
     private Map<String, Integer> trafficLightPhaseCountCache = new HashMap<>();
@@ -195,11 +543,72 @@ public class UI {
             vehicleTable.setItems(vehicleData);
         }
 
+        if (vehicleColorPie != null) {
+            vehicleColorPie.setAnimated(true);
+            vehicleColorPie.setLegendVisible(false);
+            vehicleColorPie.setLabelsVisible(false);
+            vehicleColorPie.setTitle("Vehicle Colors (0)");
+            vehicleColorPie.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+            if (!vehicleColorPieSlotsInitialized) {
+                ObservableList<PieChart.Data> init = FXCollections.observableArrayList();
+                for (int i = 0; i < vehicleColorPieSlots.length; i++) {
+                    vehicleColorPieSlots[i] = new PieChart.Data("", 0.0);
+                    final int idx = i;
+                    vehicleColorPieSlots[i].nodeProperty().addListener((obs, oldN, newN) -> {
+                        if (newN != null) {
+                            String css = vehicleColorPieSlotCss[idx];
+                            if (css != null && !css.isEmpty()) {
+                                newN.setStyle("-fx-pie-color: " + css + ";");
+                            }
+                        }
+                    });
+                    init.add(vehicleColorPieSlots[i]);
+                }
+                vehicleColorPie.setData(init);
+                vehicleColorPieSlotsInitialized = true;
+            }
+        }
+
+        setVehicleColorLegendVisible(false);
+
         // Chart setup
         if (vehicleCountChart != null) {
+            // Use a style class (not fx:id) so CSS can target the chart reliably.
+            if (!vehicleCountChart.getStyleClass().contains("vehicle-count-chart")) {
+                vehicleCountChart.getStyleClass().add("vehicle-count-chart");
+            }
             vehicleSeries = new XYChart.Series<>();
             vehicleSeries.setName("Vehicle count");
             vehicleCountChart.getData().add(vehicleSeries);
+
+            vehicleCountChart.setLegendVisible(false);
+            vehicleCountChart.setCreateSymbols(false);
+        }
+
+        if (avgSpeedChart != null) {
+            avgSpeedSeries = new XYChart.Series<>();
+            avgSpeedSeries.setName("Avg speed");
+            avgSpeedChart.getData().add(avgSpeedSeries);
+
+            avgSpeedChart.setLegendVisible(false);
+            avgSpeedChart.setCreateSymbols(false);
+        }
+
+        if (speedDistChart != null) {
+            speedDistSeries = new XYChart.Series<>();
+            speedDistSeries.setName("Vehicles");
+            speedDistChart.getData().add(speedDistSeries);
+            speedDistChart.setLegendVisible(false);
+
+            speedDistChart.setAnimated(false);
+            if (speedDistChartXAxis != null) speedDistChartXAxis.setAnimated(false);
+            if (speedDistChartYAxis != null) speedDistChartYAxis.setAnimated(false);
+
+            for (int i = 0; i < SPEED_BUCKET_LABELS.length; i++) {
+                XYChart.Data<String, Number> d = new XYChart.Data<>(SPEED_BUCKET_LABELS[i], 0.0);
+                speedDistBucketData[i] = d;
+                speedDistSeries.getData().add(d);
+            }
         }
 
         // Defaults - adjust to your project paths
@@ -279,6 +688,8 @@ public class UI {
             btnStart.setText("Start");
         }
         if (btnStep != null) btnStep.setDisable(true);
+
+        updateExportAvailability();
     }
     /**
      * Change the UI to connected state, show Disconnect button,
@@ -299,6 +710,8 @@ public class UI {
             btnStart.setText("Start");
         }
         if (btnStep != null) btnStep.setDisable(false);
+
+        updateExportAvailability();
     }
     /**
      * Change the UI to running state, show Disconnect button,
@@ -315,6 +728,18 @@ public class UI {
             btnStart.setText("Pause");
         }
         if (btnStep != null) btnStep.setDisable(true);
+
+        updateExportAvailability();
+    }
+
+    private boolean canExportNow() {
+        return connector != null && connector.isConnected() && !running;
+    }
+
+    private void updateExportAvailability() {
+        if (btnExport == null) return;
+        // Export should be enabled ONLY when SUMO is connected and currently paused.
+        btnExport.setDisable(!canExportNow());
     }
 
     private void disconnectFromSumo() {
@@ -341,6 +766,57 @@ public class UI {
         if (vehicleSeries != null) {
             vehicleSeries.getData().clear();
         }
+        if (avgSpeedSeries != null) {
+            avgSpeedSeries.getData().clear();
+        }
+        if (speedDistSeries != null) {
+            // Keep 4 persistent bars; reset them to 0 instead of clearing the series.
+            for (int i = 0; i < speedDistBucketAnim.length; i++) {
+                if (speedDistBucketAnim[i] != null) {
+                    speedDistBucketAnim[i].stop();
+                    speedDistBucketAnim[i] = null;
+                }
+            }
+
+            boolean needsRebuild = speedDistSeries.getData().size() != SPEED_BUCKET_LABELS.length;
+            for (int i = 0; i < SPEED_BUCKET_LABELS.length && !needsRebuild; i++) {
+                if (speedDistBucketData[i] == null) {
+                    needsRebuild = true;
+                }
+            }
+
+            if (needsRebuild) {
+                speedDistSeries.getData().clear();
+                for (int i = 0; i < SPEED_BUCKET_LABELS.length; i++) {
+                    XYChart.Data<String, Number> d = new XYChart.Data<>(SPEED_BUCKET_LABELS[i], 0.0);
+                    speedDistBucketData[i] = d;
+                    speedDistSeries.getData().add(d);
+                }
+            } else {
+                for (int i = 0; i < SPEED_BUCKET_LABELS.length; i++) {
+                    speedDistBucketData[i].setYValue(0.0);
+                }
+            }
+        }
+        lastChartSnapshot = null;
+        lastVehicleChartUpdateNs = 0L;
+
+        lastVehicleColorPieUpdateNs = 0L;
+        lastVehicleColorPieTotal = -1;
+        lastVehicleColorPieSignature = 0;
+        if (vehicleColorPie != null) {
+            for (PieChart.Data d : vehicleColorPieSlots) {
+                if (d != null) {
+                    d.setName("");
+                    d.setPieValue(0.0);
+                }
+            }
+            vehicleColorPie.setTitle("Vehicle Colors (0)");
+        }
+
+        speedDistSamples = 0L;
+        Arrays.fill(speedDistPctSum, 0.0);
+
         vehicleData.clear();
         if (vehicleTable != null) {
             vehicleTable.refresh();
@@ -354,6 +830,9 @@ public class UI {
     // Update after each step
     private void updateAfterStep() {
         if (connector == null) return;
+
+        long nowNs = System.nanoTime();
+        processPendingInjections(nowNs);
 
         int step = connector.getCurrentStep();
         double simTime = connector.getSimTimeSeconds();
@@ -369,11 +848,94 @@ public class UI {
             lblVehicles.setText("Vehicles: " + vehicleCount);
         }
 
-        if (vehicleSeries != null) {
-            vehicleSeries.getData().add(new XYChart.Data<>(step, vehicleCount));
+        // Throttle expensive map refresh while running.
+        boolean shouldUpdateMap = true;
+        if (running) {
+            long now = nowNs;
+            if (pendingMapRefresh) {
+                pendingMapRefresh = false;
+                lastMapUpdateNs = now;
+                shouldUpdateMap = true;
+            } else if (lastMapUpdateNs != 0L && (now - lastMapUpdateNs) < MAP_UPDATE_MIN_INTERVAL_NS) {
+                shouldUpdateMap = false;
+            } else {
+                lastMapUpdateNs = now;
+                shouldUpdateMap = true;
+            }
         }
 
-        updateMapView();
+        if (shouldUpdateMap) {
+            updateMapView();
+        }
+
+        updateCharts(step, vehicleCount);
+    }
+
+    private void updateCharts(int step, int vehicleCount) {
+        if (vehicleSeries == null) return;
+
+        // While running, throttle chart updates so the plots remain readable.
+        // When stepping manually (running == false), update every step.
+        boolean shouldUpdate;
+        if (!running) {
+            shouldUpdate = true;
+        } else {
+            long now = System.nanoTime();
+            shouldUpdate = (lastVehicleChartUpdateNs == 0L) || ((now - lastVehicleChartUpdateNs) >= VEHICLE_CHART_UPDATE_INTERVAL_NS);
+            if (shouldUpdate) lastVehicleChartUpdateNs = now;
+        }
+
+        if (!shouldUpdate) return;
+
+        vehicleSeries.getData().add(new XYChart.Data<>(step, vehicleCount));
+
+        ChartSnapshot snap = lastChartSnapshot;
+        if (snap == null) return;
+
+        if (avgSpeedSeries != null) {
+            avgSpeedSeries.getData().add(new XYChart.Data<>(step, snap.avgSpeed));
+        }
+
+        if (speedDistSeries != null && speedDistChart != null) {
+            double[] targetPct = new double[SPEED_BUCKET_LABELS.length];
+
+            // If there are no vehicles right now, keep bars at 0 (but do not remove them),
+            // and reset aggregation so the next vehicles start fresh.
+            if (snap.vehicleCount <= 0) {
+                speedDistSamples = 0L;
+                Arrays.fill(speedDistPctSum, 0.0);
+                Arrays.fill(targetPct, 0.0);
+            } else {
+                // Update distribution only on the same cadence as the other charts.
+                // We aggregate as a running-average % per bucket.
+                speedDistSamples++;
+                for (int i = 0; i < SPEED_BUCKET_LABELS.length; i++) {
+                    double pct = 100.0 * (double) snap.speedBuckets[i] / (double) snap.vehicleCount;
+                    speedDistPctSum[i] += pct;
+                    targetPct[i] = speedDistPctSum[i] / (double) speedDistSamples;
+                }
+            }
+
+            for (int i = 0; i < SPEED_BUCKET_LABELS.length && i < speedDistBucketData.length; i++) {
+                animateSpeedDistBucketTo(i, targetPct[i]);
+            }
+        }
+    }
+
+    private void animateSpeedDistBucketTo(int index, double targetValue) {
+        if (index < 0 || index >= speedDistBucketData.length) return;
+        XYChart.Data<String, Number> data = speedDistBucketData[index];
+        if (data == null) return;
+
+        Timeline old = speedDistBucketAnim[index];
+        if (old != null) {
+            old.stop();
+        }
+
+        KeyValue kv = new KeyValue(data.YValueProperty(), targetValue, Interpolator.EASE_BOTH);
+        Timeline tl = new Timeline(new KeyFrame(SPEED_DIST_ANIM_DURATION, kv));
+        speedDistBucketAnim[index] = tl;
+        tl.play();
     }
 
     @FXML
@@ -410,8 +972,15 @@ public class UI {
 
     @FXML
     private void onOpenConfig() {
-        if (btnOpenConfig == null) return;
-        Window window = btnOpenConfig.getScene().getWindow();
+        Window window = null;
+        if (btnBrowseConfig != null && btnBrowseConfig.getScene() != null) {
+            window = btnBrowseConfig.getScene().getWindow();
+        } else if (btnOpenConfig != null && btnOpenConfig.getScene() != null) {
+            window = btnOpenConfig.getScene().getWindow();
+        } else if (rootPane != null && rootPane.getScene() != null) {
+            window = rootPane.getScene().getWindow();
+        }
+
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Open SUMO Config");
         chooser.getExtensionFilters().add(
@@ -763,6 +1332,13 @@ public class UI {
      */
     private void updateMapView() {
         if (mapView == null || connector == null || vehicleWrapper == null) return;
+
+        // If SUMO terminated / TraCI disconnected, don't keep issuing TraCI queries.
+        if (!connector.isConnected() || connector.getConnection() == null) {
+            setStatusText("Status: Disconnected");
+            setDisconnectedUI();
+            return;
+        }
         // Fetch latest positions and data
         Map<String, Point2D> allPositions = vehicleWrapper.getVehiclePositions(); // gets a new list every time
         Map<String, String> allLaneIds = vehicleWrapper.getVehicleLaneIds(); // gets a new list every time
@@ -788,7 +1364,23 @@ public class UI {
         Color targetColor = (cpFilterColor != null) ? cpFilterColor.getValue() : Color.RED;
         if (targetColor == null) targetColor = Color.RED;
 
+        // ---- Stats collection for Charts tab (uses ALL vehicles, not filtered set) ----
+        double sumSpeed = 0.0;
+        int total = 0;
+        // Note: this is used for the charts, not filtering.
+        int[] speedBuckets = new int[]{0, 0, 0, 0};
+
+        Map<String, Integer> colorBuckets = new HashMap<>();
+
         for (VehicleRow row : allRows) {
+            total++;
+            double s = row.getSpeed();
+            sumSpeed += s;
+            if (s < 2.0) speedBuckets[0]++;
+            else if (s < 5.0) speedBuckets[1]++;
+            else if (s < 10.0) speedBuckets[2]++;
+            else speedBuckets[3]++;
+
             // Filter by color (user-selected)
             if (filterColor) {
                 Color c = row.getColor();
@@ -835,6 +1427,11 @@ public class UI {
             // for each vehicleRow that satisfies filter conditions, add it to the filter list
             filteredRows.add(row);
             colorMap.put(row.getId(), row.getColor());
+
+            // Pie chart distribution based on displayed rows.
+            String key = colorKey(row.getColor());
+            colorBuckets.merge(key, 1, Integer::sum);
+
             Point2D pos = (allPositions != null) ? allPositions.get(row.getId()) : null;
             if (pos != null) {
                 filteredPositions.put(row.getId(), pos);
@@ -864,7 +1461,12 @@ public class UI {
         }
 
         // Overlay traffic-light stop lines (R/Y/G) so it's obvious why vehicles stop.
-        mapView.updateTrafficSignals(buildLaneSignalColorMap());
+        Map<String, Color> laneSignalMap = buildLaneSignalColorMap();
+        mapView.updateTrafficSignals(laneSignalMap);
+
+        // Finalize charts snapshot for this frame.
+        double avgSpeed = (total > 0) ? (sumSpeed / (double) total) : 0.0;
+        lastChartSnapshot = new ChartSnapshot(total, avgSpeed, speedBuckets);
 
         // Update table
         vehicleData.setAll(filteredRows);
@@ -872,6 +1474,8 @@ public class UI {
         if (vehicleTable != null) {
             vehicleTable.refresh();
         }
+
+        updateVehicleColorPieThrottled(colorBuckets, null);
     }
 
     /**
@@ -1169,12 +1773,6 @@ public class UI {
             if (txtInjectCount != null) count = Integer.parseInt(txtInjectCount.getText().trim());
         } catch (NumberFormatException e) {}
 
-        // default max speed of vehicles
-        double speed = -1;
-        try {
-            if (txtInjectSpeed != null) speed = Double.parseDouble(txtInjectSpeed.getText().trim());
-        } catch (NumberFormatException e) {}
-
         // color of vehicles
         Color color = (cpInjectColor != null) ? cpInjectColor.getValue() : Color.RED;
         if (color == null) color = Color.RED;
@@ -1182,21 +1780,33 @@ public class UI {
         // Use edge as route ID for now
         String routeId = edge;
 
+        if (running) {
+            for (int i = 0; i < count; i++) {
+                pendingInjections.addLast(new PendingInjection(routeId, color));
+            }
+            processPendingInjections(System.nanoTime());
+            setStatusText("Status: Queued " + count + " vehicles");
+            pendingMapRefresh = true;
+            return;
+        }
+
+        // If paused, keep legacy behavior: inject immediately.
         for (int i = 0; i < count; i++) {
-            String vehId = "inj_" + System.currentTimeMillis() + "_" + i;
+            String vehId = "inj_" + (++injectSeq);
             if (vehicleWrapper != null) {
-                vehicleWrapper.addVehicle(vehId, routeId, speed, color);
+                vehicleWrapper.addVehicle(vehId, routeId, DEFAULT_INJECT_SPEED_MS, color);
             }
         }
         setStatusText("Status: Injected " + count + " vehicles");
-
-        // Refresh table/map immediately (even if the vehicle is inserted on the next sim step,
-        // pending updates like color will be applied on refresh).
         updateMapView();
     }
 
     @FXML
     public void handlePdfExport() {
+        if (!canExportNow() || vehicleWrapper == null || trafWrapper == null) {
+            setStatusText("Status: Pause + connect to export");
+            return;
+        }
         // open a FileChooser to let the user select the where he wants to save the pdf
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Save PDF Report");
@@ -1236,6 +1846,10 @@ public class UI {
 
     @FXML
     public void handleCSVExport() {
+        if (!canExportNow() || vehicleWrapper == null || trafWrapper == null) {
+            setStatusText("Status: Pause + connect to export");
+            return;
+        }
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Save CSV Report");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
@@ -1268,6 +1882,109 @@ public class UI {
                 e.printStackTrace();
             }
         }
+    }
+
+
+    /**
+     * Returns the 4 graphs to include in PDF export (in display order).
+     * Keys are human-friendly titles used as captions.
+     */
+    public Map<String, javafx.scene.Node> getExportGraphs() {
+        Map<String, javafx.scene.Node> out = new LinkedHashMap<>();
+        if (vehicleCountChart != null) out.put("Vehicle Count", vehicleCountChart);
+        if (avgSpeedChart != null) out.put("Average Speed", avgSpeedChart);
+        if (speedDistChart != null) out.put("Speed Distribution", speedDistChart);
+        if (vehicleColorPie != null) out.put("Vehicle Color Density", vehicleColorPie);
+        return out;
+    }
+
+    /**
+     * Export-friendly snapshot of the vehicle color pie (Top3 + Others).
+     * This avoids JavaFX snapshot issues when the pie chart lives in a non-selected Tab.
+     */
+    public List<PieSliceExport> getVehicleColorPieExport() {
+        List<PieSliceExport> out = new ArrayList<>();
+
+        // Prefer the stable slots (keeps ordering consistent with the UI pie).
+        if (vehicleColorPieSlotsInitialized) {
+            double total = 0.0;
+            for (int i = 0; i < vehicleColorPieSlots.length; i++) {
+                PieChart.Data d = vehicleColorPieSlots[i];
+                if (d == null) continue;
+                double v = d.getPieValue();
+                if (v <= 0.0) continue;
+                String name = d.getName();
+                if (name == null || name.isEmpty()) continue;
+                String css = vehicleColorPieSlotCss[i];
+                out.add(new PieSliceExport(name, v, css));
+                total += v;
+            }
+            if (total > 0.0 && !out.isEmpty()) return out;
+            out.clear();
+        }
+
+        // Fallback: read from chart data if slots aren't initialized.
+        if (vehicleColorPie != null && vehicleColorPie.getData() != null) {
+            for (PieChart.Data d : vehicleColorPie.getData()) {
+                if (d == null) continue;
+                double v = d.getPieValue();
+                if (v <= 0.0) continue;
+                String name = d.getName();
+                if (name == null || name.isEmpty()) continue;
+                out.add(new PieSliceExport(name, v, null));
+            }
+        }
+
+        if (!out.isEmpty()) return out;
+
+        // Final fallback: compute from the currently displayed table rows.
+        // Keeps the same rule: Top 3 + Others.
+        List<VehicleRow> rows = null;
+        if (vehicleTable != null && vehicleTable.getItems() != null) {
+            rows = new ArrayList<>(vehicleTable.getItems());
+        } else if (vehicleData != null) {
+            rows = new ArrayList<>(vehicleData);
+        }
+        if (rows == null || rows.isEmpty()) return out;
+
+        Map<String, Integer> counts = new HashMap<>();
+        Map<String, String> cssByKey = new HashMap<>();
+        for (VehicleRow r : rows) {
+            if (r == null) continue;
+            Color c = r.getColor();
+            if (c == null) continue;
+            String key = c.toString(); // 0xrrggbbaa
+            counts.put(key, counts.getOrDefault(key, 0) + 1);
+            if (!cssByKey.containsKey(key)) {
+                String css = null;
+                if (key != null && key.startsWith("0x") && key.length() == 10) {
+                    css = "#" + key.substring(2, 8);
+                }
+                cssByKey.put(key, css);
+            }
+        }
+        if (counts.isEmpty()) return out;
+
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(counts.entrySet());
+        sorted.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+
+        int kept = 0;
+        int others = 0;
+        for (Map.Entry<String, Integer> e : sorted) {
+            if (kept < MAX_COLOR_SLICES) {
+                String key = e.getKey();
+                int v = e.getValue();
+                String css = cssByKey.get(key);
+                out.add(new PieSliceExport(key, v, css));
+                kept++;
+            } else {
+                others += e.getValue();
+            }
+        }
+        if (others > 0) {
+            out.add(new PieSliceExport("Others", others, "#9E9E9E"));
+        }
+        return out;
     }
 
 

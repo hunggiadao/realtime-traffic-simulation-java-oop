@@ -65,6 +65,10 @@ public class TrafficLightWrapper {
                 return (List<String>) response;
             }
         } catch (Exception e) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                this.traci.handleConnectionError(e);
+                return new ArrayList<>();
+            }
             LOGGER.log(Level.FINE, "Failed to get traffic light IDs", e);
         }
         return new ArrayList<>();
@@ -78,6 +82,10 @@ public class TrafficLightWrapper {
         try {
             return (String) this.traci.getConnection().do_job_get(Trafficlight.getRedYellowGreenState(id));
         } catch (Exception e) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                this.traci.handleConnectionError(e);
+                return "N/A";
+            }
             LOGGER.log(Level.FINE, "Failed to get traffic light state for id=" + id, e);
         }
         return "Error";

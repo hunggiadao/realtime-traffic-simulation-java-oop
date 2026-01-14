@@ -29,6 +29,9 @@ public class TraCIConnector {
     private boolean isConnected;
     private int currentStep;
 
+    // Prevent log/close spam when SUMO terminates and the socket is already gone.
+    private boolean connectionErrorLogged;
+
     // Cached network boundary (SUMO world coordinates)
     private double netMinX;
     private double netMinY;
@@ -50,6 +53,7 @@ public class TraCIConnector {
         this.stepLengthMs = 0;
         this.isConnected = false;
         this.currentStep = 0;
+        this.connectionErrorLogged = false;
     }
     /**
      * Constructor with default data
@@ -64,6 +68,7 @@ public class TraCIConnector {
         this.stepLengthMs = 1000; // SUMO default
         this.isConnected = false;
         this.currentStep = 0;
+        this.connectionErrorLogged = false;
     }
     /**
      * Constructor with custom stepLengthSeconds
@@ -108,6 +113,7 @@ public class TraCIConnector {
             connection.runServer(); // throws IOException
             this.isConnected = true;
             this.currentStep = 0;
+            this.connectionErrorLogged = false;
             LOGGER.info("Connected to SUMO");
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Failed to connect to SUMO", e);
@@ -174,13 +180,62 @@ public class TraCIConnector {
      * SUMO may terminate on its own (simulation end) which closes the socket.
      */
     public void handleConnectionError(Exception e) {
-        this.isConnected = false;
+        handleConnectionError((Throwable) e);
+    }
+
+    /**
+     * Mark the connector as disconnected after a TraCI failure.
+     * This method is safe to call repeatedly.
+     */
+    public void handleConnectionError(Throwable t) {
+        // Make the transition to disconnected idempotent.
+        if (this.isConnected) {
+            this.isConnected = false;
+        }
+
+        if (!connectionErrorLogged) {
+            connectionErrorLogged = true;
+            String msg = (t == null) ? "TraCI connection lost" : ("TraCI connection lost: " + t.getClass().getSimpleName() + ": " + t.getMessage());
+            LOGGER.warning(msg);
+        }
+
+        closeQuietly();
+    }
+
+    private void closeQuietly() {
         try {
             if (this.connection != null) {
                 this.connection.close();
             }
         } catch (Exception ignored) {
+            // Ignore close failures; socket is likely already closed.
         }
+    }
+
+    /**
+     * Returns true if the throwable indicates the TraCI TCP socket was closed/reset.
+     */
+    public static boolean isConnectionProblem(Throwable t) {
+        Throwable cur = t;
+        while (cur != null) {
+            if (cur instanceof java.net.SocketException
+                    || cur instanceof java.io.EOFException
+                    || cur instanceof java.nio.channels.ClosedChannelException) {
+                return true;
+            }
+            String msg = cur.getMessage();
+            if (msg != null) {
+                String lower = msg.toLowerCase(Locale.ROOT);
+                if (lower.contains("connection reset")
+                        || lower.contains("broken pipe")
+                        || lower.contains("forcibly closed")
+                        || lower.contains("connection aborted")) {
+                    return true;
+                }
+            }
+            cur = cur.getCause();
+        }
+        return false;
     }
 
     /**
