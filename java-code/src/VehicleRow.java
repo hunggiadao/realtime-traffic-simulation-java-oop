@@ -5,7 +5,7 @@ import javafx.beans.property.StringProperty;
 import javafx.scene.paint.Color;
 
 public class VehicleRow {
-	// private fields
+    // private fields
     private StringProperty id = new SimpleStringProperty();
     private DoubleProperty speed = new SimpleDoubleProperty();
     private StringProperty edge = new SimpleStringProperty();

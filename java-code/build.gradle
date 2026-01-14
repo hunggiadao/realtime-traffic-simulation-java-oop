@@ -49,6 +49,9 @@ def sumoHome = getSumoHome()
 def sumoBin = sumoHome ? "$sumoHome/bin" : null
 
 dependencies {
+    // PDF export (Export.java uses com.lowagie.text.*)
+    implementation 'com.lowagie:itext:2.1.7'
+
     if (sumoBin) {
         // Add TraaS.jar
         def traas = new File(sumoBin, "TraaS.jar")

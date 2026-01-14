@@ -41,13 +41,13 @@ public class VehicleWrapper {
     // Queue them and retry on subsequent UI refresh/steps.
     private Map<String, SumoColor> pendingColors = new HashMap<>();
     private Map<String, Double> pendingMaxSpeeds = new HashMap<>();
-	private Map<String, SumoStringList> pendingRoutes = new HashMap<>();
+    private Map<String, SumoStringList> pendingRoutes = new HashMap<>();
 
-	// Colors requested by the user for locally-injected vehicles.
-	// We prefer these for rendering so the UI reflects what the user chose even
-	// if SUMO temporarily reports an unset/default color for a freshly-added vehicle.
-	private Map<String, Color> preferredVehicleColors = new HashMap<>();
-	private Map<String, VehicleRow> vehRows = new HashMap<>();
+    // Colors requested by the user for locally-injected vehicles.
+    // We prefer these for rendering so the UI reflects what the user chose even
+    // if SUMO temporarily reports an unset/default color for a freshly-added vehicle.
+    private Map<String, Color> preferredVehicleColors = new HashMap<>();
+    private Map<String, VehicleRow> vehRows = new HashMap<>();
 
     private static final int RANDOM_ROUTE_TRIES = 10;
     private static final int ROUTING_MODE_DEFAULT = 0;
@@ -55,13 +55,13 @@ public class VehicleWrapper {
     public VehicleWrapper(TraCIConnector traci) {
         this.traci = Objects.requireNonNull(traci, "traci");
     }
-    
+
     /**
      * for debugging
      * @return
      */
     public TraCIConnector getTraCI() {
-    	return this.traci;
+        return this.traci;
     }
     /**
      * Returns the number of vehicles currently running within the scenario.
@@ -71,7 +71,11 @@ public class VehicleWrapper {
         try {
             return (int) traci.getConnection().do_job_get(Vehicle.getIDCount());
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to fetch vehicle count", e);
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return 0;
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch vehicle count", e);
             return 0;
         }
     }
@@ -81,19 +85,23 @@ public class VehicleWrapper {
      * @return
      */
     @SuppressWarnings("unchecked")
-	public List<String> getVehicleIds() {
+    public List<String> getVehicleIds() {
         if (traci.getConnection() == null || !traci.isConnected()) {
-    		return new ArrayList<String>();
-    	}
+            return new ArrayList<String>();
+        }
         try {
             Object response = traci.getConnection().do_job_get(Vehicle.getIDList());
-        	if (response instanceof String[]) {
+            if (response instanceof String[]) {
                 return Arrays.asList((String[]) response);
             } else if (response instanceof List) {
                 return (List<String>) response;
             }
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to fetch vehicle IDs", e);
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return new ArrayList<String>();
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch vehicle IDs", e);
         }
         return new ArrayList<String>(); // error for whatever reason
     }
@@ -104,8 +112,8 @@ public class VehicleWrapper {
      * @return rows
      */
     public List<VehicleRow> getVehicleRows() {
-    	List<VehicleRow> rows = new ArrayList<>();
-		if (traci.getConnection() == null || !traci.isConnected()) {
+        List<VehicleRow> rows = new ArrayList<>();
+        if (traci.getConnection() == null || !traci.isConnected()) {
             return rows;
         }
         applyPendingUpdates();
@@ -131,14 +139,14 @@ public class VehicleWrapper {
 
                     Object cl = traci.getConnection().do_job_get(Vehicle.getColor(id));
                     int[] rgba = extractRgba(cl);
-					if (rgba != null) {
-						int r = clampInt(rgba[0], 0, 255);
-						int g = clampInt(rgba[1], 0, 255);
-						int b = clampInt(rgba[2], 0, 255);
-						double opacity = clamp(rgba[3] / 255.0, 0.0, 1.0);
+                    if (rgba != null) {
+                        int r = clampInt(rgba[0], 0, 255);
+                        int g = clampInt(rgba[1], 0, 255);
+                        int b = clampInt(rgba[2], 0, 255);
+                        double opacity = clamp(rgba[3] / 255.0, 0.0, 1.0);
                         // Only override the preferred injected color if SUMO returns a valid color.
                         color = Color.rgb(r, g, b, opacity);
-					}
+                    }
 
                     rows.add(new VehicleRow(id, speed, edge, color));
                 } catch (Exception perVehicle) {
@@ -147,14 +155,14 @@ public class VehicleWrapper {
                 }
             }
         } catch (Exception e) {
-			if (e instanceof IllegalStateException) {
-				traci.handleConnectionError(e);
-				return rows;
-			}
-            LOGGER.log(Level.WARNING, "Failed to fetch vehicle rows", e);
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return rows;
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch vehicle rows", e);
         }
         return rows;
-        
+
 //		if (traci.getConnection() == null || !traci.isConnected()) {
 //            return new ArrayList<>();
 //        }
@@ -166,7 +174,7 @@ public class VehicleWrapper {
 //                try {
 //                	double speed = this.getSpeed(id);
 //	                String edge = this.getEdgeId(id);
-//                	
+//
 //                	// if id already exists, only update, if not, add new entry
 //                	if (!vehRows.containsKey(id)) {
 //                		// add new entry
@@ -191,7 +199,7 @@ public class VehicleWrapper {
 //                    LOGGER.log(Level.FINE, "Failed to fetch row for vehicle " + id, perVehicle);
 //                }
 //            }
-//            
+//
 //            // remove old entries if vehicle no longer exists
 //            Iterator<String> it = vehRows.keySet().iterator();
 //			while (it.hasNext()) {
@@ -217,12 +225,12 @@ public class VehicleWrapper {
     private int[] extractRgba(Object colorObj) {
         if (colorObj == null) return null;
         if (colorObj instanceof SumoColor) {
-        	SumoColor sc = (SumoColor) colorObj;
-        	// must convert from signed byte back to unsigned int
+            SumoColor sc = (SumoColor) colorObj;
+            // must convert from signed byte back to unsigned int
             return new int[] {((int)sc.r + 256) % 256,
-            					((int)sc.g + 256) % 256,
-            					((int)sc.b + 256) % 256,
-            					((int)sc.a + 256) % 256};
+                                ((int)sc.g + 256) % 256,
+                                ((int)sc.b + 256) % 256,
+                                ((int)sc.a + 256) % 256};
         }
         System.out.println("Returning null for extractRgba");
         return null;
@@ -240,7 +248,7 @@ public class VehicleWrapper {
 
     // helper function to convert an Object type to a double type
     @SuppressWarnings("unused")
-	private double toDouble(Object o) {
+    private double toDouble(Object o) {
         if (o == null) return 0.0;
         if (o instanceof Number) return ((Number) o).doubleValue();
         try {
@@ -255,14 +263,21 @@ public class VehicleWrapper {
      */
     public Map<String, Point2D> getVehiclePositions() {
         Map<String, Point2D> out = new HashMap<>();
-		if (traci.getConnection() == null || !traci.isConnected()) {
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) {
             return out;
         }
 
         applyPendingUpdates();
 
+        // Pending updates may have triggered a disconnect.
+        conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) {
+            return out;
+        }
+
         try {
-            Object idsObj = traci.getConnection().do_job_get(Vehicle.getIDList());
+            Object idsObj = conn.do_job_get(Vehicle.getIDList());
             List<String> ids = new ArrayList<>();
             if (idsObj instanceof String[]) {
                 for (String s : (String[]) idsObj) ids.add(s);
@@ -273,17 +288,23 @@ public class VehicleWrapper {
             }
 
             for (String id : ids) {
-//				Object posObj = traci.getConnection().do_job_get(Vehicle.getPosition(id));
-//                Point2D p = extractPoint(posObj);
-            	double[] pos = this.getPosition(id);
-            	Point2D p = new Point2D(pos[0], pos[1]);
-                if (p != null) out.put(id, p);
+                try {
+                    Object posObj = conn.do_job_get(Vehicle.getPosition(id));
+                    Point2D p = extractPoint(posObj);
+                    if (p != null) out.put(id, p);
+                } catch (Exception perVehicle) {
+                    if (TraCIConnector.isConnectionProblem(perVehicle) || perVehicle instanceof IllegalStateException) {
+                        traci.handleConnectionError(perVehicle);
+                        return out;
+                    }
+                    // ignore per-vehicle failures
+                }
             }
         } catch (Exception e) {
-			if (e instanceof IllegalStateException) {
-				traci.handleConnectionError(e);
-				return out;
-			}
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return out;
+            }
             LOGGER.log(Level.WARNING, "Failed to fetch vehicle positions", e);
         }
         return out;
@@ -294,14 +315,20 @@ public class VehicleWrapper {
      */
     public Map<String, String> getVehicleLaneIds() {
         Map<String, String> out = new HashMap<>();
-        if (traci.getConnection() == null || !traci.isConnected()) {
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) {
             return out;
         }
 
         applyPendingUpdates();
 
+        conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) {
+            return out;
+        }
+
         try {
-            Object idsObj = traci.getConnection().do_job_get(Vehicle.getIDList());
+            Object idsObj = conn.do_job_get(Vehicle.getIDList());
             List<String> ids = new ArrayList<>();
             if (idsObj instanceof String[]) {
                 for (String s : (String[]) idsObj) ids.add(s);
@@ -311,15 +338,18 @@ public class VehicleWrapper {
 
             for (String id : ids) {
                 try {
-                    Object laneObj = traci.getConnection().do_job_get(Vehicle.getLaneID(id));
+                    Object laneObj = conn.do_job_get(Vehicle.getLaneID(id));
                     String laneId = (laneObj != null) ? laneObj.toString() : "";
                     if (!laneId.isEmpty()) out.put(id, laneId);
-                } catch (Exception ignored) {
-                    // ignore per-vehicle lane failures
+                } catch (Exception perVehicle) {
+                    if (TraCIConnector.isConnectionProblem(perVehicle) || perVehicle instanceof IllegalStateException) {
+                        traci.handleConnectionError(perVehicle);
+                        return out;
+                    }
                 }
             }
         } catch (Exception e) {
-            if (e instanceof IllegalStateException) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
                 traci.handleConnectionError(e);
                 return out;
             }
@@ -346,11 +376,11 @@ public class VehicleWrapper {
         if (posObj instanceof List<?>) {
             List<?> list = (List<?>) posObj;
             if (list.size() >= 2) {
-				Double x = safeParseDouble(list.get(0));
-				Double y = safeParseDouble(list.get(1));
-				if (x != null && y != null) {
-					return new Point2D(x, y);
-				}
+                Double x = safeParseDouble(list.get(0));
+                Double y = safeParseDouble(list.get(1));
+                if (x != null && y != null) {
+                    return new Point2D(x, y);
+                }
             }
         }
 
@@ -433,11 +463,16 @@ public class VehicleWrapper {
      * @return
      */
     public double getSpeed(String vehId) {
-		if (traci.getConnection() == null || !traci.isConnected()) return 0;
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return 0;
         try {
-			return (double) traci.getConnection().do_job_get(Vehicle.getSpeed(vehId));
+            return (double) conn.do_job_get(Vehicle.getSpeed(vehId));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to fetch speed for " + vehId, e);
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return 0;
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch speed for " + vehId, e);
         }
         return 0;
     }
@@ -446,13 +481,18 @@ public class VehicleWrapper {
      * Sets the speed in m/s for the named vehicle within the last step. Calling with speed=-1 hands the vehicle control back to SUMO.
      */
     public void setSpeed(String vehId, double newSpeed) {
-        if (traci.getConnection() == null || !traci.isConnected()) {
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) {
             LOGGER.fine("setSpeed ignored: not connected");
             return;
         }
         try {
-            traci.getConnection().do_job_set(Vehicle.setSpeed(vehId, newSpeed));
+            conn.do_job_set(Vehicle.setSpeed(vehId, newSpeed));
         } catch (Exception e) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return;
+            }
             LOGGER.log(Level.WARNING, "Failed to set speed for " + vehId, e);
         }
     }
@@ -463,12 +503,17 @@ public class VehicleWrapper {
      * @return
      */
     public double[] getPosition(String vehId) {
-		if (traci.getConnection() == null || !traci.isConnected()) return new double[] {0, 0};
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return new double[] {0, 0};
         try {
-        	SumoPosition2D pos = (SumoPosition2D)traci.getConnection().do_job_get(Vehicle.getPosition(vehId));
-        	return new double[] {pos.x, pos.y};
+            SumoPosition2D pos = (SumoPosition2D)conn.do_job_get(Vehicle.getPosition(vehId));
+            return new double[] {pos.x, pos.y};
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to fetch position for " + vehId, e);
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return new double[] {0, 0};
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch position for " + vehId, e);
         }
         return new double[] {0, 0};
     }
@@ -479,11 +524,16 @@ public class VehicleWrapper {
      * @return edge ID as String, or null if unavailable
      */
     public String getEdgeId(String vehId) {
-		if (traci.getConnection() == null || !traci.isConnected()) return "";
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return "";
         try {
-			return (String) traci.getConnection().do_job_get(Vehicle.getRoadID(vehId));
+            return (String) conn.do_job_get(Vehicle.getRoadID(vehId));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to fetch edge for " + vehId, e);
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return "";
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch edge for " + vehId, e);
         }
         return ""; // error
     }
@@ -494,11 +544,16 @@ public class VehicleWrapper {
      * @return
      */
     public String getLaneId(String vehId) {
-		if (traci.getConnection() == null || !traci.isConnected()) return "";
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return "";
         try {
-			return (String) traci.getConnection().do_job_get(Vehicle.getLaneID(vehId));
+            return (String) conn.do_job_get(Vehicle.getLaneID(vehId));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to fetch lane for " + vehId, e);
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return "";
+            }
+            LOGGER.log(Level.FINE, "Failed to fetch lane for " + vehId, e);
         }
         return ""; // error
     }
@@ -509,11 +564,11 @@ public class VehicleWrapper {
      * @return
      */
     public int getLaneIndex(String vehId) {
-		if (traci.getConnection() == null || !traci.isConnected()) return -2^30;
+        if (traci.getConnection() == null || !traci.isConnected()) return -2^30;
         try {
-			return (int) traci.getConnection().do_job_get(Vehicle.getLaneIndex(vehId));
+            return (int) traci.getConnection().do_job_get(Vehicle.getLaneIndex(vehId));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to fetch lane index for " + vehId, e);
+            LOGGER.log(Level.FINE, "Failed to fetch lane index for " + vehId, e);
         }
         return -2^30; // error
     }
@@ -527,16 +582,16 @@ public class VehicleWrapper {
      * @return
      */
     public int[] getColorRGBA(String typeId) {
-		if (traci.getConnection() == null || !traci.isConnected()) return new int[] {0, 0, 0, 0};
+        if (traci.getConnection() == null || !traci.isConnected()) return new int[] {0, 0, 0, 0};
         try {
-			Object colorObj = traci.getConnection().do_job_get(Vehicle.getColor(typeId));
-			// System.out.println(colorObj.getClass());
-			int[] rgba = extractRgba(colorObj);
-			if (rgba != null) {
-				return rgba;
-			}
+            Object colorObj = traci.getConnection().do_job_get(Vehicle.getColor(typeId));
+            // System.out.println(colorObj.getClass());
+            int[] rgba = extractRgba(colorObj);
+            if (rgba != null) {
+                return rgba;
+            }
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to fetch color for " + typeId, e);
+            LOGGER.log(Level.FINE, "Failed to fetch color for " + typeId, e);
         }
         System.out.println("Returning {0, 0, 0, 0} for getColorRGBA");
         return new int[] {0, 0, 0, 0}; // error
@@ -554,13 +609,13 @@ public class VehicleWrapper {
             LOGGER.fine("setColor ignored: not connected");
             return;
         }
-    	try {
-    		assert(newColor[0] >= 0 && newColor[0] <= 255 &&
-    			newColor[1] >= 0 && newColor[1] <= 255 &&
-    			newColor[2] >= 0 && newColor[2] <= 255 &&
-    			newColor[3] >= 0 && newColor[3] <= 255);
-    		// when using java to save, the byte is signed, even though SumoColor uses ubyte
-    		SumoColor color = new SumoColor((byte)newColor[0], (byte)newColor[1], (byte)newColor[2], (byte)newColor[3]);
+        try {
+            assert(newColor[0] >= 0 && newColor[0] <= 255 &&
+                newColor[1] >= 0 && newColor[1] <= 255 &&
+                newColor[2] >= 0 && newColor[2] <= 255 &&
+                newColor[3] >= 0 && newColor[3] <= 255);
+            // when using java to save, the byte is signed, even though SumoColor uses ubyte
+            SumoColor color = new SumoColor((byte)newColor[0], (byte)newColor[1], (byte)newColor[2], (byte)newColor[3]);
             traci.getConnection().do_job_set(Vehicle.setColor(typeId, color));
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to set color for " + typeId, e);
@@ -574,42 +629,51 @@ public class VehicleWrapper {
      * @param color
      */
     public void addVehicle(String vehicleId, String routeOrEdgeId, double speed, Color color) {
-		if (traci.getConnection() == null || !traci.isConnected()) return;
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return;
         try {
-        	if (color == null) color = Color.RED;
-			// Remember requested color for rendering.
-			preferredVehicleColors.put(vehicleId, color);
+            if (color == null) color = Color.RED;
+            // Remember requested color for rendering.
+            preferredVehicleColors.put(vehicleId, color);
 
             // Check if routeOrEdgeId is a known route
             boolean isRoute = false;
             try {
                 @SuppressWarnings("unchecked")
-				List<String> routes = (List<String>) traci.getConnection().do_job_get(Route.getIDList());
+                List<String> routes = (List<String>) conn.do_job_get(Route.getIDList());
                 if (routes.contains(routeOrEdgeId)) {
                     isRoute = true;
                 }
             } catch (Exception e) {
+                if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                    traci.handleConnectionError(e);
+                    return;
+                }
                 // ignore, assume not a route or error fetching
             }
 
             String finalRouteId = routeOrEdgeId;
-			String startEdgeId = null;
+            String startEdgeId = null;
 
             if (!isRoute) {
                 // Assume it's a "dead street" / entry edge where we want to spawn vehicles.
                 // Build a route that starts on this edge and heads into the network using a precomputed path.
                 finalRouteId = "route_" + vehicleId;
-				startEdgeId = routeOrEdgeId;
+                startEdgeId = routeOrEdgeId;
 
                 SumoStringList edgeList = new SumoStringList();
                 edgeList.add(routeOrEdgeId);
 
-				// We create a minimal route for spawning (start edge). After insertion we will
-				// try to set a destination edge (changeTarget) so the vehicle traverses multiple edges.
+                // We create a minimal route for spawning (start edge). After insertion we will
+                // try to set a destination edge (changeTarget) so the vehicle traverses multiple edges.
 
                 try {
-                    traci.getConnection().do_job_set(Route.add(finalRouteId, edgeList));
+                    conn.do_job_set(Route.add(finalRouteId, edgeList));
                 } catch (Exception e) {
+                    if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                        traci.handleConnectionError(e);
+                        return;
+                    }
                     LOGGER.log(Level.WARNING, "Failed to create route " + finalRouteId + " for edge " + routeOrEdgeId, e);
                     // If this fails, maybe the edge doesn't exist. We'll try to add vehicle anyway, it might fail.
                 }
@@ -632,7 +696,7 @@ public class VehicleWrapper {
             int personNumber = 0;
 
             try {
-                traci.getConnection().do_job_set(Vehicle.addFull(
+                conn.do_job_set(Vehicle.addFull(
                         vehicleId,
                         finalRouteId,
                         "DEFAULT_VEHTYPE",
@@ -650,14 +714,14 @@ public class VehicleWrapper {
                         personNumber));
                 LOGGER.info("Injected vehicle: " + vehicleId + " on route/edge: " + finalRouteId);
             } catch (Exception e) {
+                if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                    traci.handleConnectionError(e);
+                    return;
+                }
                 LOGGER.log(Level.WARNING, "Error adding vehicle " + vehicleId, e);
-				if (e instanceof IllegalStateException) {
-					traci.handleConnectionError(e);
-					return;
-				}
                 // Try with empty type if DEFAULT_VEHTYPE fails
                 try {
-                    traci.getConnection().do_job_set(Vehicle.addFull(
+                    conn.do_job_set(Vehicle.addFull(
                             vehicleId,
                             finalRouteId,
                             "",
@@ -675,11 +739,11 @@ public class VehicleWrapper {
                             personNumber));
                     LOGGER.info("Injected vehicle (empty type): " + vehicleId);
                 } catch (Exception ex) {
+                    if (TraCIConnector.isConnectionProblem(ex) || ex instanceof IllegalStateException) {
+                        traci.handleConnectionError(ex);
+                        return;
+                    }
                     LOGGER.log(Level.WARNING, "Retry with empty type failed for " + vehicleId, ex);
-					if (ex instanceof IllegalStateException) {
-						traci.handleConnectionError(ex);
-						return;
-					}
                 }
             }
 
@@ -689,9 +753,9 @@ public class VehicleWrapper {
                 SumoStringList routeEdges = pickRandomReachableRoute(startEdgeId, "DEFAULT_VEHTYPE");
                 if (routeEdges != null && routeEdges.size() >= 2) {
                     try {
-                        traci.getConnection().do_job_set(Vehicle.setRoute(vehicleId, routeEdges));
+                        conn.do_job_set(Vehicle.setRoute(vehicleId, routeEdges));
                     } catch (Exception e) {
-                        if (e instanceof IllegalStateException) {
+                        if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
                             traci.handleConnectionError(e);
                             return;
                         }
@@ -710,9 +774,9 @@ public class VehicleWrapper {
             SumoColor sumoColor = new SumoColor(r, g, b, 255);
 
             try {
-				traci.getConnection().do_job_set(Vehicle.setColor(vehicleId, sumoColor));
+                conn.do_job_set(Vehicle.setColor(vehicleId, sumoColor));
             } catch (Exception e) {
-                if (e instanceof IllegalStateException) {
+                if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
                     traci.handleConnectionError(e);
                     return;
                 }
@@ -722,27 +786,27 @@ public class VehicleWrapper {
             // Set max speed
             if (speed > 0) {
                 try {
-					traci.getConnection().do_job_set(Vehicle.setMaxSpeed(vehicleId, speed));
+                    conn.do_job_set(Vehicle.setMaxSpeed(vehicleId, speed));
                 } catch (Exception e) {
-					if (e instanceof IllegalStateException) {
-						traci.handleConnectionError(e);
-						return;
-					}
+                    if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                        traci.handleConnectionError(e);
+                        return;
+                    }
                     pendingMaxSpeeds.put(vehicleId, speed);
                 }
             }
         } catch (Exception e) {
-			if (e instanceof IllegalStateException) {
-				traci.handleConnectionError(e);
-				return;
-			}
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+                return;
+            }
             LOGGER.log(Level.WARNING, "Failed to add vehicle " + vehicleId, e);
         }
     }
 
     public void applyPendingUpdates() {
-        if (traci.getConnection() == null || !traci.isConnected()) return;
         SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return;
 
         if (!pendingColors.isEmpty()) {
             List<String> done = new ArrayList<>();
@@ -750,7 +814,11 @@ public class VehicleWrapper {
                 try {
                     conn.do_job_set(Vehicle.setColor(e.getKey(), e.getValue()));
                     done.add(e.getKey());
-                } catch (Exception ignored) {
+                } catch (Exception ex) {
+                    if (TraCIConnector.isConnectionProblem(ex) || ex instanceof IllegalStateException) {
+                        traci.handleConnectionError(ex);
+                        return;
+                    }
                 }
             }
             for (String id : done) pendingColors.remove(id);
@@ -762,20 +830,24 @@ public class VehicleWrapper {
                 try {
                     conn.do_job_set(Vehicle.setMaxSpeed(e.getKey(), e.getValue()));
                     done.add(e.getKey());
-                } catch (Exception ignored) {
+                } catch (Exception ex) {
+                    if (TraCIConnector.isConnectionProblem(ex) || ex instanceof IllegalStateException) {
+                        traci.handleConnectionError(ex);
+                        return;
+                    }
                 }
             }
             for (String id : done) pendingMaxSpeeds.remove(id);
         }
 
-		if (!pendingRoutes.isEmpty()) {
+        if (!pendingRoutes.isEmpty()) {
             List<String> done = new ArrayList<>();
             for (Map.Entry<String, SumoStringList> e : pendingRoutes.entrySet()) {
                 try {
                     conn.do_job_set(Vehicle.setRoute(e.getKey(), e.getValue()));
                     done.add(e.getKey());
                 } catch (Exception ex) {
-                    if (ex instanceof IllegalStateException) {
+                    if (TraCIConnector.isConnectionProblem(ex) || ex instanceof IllegalStateException) {
                         traci.handleConnectionError(ex);
                         return;
                     }
@@ -787,7 +859,8 @@ public class VehicleWrapper {
 
     private SumoStringList pickRandomReachableRoute(String startEdgeId, String vehicleTypeId) {
         if (startEdgeId == null || startEdgeId.isBlank()) return null;
-        if (traci.getConnection() == null || !traci.isConnected()) return null;
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return null;
         try {
             List<String> edges = getAllEdgeIds();
             if (edges.isEmpty()) return null;
@@ -801,7 +874,10 @@ public class VehicleWrapper {
                     return route;
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+            }
         }
         return null;
     }
@@ -809,35 +885,44 @@ public class VehicleWrapper {
     @SuppressWarnings("unchecked")
     private List<String> getAllEdgeIds() {
         List<String> edges = new ArrayList<>();
-        if (traci.getConnection() == null || !traci.isConnected()) return edges;
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return edges;
         try {
-            Object resp = traci.getConnection().do_job_get(Edge.getIDList());
+            Object resp = conn.do_job_get(Edge.getIDList());
             if (resp instanceof String[]) {
                 for (String s : (String[]) resp) edges.add(s);
             } else if (resp instanceof List<?>) {
                 for (Object o : (List<?>) resp) edges.add(String.valueOf(o));
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+            }
         }
         return edges;
     }
 
     private SumoStringList findRouteEdges(String fromEdgeId, String toEdgeId, String vehicleTypeId) {
-        if (traci.getConnection() == null || !traci.isConnected()) return null;
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) return null;
         try {
-            Object routeObj = traci.getConnection().do_job_get(
+            Object routeObj = conn.do_job_get(
                     Simulation.findRoute(fromEdgeId, toEdgeId, vehicleTypeId, 0.0, ROUTING_MODE_DEFAULT));
             if (routeObj instanceof SumoStage) {
                 return ((SumoStage)routeObj).edges;
             }
             // Some SUMO versions may return a list of stages
             if (routeObj instanceof List<?>) {
-            	List<?> list = (List<?>) routeObj;
-            	if (!list.isEmpty() && list.get(0) instanceof SumoStage) {
-            		return ((SumoStage)list.get(0)).edges;
-            	}
+                List<?> list = (List<?>) routeObj;
+                if (!list.isEmpty() && list.get(0) instanceof SumoStage) {
+                    return ((SumoStage)list.get(0)).edges;
+                }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
+                traci.handleConnectionError(e);
+            }
+        }
         return null;
     }
 
@@ -856,7 +941,7 @@ public class VehicleWrapper {
      */
     public void configureVehicle(String vehId, double maxSpeed, double speedRatio,
             int r, int g, int b, int a) {
-		if (traci.getConnection() == null || !traci.isConnected()) return;
+        if (traci.getConnection() == null || !traci.isConnected()) return;
         if (vehId == null || vehId.isEmpty()) return;   // invalid vehicle ID
         if (!isValidSpeed(maxSpeed)) return;      // invalid max speed
 
@@ -890,7 +975,7 @@ public class VehicleWrapper {
      * @param fallback value to return if conversion fails
      * @return double value or fallback
      */
-	private double toDouble(Object res, double fallback) {
+    private double toDouble(Object res, double fallback) {
         if (res instanceof Number) return ((Number) res).doubleValue();
         try {
             return res != null ? Double.parseDouble(res.toString()) : fallback;
@@ -906,10 +991,10 @@ public class VehicleWrapper {
      * @return double[2] position or ZERO_POS if conversion fails
      */
     @SuppressWarnings("unused")
-	private double[] toPosition(Object res) {
+    private double[] toPosition(Object res) {
         if (res instanceof double[] && ((double[])res).length >= 2) return (double[])res;
         if (res instanceof Object[] && ((Object[])res).length >= 2) {
-        	Object[] a = (Object[])res;
+            Object[] a = (Object[])res;
             return new double[]{ toDouble(a[0], 0.0), toDouble(a[1], 0.0) };
         }
         return new double[] {0, 0};
@@ -933,19 +1018,20 @@ public class VehicleWrapper {
     private double clamp(double v, double min, double max) {
         return Math.max(min, Math.min(v, max));
     }
-	/**
+    /**
      * Fetch current vehicle angles (heading in degrees) from SUMO.
-     * Angle is measured from North (0 degrees) clockwise.
+        * Angle follows SUMO/TraCI convention: 0 degrees = East (+X), 90 degrees = North (+Y).
      * @return map of vehicle id to angle in degrees
      */
     public Map<String, Double> getVehicleAngles() {
         Map<String, Double> out = new HashMap<>();
-        if (traci.getConnection() == null || !traci.isConnected()) {
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) {
             return out;
         }
 
         try {
-            Object idsObj = traci.getConnection().do_job_get(Vehicle.getIDList());
+            Object idsObj = conn.do_job_get(Vehicle.getIDList());
             List<String> ids = new ArrayList<>();
             if (idsObj instanceof String[]) {
                 for (String s : (String[]) idsObj) ids.add(s);
@@ -956,16 +1042,19 @@ public class VehicleWrapper {
             for (String id : ids) {
                 try {
                     // Get vehicle angle (heading) from SUMO
-                    Object angleObj = traci.getConnection().do_job_get(Vehicle.getAngle(id));
+                    Object angleObj = conn.do_job_get(Vehicle.getAngle(id));
                     if (angleObj instanceof Number) {
                         out.put(id, ((Number) angleObj).doubleValue());
                     }
-                } catch (Exception ignored) {
-                    // ignore per-vehicle angle failures
+                } catch (Exception perVehicle) {
+                    if (TraCIConnector.isConnectionProblem(perVehicle) || perVehicle instanceof IllegalStateException) {
+                        traci.handleConnectionError(perVehicle);
+                        return out;
+                    }
                 }
             }
         } catch (Exception e) {
-            if (e instanceof IllegalStateException) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
                 traci.handleConnectionError(e);
                 return out;
             }
@@ -975,19 +1064,22 @@ public class VehicleWrapper {
     }
 
     /**
-     * Fetch current vehicle types from SUMO.
-     * optains a new list every time
-     * Returns the vehicle type ID for each vehicle (e.g., "car", "bus", "motorcycle").
-     * @return map of vehicle id to vehicle type string
+     * Fetch current vehicle types/classes from SUMO.
+     * Obtains a new list every time.
+     * Returns the vehicle class for each vehicle (e.g., "passenger", "bus", "motorcycle").
+     * This uses Vehicle.getVehicleClass() to get the actual vClass (bus, car, etc.)
+     * which is more reliable than type ID for determining vehicle shape.
+     * @return map of vehicle id to vehicle class string
      */
     public Map<String, String> getVehicleTypes() {
         Map<String, String> out = new HashMap<>();
-        if (traci.getConnection() == null || !traci.isConnected()) {
+        SumoTraciConnection conn = traci.getConnection();
+        if (conn == null || !traci.isConnected()) {
             return out;
         }
 
         try {
-            Object idsObj = traci.getConnection().do_job_get(Vehicle.getIDList());
+            Object idsObj = conn.do_job_get(Vehicle.getIDList());
             List<String> ids = new ArrayList<>();
             if (idsObj instanceof String[]) {
                 for (String s : (String[]) idsObj) ids.add(s);
@@ -997,17 +1089,29 @@ public class VehicleWrapper {
 
             for (String id : ids) {
                 try {
-                    // Get vehicle type ID from SUMO
-                    Object typeObj = traci.getConnection().do_job_get(Vehicle.getTypeID(id));
+                    // First try to get vehicle class (vClass) - more reliable for shape detection
+                    // vClass values: "passenger", "bus", "truck", "motorcycle", "bicycle", etc.
+                    Object vClassObj = conn.do_job_get(Vehicle.getVehicleClass(id));
+                    if (vClassObj != null) {
+                        String vClass = vClassObj.toString().toLowerCase();
+                        out.put(id, vClass);
+                        continue;
+                    }
+
+                    // Fallback: Get vehicle type ID from SUMO
+                    Object typeObj = conn.do_job_get(Vehicle.getTypeID(id));
                     if (typeObj != null) {
                         out.put(id, typeObj.toString());
                     }
-                } catch (Exception ignored) {
-                    // ignore per-vehicle type failures
+                } catch (Exception perVehicle) {
+                    if (TraCIConnector.isConnectionProblem(perVehicle) || perVehicle instanceof IllegalStateException) {
+                        traci.handleConnectionError(perVehicle);
+                        return out;
+                    }
                 }
             }
         } catch (Exception e) {
-            if (e instanceof IllegalStateException) {
+            if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
                 traci.handleConnectionError(e);
                 return out;
             }

@@ -20,65 +20,65 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * 
+ *
  * @author hungg
  *
  */
 public class EdgeWrapper {
-	private static final Logger LOGGER = Logger.getLogger(VehicleWrapper.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(VehicleWrapper.class.getName());
 
     private TraCIConnector traci;
     private VehicleWrapper vehWrapper;
-    
+
     private List<String> edgeIDs; // fixed size
     private Map<String, Double> avgEdgeSpeeds; // fixed size
     private Map<String, Integer> numVehicles; // fixed size
-    
+
     // edge requires access to traCI conn and vehicleWrapper
     public EdgeWrapper(TraCIConnector traci, VehicleWrapper vehWrapper) {
-    	this.traci = Objects.requireNonNull(traci, "");
-    	this.vehWrapper = Objects.requireNonNull(vehWrapper, "");
-    	
-    	this.edgeIDs = getEdgeIDsInternal(); // only called once
-    	this.avgEdgeSpeeds = new HashMap<>();
-    	this.numVehicles = new HashMap<>();
-    	for (String id : this.edgeIDs) {
-    		this.numVehicles.put(id, 0);
-    		this.avgEdgeSpeeds.put(id, (double)-1); // -1 means there are no vehicles, different from 0
-    	}
+        this.traci = Objects.requireNonNull(traci, "");
+        this.vehWrapper = Objects.requireNonNull(vehWrapper, "");
+
+        this.edgeIDs = getEdgeIDsInternal(); // only called once
+        this.avgEdgeSpeeds = new HashMap<>();
+        this.numVehicles = new HashMap<>();
+        for (String id : this.edgeIDs) {
+            this.numVehicles.put(id, 0);
+            this.avgEdgeSpeeds.put(id, (double)-1); // -1 means there are no vehicles, different from 0
+        }
     }
-    
+
     /**
      * for debugging
      * @return
      */
     public TraCIConnector getTraCI() {
-    	return this.traci;
+        return this.traci;
     }
     /**
      * Get all edge ids in this scenario
      * @return
      */
     public List<String> getEdgeIDs() {
-    	return this.edgeIDs;
+        return this.edgeIDs;
     }
     /**
      * get a Map of all avgSpeeds for all edges
      * @return
      */
     public Map<String, Double> getAllAvgEdgeSpeeds() {
-    	// may update in here, or in UI
-    	this.updateEdgeData();
-    	return this.avgEdgeSpeeds;
+        // may update in here, or in UI
+        this.updateEdgeData();
+        return this.avgEdgeSpeeds;
     }
     /**
      * get a Map of all numVehicles for all edges
      * @return
      */
     public Map<String, Integer> getAllNumVehicles() {
-    	// may update in here, or in UI
-    	this.updateEdgeData();
-    	return this.numVehicles;
+        // may update in here, or in UI
+        this.updateEdgeData();
+        return this.numVehicles;
     }
     /**
      * get avgSpeed of this edge only
@@ -86,8 +86,8 @@ public class EdgeWrapper {
      * @return
      */
     public double getAvgEdgeSpeed(String id) {
-    	this.updateEdgeData();
-    	return this.avgEdgeSpeeds.get(id);
+        this.updateEdgeData();
+        return this.avgEdgeSpeeds.get(id);
     }
     /**
      * get numVehicles of this edge only
@@ -95,43 +95,43 @@ public class EdgeWrapper {
      * @return
      */
     public int getNumVehicle(String id) {
-    	this.updateEdgeData();
-    	return this.numVehicles.get(id);
+        this.updateEdgeData();
+        return this.numVehicles.get(id);
     }
     /**
      * update all member fields of EdgeWrapper
      */
     private void updateEdgeData() {
-    	// get all vehicles on this edge and calculate their avg speed
-    	List<String> vehIDs = vehWrapper.getVehicleIds();
-    	for (String eID : this.getEdgeIDs()) {
-    		double sumSpeed = 0;
-    		this.numVehicles.replace(eID, 0);
-    		
-    		for (String vehID : vehIDs) {
-    			if (vehWrapper.getEdgeId(vehID) == eID) {
-    				// vehicle is on this edge
-    				this.numVehicles.replace(eID, this.numVehicles.get(eID) + 1);
-    				sumSpeed += vehWrapper.getSpeed(vehID);
-    			}
-    		}
-    		if (this.numVehicles.get(eID) > 0) {
-    			// found some vehicles
-    			this.avgEdgeSpeeds.replace(eID, sumSpeed / this.numVehicles.get(eID));
-    		} else {
-    			// if there are no more vehicles on this edge, reset data
-    			this.avgEdgeSpeeds.replace(eID, (double)-1);
-    		}
-    	}
+        // get all vehicles on this edge and calculate their avg speed
+        List<String> vehIDs = vehWrapper.getVehicleIds();
+        for (String eID : this.getEdgeIDs()) {
+            double sumSpeed = 0;
+            this.numVehicles.replace(eID, 0);
+
+            for (String vehID : vehIDs) {
+                if (vehWrapper.getEdgeId(vehID) == eID) {
+                    // vehicle is on this edge
+                    this.numVehicles.replace(eID, this.numVehicles.get(eID) + 1);
+                    sumSpeed += vehWrapper.getSpeed(vehID);
+                }
+            }
+            if (this.numVehicles.get(eID) > 0) {
+                // found some vehicles
+                this.avgEdgeSpeeds.replace(eID, sumSpeed / this.numVehicles.get(eID));
+            } else {
+                // if there are no more vehicles on this edge, reset data
+                this.avgEdgeSpeeds.replace(eID, (double)-1);
+            }
+        }
     }
     /**
      * Returns a list of ids of all edges within the scenario (the given Edge ID is ignored)
      * @return
      */
     @SuppressWarnings("unchecked")
-	private List<String> getEdgeIDsInternal() {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return new ArrayList<>(); // empty list of strings
+    private List<String> getEdgeIDsInternal() {
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return new ArrayList<>(); // empty list of strings
         }
         try {
             Object response = this.traci.getConnection().do_job_get(Edge.getIDList());
@@ -141,7 +141,7 @@ public class EdgeWrapper {
                 return (List<String>) response;
             }
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get Edge IDs", e);
+            LOGGER.log(Level.FINE, "Failed to get Edge IDs", e);
         }
         return new ArrayList<>();
     }
@@ -150,13 +150,13 @@ public class EdgeWrapper {
      * @return
      */
     public int getEdgeCount() {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return 0;
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return 0;
         }
         try {
             return (int) this.traci.getConnection().do_job_get(Edge.getIDCount());
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get Edge count", e);
+            LOGGER.log(Level.FINE, "Failed to get Edge count", e);
         }
         return 0;
     }
@@ -166,13 +166,13 @@ public class EdgeWrapper {
      * @return
      */
     public int getLaneNumberOfEdge(String id) {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return 0;
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return 0;
         }
         try {
             return (int) this.traci.getConnection().do_job_get(Edge.getLaneNumber(id));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get Edge count", e);
+            LOGGER.log(Level.FINE, "Failed to get Edge count", e);
         }
         return 0;
     }
@@ -182,13 +182,13 @@ public class EdgeWrapper {
      * @param newMax speed in m/s
      */
     public void setMaxSpeed(String id, double newMax) {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return;
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return;
         }
         try {
             this.traci.getConnection().do_job_set(Edge.setMaxSpeed(id, newMax));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to set Edge max speed", e);
+            LOGGER.log(Level.FINE, "Failed to set Edge max speed", e);
         }
     }
     /**
@@ -197,7 +197,7 @@ public class EdgeWrapper {
      * @return
      */
     public double getAvgVehiclesPerEdge() {
-    	return (double)vehWrapper.getVehicleCount() / this.getEdgeCount();
+        return (double)vehWrapper.getVehicleCount() / this.getEdgeCount();
     }
     /**
      * Returns the mean speed of vehicles that were on the named edge within the last simulation step [m/s]
@@ -205,13 +205,13 @@ public class EdgeWrapper {
      * @return -1 if error
      */
     public double getLastStepMeanSpeed(String id) {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return -1; // error
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return -1; // error
         }
         try {
             return (double) this.traci.getConnection().do_job_get(Edge.getLastStepMeanSpeed(id));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
+            LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
         }
         return -1; // error
     }
@@ -221,13 +221,13 @@ public class EdgeWrapper {
      * @return
      */
     public int getLastStepVehicleNumber(String id) {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return 0;
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return 0;
         }
         try {
             return (int) this.traci.getConnection().do_job_get(Edge.getLastStepVehicleNumber(id));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
+            LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
         }
         return 0;
     }
@@ -237,14 +237,14 @@ public class EdgeWrapper {
      * @param id
      * @return null if not found
      */
-	public List<String> getLastStepVehicleIDs(String id) {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return null;
+    public List<String> getLastStepVehicleIDs(String id) {
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return null;
         }
         try {
             return (List<String>) this.traci.getConnection().do_job_get(Edge.getLastStepVehicleIDs(id));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
+            LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
         }
         return null;
     }
@@ -254,13 +254,13 @@ public class EdgeWrapper {
      * @return time in seconds
      */
     public double getWaitingTimeSum(String id) {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return 0;
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return 0;
         }
         try {
             return (double) this.traci.getConnection().do_job_get(Edge.getWaitingTime(id));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
+            LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
         }
         return 0;
     }
@@ -270,13 +270,13 @@ public class EdgeWrapper {
      * @return 0 if not found
      */
     public int getLastStepHaltingNumber(String id) {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return 0;
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return 0;
         }
         try {
             return (int) this.traci.getConnection().do_job_get(Edge.getLastStepHaltingNumber(id));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
+            LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
         }
         return 0;
     }
@@ -287,50 +287,14 @@ public class EdgeWrapper {
      * @return 0 if not found
      */
     public double getTravelTime(String id) {
-    	if (this.traci.getConnection() == null || !this.traci.isConnected()) {
-        	return 0;
+        if (this.traci.getConnection() == null || !this.traci.isConnected()) {
+            return 0;
         }
         try {
             return (double) this.traci.getConnection().do_job_get(Edge.getTraveltime(id));
         } catch (Exception e) {
-			LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
+            LOGGER.log(Level.FINE, "Failed to get last step mean speed", e);
         }
         return 0;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
