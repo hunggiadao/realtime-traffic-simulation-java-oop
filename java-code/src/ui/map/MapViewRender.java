@@ -95,6 +95,13 @@ final class MapViewRender {
     static void scheduleOverlayRedraw(MapView view) {
         if (view.overlayRedrawScheduled) return;
         view.overlayRedrawScheduled = true;
+        // If we're already on the JavaFX thread (common case: called from AnimationTimer),
+        // redraw immediately to avoid piling up runLater tasks and to keep animation smooth.
+        if (Platform.isFxApplicationThread()) {
+            view.overlayRedrawScheduled = false;
+            redrawOverlay(view);
+            return;
+        }
         Platform.runLater(() -> {
             view.overlayRedrawScheduled = false;
             redrawOverlay(view);
@@ -630,6 +637,11 @@ final class MapViewRender {
         double alpha = (dtSec <= 0.0) ? 0.30 : (1.0 - Math.exp(-dtSec / tauSec));
         view.headingSmoothingAlpha = view.clamp(alpha, 0.18, 0.95);
 
+        // Position smoothing alpha is based on its own time constant.
+        // We keep this separate from heading smoothing because position and rotation have different perceptual needs.
+        double posAlpha = (dtSec <= 0.0) ? 0.55 : (1.0 - Math.exp(-dtSec / Math.max(1e-6, view.positionSmoothingTauSec)));
+        posAlpha = view.clamp(posAlpha, 0.12, 0.98);
+
         GraphicsContext g = view.canvas.getGraphicsContext2D();
         // Overlay is transparent; clear only this canvas.
         g.clearRect(0, 0, w, h);
@@ -648,7 +660,28 @@ final class MapViewRender {
                 }
 
                 Point2D worldPos = e.getValue();
+
+                // Smooth the position for rendering to avoid visual jitter when TraCI updates are discrete.
+                // Snap if the vehicle teleports (e.g., reroute, insertion, wrap-around).
                 Point2D drawWorld = worldPos;
+                if (vehicleId != null && worldPos != null) {
+                    Point2D prevSmooth = view.smoothedVehicleWorldPos.get(vehicleId);
+                    if (prevSmooth == null) {
+                        prevSmooth = worldPos;
+                    } else {
+                        double d = prevSmooth.distance(worldPos);
+                        if (d >= view.positionSnapDistanceMeters) {
+                            prevSmooth = worldPos;
+                        } else {
+                            prevSmooth = new Point2D(
+                                    prevSmooth.getX() + (worldPos.getX() - prevSmooth.getX()) * posAlpha,
+                                    prevSmooth.getY() + (worldPos.getY() - prevSmooth.getY()) * posAlpha
+                            );
+                        }
+                    }
+                    view.smoothedVehicleWorldPos.put(vehicleId, prevSmooth);
+                    drawWorld = prevSmooth;
+                }
 
                 LaneShape laneForHeading = null;
                 if (view.vehicleLaneIds != null) {
@@ -666,7 +699,8 @@ final class MapViewRender {
                     vehicleType = view.vehicleTypes.get(vehicleId).toLowerCase();
                 }
 
-                drawVehicleShape(view, g, vehicleId, worldPos, laneForHeading, tp.getX(), tp.getY(), angleDegrees, vehicleType, c, view.userScale);
+                // Pass the smoothed world position into heading computation too (reduces direction jitter).
+                drawVehicleShape(view, g, vehicleId, drawWorld, laneForHeading, tp.getX(), tp.getY(), angleDegrees, vehicleType, c, view.userScale);
             }
         }
 

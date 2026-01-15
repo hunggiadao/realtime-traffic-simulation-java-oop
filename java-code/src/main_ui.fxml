@@ -94,7 +94,6 @@
                               <Label text="Simulation config" />
                               <TextField fx:id="txtConfigPath" text=".\\SumoConfig\\G.sumocfg" />
                               <Button fx:id="btnBrowseConfig" mnemonicParsing="false" onAction="#onOpenConfig" text="Browse ..." />
-                              <CheckBox mnemonicParsing="false" text="Real-time stepping" />
                               <HBox prefHeight="100.0" prefWidth="200.0" spacing="6.0">
                                  <children>
                                     <Label text="Step (ms)" />

@@ -73,7 +73,7 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-if exist ui xcopy /s /y /i ui bin\ui >nul
+if exist src\main_ui.fxml copy /y src\main_ui.fxml bin\main_ui.fxml >nul
 
 set "JFX_OPTS=--module-path !JFX_PATH! --add-modules !JFX_MODULES! --enable-native-access=javafx.graphics -Dprism.order=d3d,sw"
 
@@ -107,7 +107,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-if exist ui xcopy /s /y /i ui bin\ui >nul
+if exist src\main_ui.fxml copy /y src\main_ui.fxml bin\main_ui.fxml >nul
 
 copy /y "!TRAAS_JAR!" build\libs\ >nul
 if defined LIBTRACI_JAR copy /y "!LIBTRACI_JAR!" build\libs\ >nul
