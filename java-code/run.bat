@@ -46,6 +46,9 @@ set "JFX_HOME=lib/javafx25"
 set "JFX_PATH=%JFX_HOME%"
 set "JFX_BIN=%~dp0%JFX_HOME%/bin"
 set "JFX_MODULES=javafx.controls,javafx.fxml"
+
+rem Project local libraries (e.g., PDF export via OpenPDF)
+set "APP_LIB_CP=lib\*;lib\dependencies\*"
 set "MAIN_CLASS=Main"
 if /i "%1"=="cli" set "MAIN_CLASS=Main"
 if /i "%1"=="build" goto :BuildExe
@@ -55,7 +58,17 @@ if not exist bin mkdir bin
 rem Ensure JavaFX native DLLs are on the PATH
 set "PATH=%PATH%;%JFX_BIN%"
 
-javac --module-path "!JFX_PATH!" --add-modules !JFX_MODULES! -d bin -cp "!JFX_PATH!/*;!TRAAS_JAR!;!LIBTRACI_JAR!" src\*.java
+rem Collect all Java sources recursively (src/**.java)
+set "SOURCES_FILE=bin\sources.txt"
+if exist "!SOURCES_FILE!" del /f /q "!SOURCES_FILE!" >nul 2>nul
+set "ROOTDIR=%CD%\"
+for /r "src" %%F in (*.java) do (
+    set "F=%%F"
+    set "R=!F:%ROOTDIR%=!"
+    echo !R!>>"!SOURCES_FILE!"
+)
+
+javac --module-path "!JFX_PATH!" --add-modules !JFX_MODULES! -d bin -cp "!JFX_PATH!/*;!TRAAS_JAR!;!LIBTRACI_JAR!;!APP_LIB_CP!" @!SOURCES_FILE!
 if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
@@ -64,7 +77,7 @@ if exist ui xcopy /s /y /i ui bin\ui >nul
 
 set "JFX_OPTS=--module-path !JFX_PATH! --add-modules !JFX_MODULES! --enable-native-access=javafx.graphics -Dprism.order=d3d,sw"
 
-java %JFX_OPTS% -cp "bin;!JFX_PATH!/*;!TRAAS_JAR!;!LIBTRACI_JAR!" %MAIN_CLASS% %*
+java %JFX_OPTS% -cp "bin;!JFX_PATH!/*;!TRAAS_JAR!;!LIBTRACI_JAR!;!APP_LIB_CP!" %MAIN_CLASS% %*
 if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
@@ -78,7 +91,17 @@ if exist dist rmdir /s /q dist
 mkdir build\libs
 if not exist bin mkdir bin
 
-javac --module-path "!JFX_PATH!" --add-modules !JFX_MODULES! -d bin -cp "!JFX_PATH!/*;!TRAAS_JAR!;!LIBTRACI_JAR!" src\*.java
+rem Collect all Java sources recursively (src/**.java)
+set "SOURCES_FILE=bin\sources.txt"
+if exist "!SOURCES_FILE!" del /f /q "!SOURCES_FILE!" >nul 2>nul
+set "ROOTDIR=%CD%\"
+for /r "src" %%F in (*.java) do (
+    set "F=%%F"
+    set "R=!F:%ROOTDIR%=!"
+    echo !R!>>"!SOURCES_FILE!"
+)
+
+javac --module-path "!JFX_PATH!" --add-modules !JFX_MODULES! -d bin -cp "!JFX_PATH!/*;!TRAAS_JAR!;!LIBTRACI_JAR!;!APP_LIB_CP!" @!SOURCES_FILE!
 if %errorlevel% neq 0 (
     echo Compilation failed.
     exit /b 1
@@ -89,6 +112,8 @@ if exist ui xcopy /s /y /i ui bin\ui >nul
 copy /y "!TRAAS_JAR!" build\libs\ >nul
 if defined LIBTRACI_JAR copy /y "!LIBTRACI_JAR!" build\libs\ >nul
 copy /y lib\javafx25\*.jar build\libs\ >nul
+copy /y lib\*.jar build\libs\ >nul
+if exist lib\dependencies copy /y lib\dependencies\*.jar build\libs\ >nul
 
 jar cf build\TrafficSim.jar -C bin .
 
