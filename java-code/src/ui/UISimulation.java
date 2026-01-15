@@ -326,9 +326,16 @@ final class UISimulation {
 
                 // Populate spawnable edge list
                 if (ui.cmbInjectEdge != null && ui.edgeWrapper != null) {
-                    List<String> edges = ui.edgeWrapper.getEdgeIDs();
-                    ui.cmbInjectEdge.getItems().setAll(edges);
-                    if (!edges.isEmpty()) ui.cmbInjectEdge.getSelectionModel().select(0);
+                    List<String> allEdges = ui.edgeWrapper.getEdgeIDs();
+                    List<String> spawnableEdges = new ArrayList<>();
+                    for (String e : allEdges) {
+                        // SUMO internal/junction edges look like ":J27_0" and are not valid for spawning.
+                        if (e == null || e.isBlank()) continue;
+                        if (e.startsWith(":")) continue;
+                        spawnableEdges.add(e);
+                    }
+                    ui.cmbInjectEdge.getItems().setAll(spawnableEdges);
+                    if (!spawnableEdges.isEmpty()) ui.cmbInjectEdge.getSelectionModel().select(0);
                 }
 
                 // Populate traffic light list (UI work)

@@ -77,6 +77,10 @@ final class UIHandlers {
             ui.setStatusText("Status: Edge ID required");
             return;
         }
+        if (edge.startsWith(":")) {
+            ui.setStatusText("Status: Cannot inject on internal edge (starts with ':'): " + edge);
+            return;
+        }
 
         // number of injected vehicles
         int count = 1;

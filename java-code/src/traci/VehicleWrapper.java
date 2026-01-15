@@ -712,7 +712,7 @@ public class VehicleWrapper {
                         line,
                         personCapacity,
                         personNumber));
-                LOGGER.info("Injected vehicle: " + vehicleId + " on route/edge: " + finalRouteId);
+                LOGGER.info("Injected vehicle: " + vehicleId + " using input: " + routeOrEdgeId + " (route=" + finalRouteId + ")");
             } catch (Exception e) {
                 if (TraCIConnector.isConnectionProblem(e) || e instanceof IllegalStateException) {
                     traci.handleConnectionError(e);

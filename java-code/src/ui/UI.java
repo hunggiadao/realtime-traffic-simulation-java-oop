@@ -295,34 +295,56 @@ public class UI {
      * Change the UI to disconnected state, show Connect button,
      * status bar says Disconnected, OpenConfig clickable
      */
-    void setDisconnectedUI() { UIState.setDisconnectedUI(this); }
+    void setDisconnectedUI() { 
+        UIState.setDisconnectedUI(this); 
+    }
     /**
      * Change the UI to connected state, show Disconnect button,
      * status bar says Connected, OpenConfig not clickable
      */
-    void setConnectedUI() { UIState.setConnectedUI(this); }
+    void setConnectedUI() { 
+        UIState.setConnectedUI(this); 
+    }
     /**
      * Change the UI to running state, show Disconnect button,
      * status bar says Running, OpenConfig not clickable
      */
-    void setRunningUI() { UIState.setRunningUI(this); }
+    void setRunningUI() { 
+        UIState.setRunningUI(this); 
+    }
 
-    boolean canExportNow() { return UIState.canExportNow(this); }
+    boolean canExportNow() { 
+        return UIState.canExportNow(this); 
+    }
 
-    void updateExportAvailability() { UIState.updateExportAvailability(this); }
+    void updateExportAvailability() { 
+        UIState.updateExportAvailability(this); 
+    }
 
-    void disconnectFromSumo() { UIState.disconnectFromSumo(this); }
+    void disconnectFromSumo() { 
+        UIState.disconnectFromSumo(this); 
+    }
 
-    void resetSessionStats() { UICharts.resetSessionStats(this); }
+    void resetSessionStats() { 
+        UICharts.resetSessionStats(this); 
+    }
 
-    public void setStatusText(String text) { UIState.setStatusText(this, text); }
+    public void setStatusText(String text) { 
+        UIState.setStatusText(this, text); 
+    }
 
     // Update after each step
-    void updateAfterStep() { UISimulation.updateAfterStep(this); }
+    void updateAfterStep() { 
+        UISimulation.updateAfterStep(this); 
+    }
 
-    void updateCharts(int step, int vehicleCount) { UICharts.updateCharts(this, step, vehicleCount); }
+    void updateCharts(int step, int vehicleCount) { 
+        UICharts.updateCharts(this, step, vehicleCount); 
+    }
 
-    void animateSpeedDistBucketTo(int index, double targetValue) { UICharts.animateSpeedDistBucketTo(this, index, targetValue); }
+    void animateSpeedDistBucketTo(int index, double targetValue) { 
+        UICharts.animateSpeedDistBucketTo(this, index, targetValue); 
+    }
 
     @FXML
     private void handleKeyRelease(KeyEvent event) {
@@ -356,39 +378,59 @@ public class UI {
         UISimulation.shutdown(this);
     }
 
-    void startConnectionMonitor() { UISimulation.startConnectionMonitor(this); }
+    void startConnectionMonitor() {
+        UISimulation.startConnectionMonitor(this);
+    }
 
-    void stopConnectionMonitor() { UISimulation.stopConnectionMonitor(this); }
+    void stopConnectionMonitor() {
+        UISimulation.stopConnectionMonitor(this);
+    }
     /**
      * Parse strings for Windows environment
      * @return
      */
-    String resolveSumoBinary() { return UISumoFiles.resolveSumoBinary(); }
+    String resolveSumoBinary() {
+        return UISumoFiles.resolveSumoBinary();
+    }
     /**
      * helper function to load network file
      * @param configPath
      * @return
      */
-    int loadNetworkForMap(String configPath) { return UIMap.loadNetworkForMap(this, configPath); }
+    int loadNetworkForMap(String configPath) {
+        return UIMap.loadNetworkForMap(this, configPath);
+    }
 
     /**
      * Load bus stop data and update the map view.
      * Runs asynchronously to avoid blocking the UI thread.
      * Called once after connecting to SUMO.
      */
-    void loadBusStopsForMap() { UIMap.loadBusStopsForMap(this); }
+    void loadBusStopsForMap() {
+        UIMap.loadBusStopsForMap(this);
+    }
 
-    List<File> resolveAdditionalFiles(String configPath) { return UISumoFiles.resolveAdditionalFiles(this, configPath); }
+    List<File> resolveAdditionalFiles(String configPath) {
+        return UISumoFiles.resolveAdditionalFiles(this, configPath);
+    }
 
-    List<String[]> parseBusStopsFromAdditionalFiles(List<File> additionalFiles) { return UISumoFiles.parseBusStopsFromAdditionalFiles(this, additionalFiles); }
+    List<String[]> parseBusStopsFromAdditionalFiles(List<File> additionalFiles) {
+        return UISumoFiles.parseBusStopsFromAdditionalFiles(this, additionalFiles);
+    }
 
-    double parseDoubleOrDefault(String s, double def) { return UISumoFiles.parseDoubleOrDefault(s, def); }
+    double parseDoubleOrDefault(String s, double def) {
+        return UISumoFiles.parseDoubleOrDefault(s, def);
+    }
 
-    File resolveNetFile(String configPath) { return UISumoFiles.resolveNetFile(this, configPath); }
+    File resolveNetFile(String configPath) {
+        return UISumoFiles.resolveNetFile(this, configPath);
+    }
     /**
      * update map and vehicleRows data
      */
-    void updateMapView() { UIMap.updateMapView(this); }
+    void updateMapView() {
+        UIMap.updateMapView(this);
+    }
 
     /**
      * Are the colors are within a tolerance range of each other?
@@ -409,7 +451,9 @@ public class UI {
      * @param path
      * @return
      */
-    File resolveConfigFile(String path) { return UISumoFiles.resolveConfigFile(path); }
+    File resolveConfigFile(String path) { 
+        return UISumoFiles.resolveConfigFile(path); 
+    }
 
     void startLoop() {
         UILoop.startLoop(this);
@@ -487,6 +531,4 @@ public class UI {
     public List<PieSliceExport> getVehicleColorPieExport() {
         return UIExporting.getVehicleColorPieExport(this);
     }
-
-
 }
