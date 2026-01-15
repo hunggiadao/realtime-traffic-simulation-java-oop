@@ -1,25 +1,26 @@
 {
   "java.project.referencedLibraries": [
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\jfx.incubator.richtext.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.web.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\jfx.incubator.input.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.media.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.controls.jar",
+    "${workspaceFolder}\\lib\\javafx25\\jfx.incubator.richtext.jar",
+    "${workspaceFolder}\\lib\\javafx25\\javafx.web.jar",
+    "${workspaceFolder}\\lib\\javafx25\\jfx.incubator.input.jar",
+    "${workspaceFolder}\\lib\\javafx25\\javafx.media.jar",
+    "${workspaceFolder}\\lib\\javafx25\\javafx.controls.jar",
     "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\lisum-core.jar",
     "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\TraaS.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.base.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\jdk.jsobject.jar",
+    "${workspaceFolder}\\lib\\javafx25\\javafx.base.jar",
+    "${workspaceFolder}\\lib\\javafx25\\jdk.jsobject.jar",
     "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\lisum-gui.jar",
     "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\libtraci-1.24.0.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx-swt.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.fxml.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.swing.jar",
+    "${workspaceFolder}\\lib\\javafx25\\javafx-swt.jar",
+    "${workspaceFolder}\\lib\\javafx25\\javafx.fxml.jar",
+    "${workspaceFolder}\\lib\\javafx25\\javafx.swing.jar",
     "c:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\libsumo-1.24.0.jar",
-    "d:\\Project\\realtime-traffic-simulation-java-oop\\java-code\\lib\\javafx25\\javafx.graphics.jar"
+    "${workspaceFolder}\\lib\\javafx25\\javafx.graphics.jar"
   ],
   "java.project.sourcePaths": [
     "src"
   ],
+  "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-25",
   "java.errors.incompleteClasspath.severity": "ignore",
   "java.configuration.updateBuildConfiguration": "interactive",
   "chat.tools.terminal.autoApprove": {
