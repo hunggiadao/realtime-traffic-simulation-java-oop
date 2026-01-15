@@ -56,8 +56,16 @@ public class MapView extends Pane {
     // Per-vehicle render smoothing state (keeps headings stable at junctions)
     Map<String, Point2D> lastVehicleWorldPos = new HashMap<>();
     Map<String, Point2D> smoothedVehicleDir = new HashMap<>();
+    // Per-vehicle smoothed *positions* for visually smooth motion between TraCI/UI updates.
+    // This is a render-only cache; it does not affect simulation state.
+    Map<String, Point2D> smoothedVehicleWorldPos = new HashMap<>();
     long lastOverlayRedrawNs = 0L;
     double headingSmoothingAlpha = 0.22;
+    // Position smoothing time constant (seconds). Smaller = more responsive, larger = smoother.
+    // Tuned for JavaFX ~60fps; also works when UI updates are slower.
+    double positionSmoothingTauSec = 0.10;
+    // If a vehicle jumps further than this in world meters, snap (avoid trailing/teleport smear).
+    double positionSnapDistanceMeters = 25.0;
     Map<String, Color> laneSignalColors;
     List<BusStopMarker> busStops = new ArrayList<>();
     double minX = 0, maxX = 1, minY = 0, maxY = 1;
@@ -130,11 +138,19 @@ public class MapView extends Pane {
         // Only prune when caches grow significantly beyond the current visible set.
         if (positions != null && !positions.isEmpty()) {
             int p = positions.size();
-            if (lastVehicleWorldPos.size() > p * 2 + 100 || smoothedVehicleDir.size() > p * 2 + 100) {
+            if (lastVehicleWorldPos.size() > p * 2 + 100 || smoothedVehicleDir.size() > p * 2 + 100 || smoothedVehicleWorldPos.size() > p * 2 + 100) {
                 lastVehicleWorldPos.keySet().retainAll(positions.keySet());
                 smoothedVehicleDir.keySet().retainAll(positions.keySet());
+                // Keep position smoothing cache bounded too.
+                smoothedVehicleWorldPos.keySet().retainAll(positions.keySet());
             }
         }
+        scheduleOverlayRedraw();
+    }
+
+    // Called from the UI AnimationTimer every JavaFX pulse.
+    // This keeps the overlay repainting at a steady rate so position smoothing can take effect.
+    void tickOverlay() {
         scheduleOverlayRedraw();
     }
 

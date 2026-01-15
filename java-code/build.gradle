@@ -80,9 +80,10 @@ sourceSets {
             srcDirs = ['src']
         }
         resources {
-            // Map project root as a resource source, but only include 'ui' folder
-            srcDirs = ['.']
-            include 'ui/**'
+            // Resources are loaded via ClassLoader/Class.getResource(...).
+            // Copy src/main_ui.fxml to the classpath root so Main can load "main_ui.fxml".
+            srcDirs = ['src']
+            include 'main_ui.fxml'
         }
     }
 }

@@ -10,12 +10,22 @@ final class UILoop {
                 @Override
                 public void handle(long now) {
                     if (!ui.running) return;
+
+                    // Redraw the map overlay every JavaFX pulse.
+                    // TraCI updates are discrete; this enables render-side interpolation/smoothing.
+                    if (ui.mapView != null) {
+                        ui.mapView.tickOverlay();
+                    }
+
                     if (ui.lastStepNs == 0) {
                         ui.lastStepNs = now;
                         return;
                     }
                     double speedFactor = (ui.sliderSpeed != null) ? ui.sliderSpeed.getValue() : 1.0;
-                    double stepIntervalNs = (ui.stepLengthSeconds / Math.max(ui.sliderSpeed.getMin(), speedFactor)) * 1_000_000_000.0;
+                    double minSpeedFactor = (ui.sliderSpeed != null) ? ui.sliderSpeed.getMin() : 0.25;
+
+                    // Pace simulation steps to real time based on step length and speed slider.
+                    double stepIntervalNs = (ui.stepLengthSeconds / Math.max(minSpeedFactor, speedFactor)) * 1_000_000_000.0;
                     if ((now - ui.lastStepNs) >= stepIntervalNs) {
                         doStep(ui);
                         ui.lastStepNs = now;
