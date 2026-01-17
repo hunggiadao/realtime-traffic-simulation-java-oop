@@ -42,6 +42,9 @@ public class VehicleWrapper {
     private Map<String, SumoColor> pendingColors = new HashMap<>();
     private Map<String, Double> pendingMaxSpeeds = new HashMap<>();
     private Map<String, SumoStringList> pendingRoutes = new HashMap<>();
+    private Map<String, Integer> pendingRouteAttempts = new HashMap<>();
+
+    private static final int PENDING_ROUTE_MAX_ATTEMPTS = 3;
 
     // Colors requested by the user for locally-injected vehicles.
     // We prefer these for rendering so the UI reflects what the user chose even
@@ -759,7 +762,12 @@ public class VehicleWrapper {
                             traci.handleConnectionError(e);
                             return;
                         }
+                        LOGGER.log(Level.WARNING,
+                                "Route replacement failed for vehicle '" + vehicleId + "' (startEdge=" + startEdgeId
+                                        + ", route=" + routeEdges + ")",
+                                e);
                         pendingRoutes.put(vehicleId, routeEdges);
+                        pendingRouteAttempts.putIfAbsent(vehicleId, 0);
                     }
                 }
             }
@@ -851,9 +859,38 @@ public class VehicleWrapper {
                         traci.handleConnectionError(ex);
                         return;
                     }
+
+                    int tries = pendingRouteAttempts.getOrDefault(e.getKey(), 0) + 1;
+                    pendingRouteAttempts.put(e.getKey(), tries);
+
+                    // One recovery attempt: recompute from current edge (vehicle may have moved).
+                    if (tries == 1) {
+                        try {
+                            String currentEdge = getEdgeId(e.getKey());
+                            if (currentEdge != null && !currentEdge.isBlank()) {
+                                SumoStringList recovered = pickRandomReachableRoute(currentEdge, "DEFAULT_VEHTYPE");
+                                if (recovered != null && recovered.size() >= 2) {
+                                    pendingRoutes.put(e.getKey(), recovered);
+                                }
+                            }
+                        } catch (Exception ignored) {
+                            // keep original pending route
+                        }
+                    }
+
+                    if (tries >= PENDING_ROUTE_MAX_ATTEMPTS) {
+                        LOGGER.log(Level.WARNING,
+                                "Dropping pending route for vehicle '" + e.getKey() + "' after " + tries
+                                        + " failed attempts. Last route=" + e.getValue(),
+                                ex);
+                        done.add(e.getKey());
+                    }
                 }
             }
-            for (String id : done) pendingRoutes.remove(id);
+            for (String id : done) {
+                pendingRoutes.remove(id);
+                pendingRouteAttempts.remove(id);
+            }
         }
     }
 
@@ -869,6 +906,8 @@ public class VehicleWrapper {
                 if (candidate == null || candidate.isBlank()) continue;
                 if (candidate.equals(startEdgeId)) continue;
                 if (candidate.startsWith(":")) continue;
+                String c = candidate.toLowerCase();
+                if (c.endsWith("-sink") || c.endsWith("-source")) continue;
                 SumoStringList route = findRouteEdges(startEdgeId, candidate, vehicleTypeId);
                 if (route != null && route.size() >= 2) {
                     return route;

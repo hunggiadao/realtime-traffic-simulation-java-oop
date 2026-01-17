@@ -1,4 +1,5 @@
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -8,14 +9,42 @@ import javafx.stage.Stage;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Main extends Application {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
 
+    private static volatile boolean shuttingDown = false;
+
+    private UI controller;
+
     public static void main(String[] args) {
         AppLogger.init();
+
+        // Avoid noisy JavaFX renderer exceptions during forced shutdown
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            if (shuttingDown && throwable instanceof RejectedExecutionException) {
+                StackTraceElement[] st = throwable.getStackTrace();
+                if (st != null && st.length > 0) {
+                    String cls = st[0].getClassName();
+                    if (cls != null && cls.startsWith("com.sun.javafx.tk.quantum.")) {
+                        return;
+                    }
+                }
+            }
+            LOGGER.log(Level.SEVERE, "Uncaught exception in thread " + thread.getName(), throwable);
+        });
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            shuttingDown = true;
+            try {
+                Platform.exit();
+            } catch (IllegalStateException ignored) {
+                // JavaFX runtime not initialized or already stopped.
+            }
+        }, "app-shutdown-hook"));
 
         // run with CLI parameters
         if (args.length > 0 && args[0].equalsIgnoreCase("cli")) {
@@ -51,13 +80,11 @@ public class Main extends Application {
         Parent root = loader.load();
 
         // intialize UI controller
-        UI controller = loader.getController();
+        controller = loader.getController();
         primaryStage.setOnCloseRequest(event -> {
-            if (controller != null) {
-                controller.shutdown();
-            }
-            javafx.application.Platform.exit();
-            System.exit(0);
+            shuttingDown = true;
+            // Let JavaFX shutdown cleanly (stop() will be called).
+            Platform.exit();
         });
 
         // window's properties
@@ -66,10 +93,36 @@ public class Main extends Application {
         primaryStage.show();
     }
 
+    @Override
+    public void stop() {
+        shuttingDown = true;
+        try {
+            if (controller != null) {
+                controller.shutdown();
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error during shutdown", e);
+        }
+    }
+
     /**
      * Minimal console simulation loop including PDF export logic.
      */
     public static void runConsoleSimulation() {
+        // Load settings (if present) so CLI runs can enable debug logging too.
+        try {
+            UserSettings settings = new UserSettings();
+            settings.load();
+            String raw = settings.getString("log.level", "");
+            if (raw != null && !raw.trim().isEmpty()) {
+                java.util.logging.Level level = java.util.logging.Level.parse(raw.trim().toUpperCase());
+                AppLogger.setLevel(level);
+                LOGGER.info("Log level set to " + level.getName());
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "Failed to apply log.level for CLI", e);
+        }
+
         String sumoBinary = "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo-gui.exe";
         String configFile = ".\\SumoConfig\\G.sumocfg";
 
