@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2026-01-17T01:39:21.477411+01:00 by Eclipse SUMO netedit 1.25.0
+<!-- generated on 2026-01-17T02:24:49.813612+01:00 by Eclipse SUMO netedit 1.25.0
 <neteditConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/neteditConfiguration.xsd">
 
     <input>
@@ -32,6 +32,11 @@
     <pedestrian>
         <walkingareas value="0"/>
     </pedestrian>
+
+    <netedit>
+        <ignore.additionalelements value="0"/>
+        <ignore.routeelements value="0"/>
+    </netedit>
 
 </neteditConfiguration>
 -->
@@ -748,8 +753,8 @@
         <lane id="E42_2" index="2" disallow="pedestrian" speed="13.89" length="85.66" shape="169.86,225.80 255.52,225.89"/>
     </edge>
     <edge id="E43" from="J50" to="J51" priority="-1">
-        <lane id="E43_0" index="0" allow="bicycle" speed="13.89" length="51.55" width="1.00" shape="266.12,223.81 317.67,223.90"/>
-        <lane id="E43_1" index="1" disallow="pedestrian" speed="13.89" length="51.55" shape="266.12,225.91 317.66,226.00"/>
+        <lane id="E43_0" index="0" speed="13.89" length="51.55" width="1.00" shape="266.12,223.81 317.67,223.90"/>
+        <lane id="E43_1" index="1" speed="13.89" length="51.55" shape="266.12,225.91 317.66,226.00"/>
     </edge>
     <edge id="E44" from="J50" to="J52" priority="-1" shape="257.02,227.49 281.90,244.07 288.40,259.40 288.28,267.38 285.33,278.35 278.63,290.07">
         <lane id="E44_0" index="0" allow="bicycle" speed="13.89" length="69.78" width="1.00" shape="265.59,228.75 284.87,241.61 292.11,258.67 291.97,267.90 288.78,279.77 284.74,286.84"/>
