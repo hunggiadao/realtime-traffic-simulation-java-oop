@@ -14,6 +14,7 @@ import java.util.logging.Logger;
  */
 public final class AppLogger {
     private static volatile boolean initialized;
+    private static volatile Level currentLevel = Level.INFO;
 
     private AppLogger() {
     }
@@ -28,11 +29,13 @@ public final class AppLogger {
             if (initialized) return;
 
             Logger root = Logger.getLogger("");
-            root.setLevel(Level.INFO);
+            Level level = resolveDesiredLevel();
+            currentLevel = level;
+            root.setLevel(level);
 
             // Keep console logging (Gradle/terminal) but make sure it is not overly verbose.
             for (Handler h : root.getHandlers()) {
-                h.setLevel(Level.INFO);
+                h.setLevel(level);
             }
 
             try {
@@ -41,7 +44,7 @@ public final class AppLogger {
 
                 // Rotate logs: up to 5 files, 1 MB each.
                 FileHandler fh = new FileHandler(logsDir.resolve("app.log").toString(), 1_000_000, 5, true);
-                fh.setLevel(Level.INFO);
+                fh.setLevel(level);
                 fh.setFormatter(new SimpleFormatter());
                 root.addHandler(fh);
             } catch (IOException e) {
@@ -50,6 +53,41 @@ public final class AppLogger {
             }
 
             initialized = true;
+        }
+    }
+
+    /**
+     * Updates the global logging level at runtime.
+     * Useful for enabling debug logs (e.g., Level.FINE) when investigating issues.
+     */
+    public static void setLevel(Level level) {
+        if (level == null) return;
+        init();
+
+        Logger root = Logger.getLogger("");
+        root.setLevel(level);
+        for (Handler h : root.getHandlers()) {
+            h.setLevel(level);
+        }
+        currentLevel = level;
+    }
+
+    public static Level getLevel() {
+        init();
+        return currentLevel;
+    }
+
+    private static Level resolveDesiredLevel() {
+        // Allow overrides without touching code:
+        // -Dapp.logLevel=FINE (or INFO/WARNING/SEVERE/etc)
+        String raw = System.getProperty("app.logLevel");
+        if (raw == null || raw.trim().isEmpty()) {
+            return Level.INFO;
+        }
+        try {
+            return Level.parse(raw.trim().toUpperCase());
+        } catch (Exception e) {
+            return Level.INFO;
         }
     }
 

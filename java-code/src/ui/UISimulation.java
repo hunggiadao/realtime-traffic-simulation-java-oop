@@ -21,6 +21,10 @@ final class UISimulation {
 
         ui.userSettings.load();
 
+        // Optional: allow increasing verbosity to diagnose issues that otherwise only log at Level.FINE.
+        // Set in bin/settings/user.properties: log.level=FINE
+        applyLogLevel(ui);
+
         // Make Filters + Traffic Lights UI reactive (no need to wait for a simulation step)
         if (ui.chkFilterRed != null) {
             ui.chkFilterRed.selectedProperty().addListener((obs, oldV, newV) -> ui.updateMapView());
@@ -175,6 +179,20 @@ final class UISimulation {
         }
 
         ui.setDisconnectedUI();
+    }
+
+    private static void applyLogLevel(UI ui) {
+        try {
+            String raw = (ui.userSettings != null)
+                    ? ui.userSettings.getString("log.level", "")
+                    : "";
+            if (raw == null || raw.trim().isEmpty()) return;
+            java.util.logging.Level level = java.util.logging.Level.parse(raw.trim().toUpperCase());
+            AppLogger.setLevel(level);
+            ui.LOGGER.info("Log level set to " + level.getName());
+        } catch (Exception e) {
+            ui.LOGGER.log(Level.WARNING, "Invalid log.level setting; expected INFO/FINE/WARNING/SEVERE", e);
+        }
     }
 
     static void onStartPause(UI ui) {
