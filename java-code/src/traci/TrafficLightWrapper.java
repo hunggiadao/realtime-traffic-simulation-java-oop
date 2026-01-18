@@ -30,7 +30,7 @@ public class TrafficLightWrapper {
 
     public TrafficLightWrapper(TraCIConnector traci) {
         this.traci = Objects.requireNonNull(traci, "traci");
-        this.isPaused = false;
+        this.isPaused = true;
     }
 
     /**
