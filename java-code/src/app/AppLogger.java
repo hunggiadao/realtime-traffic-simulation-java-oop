@@ -92,9 +92,8 @@ public final class AppLogger {
     }
 
     private static Path defaultLogsDir() {
-        // Keep runtime-generated files out of src/.
-        // Always write logs under bin/logs.
-        return Paths.get("bin", "logs");
+        // Runtime-generated logs live.
+        return Paths.get("logs");
     }
 
     private static final class SimpleFormatter extends Formatter {
