@@ -36,7 +36,7 @@ The provided `.gitignore` includes all telemetry and miscellaneous types that ar
 Once the download has finished, simply double-click the `run.bat` script file inside the `java-code/` folder to start the application. Once the full application's GUI is loaded, it looks as follows:
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_milestone_1.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_final.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 1: Main UI when first loaded
 	</p>
@@ -60,7 +60,7 @@ Click the ***Connect*** button in the top row to initialize a connection. After 
 Users can also adjust the speed using the ***Speed*** slider, allowing them to speed up or slow down the simulation.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/map_final.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 2: Running Simulation Example
 	</p>
@@ -68,53 +68,89 @@ Users can also adjust the speed using the ***Speed*** slider, allowing them to s
 
 ### Vehicle Injection
 
-In the ***Vehicles*** tab, users can add new vehicles to the map with options for which edge, vehicle color, how many vehicles to add, and maximum speed.
+In the ***Vehicles*** tab, users can add new vehicles to the map with options for which edge, vehicle color, and how many vehicles to add.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_inject.png" alt="Image 1" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/vehicle_injection.png" alt="Image 1" style="height: 300px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 3: Vehicle Injection Menu
 	</p>
 </div>
 
+### Traffic Light Control
+
+In the ***Traffic Lights*** tab, users can select which traffic light to view and control. They can change the current phase of the traffic light, or change the duration of the current phase.
+
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/traffic_light_tab.png" alt="Image 1" style="height: 300px; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 4: Traffic Lights Menu
+	</p>
+</div>
+
 ### Filtering View
 
-In the ***Filters*** tab, users can toggle to show only certain types of vehicles that meet specific criteria.
+In the ***Filters*** tab, users can toggle to show only certain types of vehicles that meet specific criteria. Filtering criteria include speed, color, and congestion heuristics.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_filter.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/ui_filter.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
-		Figure 4: Filter Menu
+		Figure 5: Filter Menu
 	</p>
 </div>
 
-### Metrics panel
+### Map interactions with mouse
 
-In the ***Charts*** tab of the right panel, users can inspect different metrics for the running simulation.
+In the central map view, users can:
+- Click and drag with **LEFT MOUSE BUTTON** to pan the camera to a different part of the map
+- Scroll up and down with **SCROLL WHEEL** to zoom in and out of the map
+
+### Metrics panels
+
+In the ***Map Overview*** tab of the right panel, users can inspect different metrics for the running simulation. These include vehicle count, average speed, and speed distribution.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_charts.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/map_overview.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
-		Figure 5: Charts Menu
+		Figure 6: Map Overview Menu
 	</p>
 </div>
 
-In the ***Vehicle Table*** tab, users can inspect all metadata and metrics of all vehicle instances in the simulation in tabular form.
+In the ***Vehicles Data*** tab, users can inspect all metadata and metrics of all vehicle instances in the simulation in tabular form or pie chart form.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_stress_vehicle_table.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/vehicles_data_table.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
-		Figure 6: Vehicle Table Menu
+		Figure 7: Vehicles Data Menu
 	</p>
 </div>
+
+### Hotkeys
+
+There are several keyboard inputs users can press to initiate certain actions quickly, without having to use their cursor or switch to a different UI tab. They can press:
+
+- **LEFT** arrow key to cycle to the previous traffic light
+- **RIGHT** arrow key to cycle to the next traffic light
+- **UP** arrow key to immediately transition the current traffic light to the next phase
+- **DOWN** arrow key to transition the current traffic light to the previous phase
+- **P** to toggle Play/Pause for the simulation
 
 ### Exporting results
 
-To be added
+In the top right corner of the application window, there is an **Export** dropdown menu that allows users to export the current simulation state as either a portable document format (PDF) or comma separated values (CSV) file.
+
+<div style="flex: 1 1 0; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/export_menu.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<p style="text-align: center; font-style: italic; font-size: 1em;">
+		Figure 8: Export Dropdown Menu
+	</p>
+</div>
+
+**NOTE**: the Export Menu is only available when the simulation is paused, since it relies on the immutability of states of values in the simulation. When the simulation is running, the menu is faded out.
 
 ## Notes
 
-To be added
+N/A
 
 <!-- ## Reference -->
 
