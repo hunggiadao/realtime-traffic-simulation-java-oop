@@ -12,6 +12,9 @@ https://github.com/hunggiadao/realtime-traffic-simulation-java-oop
 
 ## Setting up and Running
 
+Prerequisite requirements:
+- JDK 17+
+
 Users can either download the latest source folder in [Releases](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/releases) or clone the repository directly using the following command:
 ```
 $ git clone git@github.com:hunggiadao/realtime-traffic-simulation-java-oop.git
@@ -33,7 +36,14 @@ The provided `.gitignore` includes all telemetry and miscellaneous types that ar
 
 `*` means all files of this type.
 
-Once the download has finished, simply double-click the `run.bat` script file inside the `java-code/` folder to start the application. Once the full application's GUI is loaded, it looks as follows:
+Once the download has finished, simply double-click the `run.bat` script file (**Windows** ONLY) inside the `/java-code` folder to start the application.
+
+Users can also use Gradle (both **Linux** and **Windows**) to set up and initiate the program build and run using the following command in the outermost directory:
+```
+$ gradle clean run
+```
+
+Once the full application's GUI is loaded, it looks as follows:
 
 <div style="flex: 1 1 0; max-width: 100%;">
 	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/main_ui_final.png" alt="Image 1" style="height: auto; width: auto; max-width: 100%;">
@@ -140,7 +150,7 @@ There are several keyboard inputs users can press to initiate certain actions qu
 In the top right corner of the application window, there is an ***Export*** dropdown menu that allows users to export the current simulation state as either a portable document format (PDF) or comma separated values (CSV) file.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/export_menu.png" alt="Image 2" style="height: 150px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/export_menu.png" alt="Image 2" style="height: 120px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 8: Export Dropdown Menu
 	</p>
