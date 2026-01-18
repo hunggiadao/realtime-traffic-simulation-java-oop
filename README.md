@@ -43,6 +43,9 @@ The project utilizes the following tools:
 
 ## Setting up and Running
 
+Prerequisite requirements:
+- JDK 17+
+
 Users can either download the latest source folder in [Releases](https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/releases) or clone the repository directly using the following command:
 ```
 $ git clone git@github.com:hunggiadao/realtime-traffic-simulation-java-oop.git
@@ -64,7 +67,12 @@ The provided `.gitignore` includes all telemetry and miscellaneous types that ar
 
 `*` means all files of this type.
 
-Once the download has finished, simply double-click the `run.bat` script file inside the `java-code/` folder to start the application.
+Once the download has finished, simply double-click the `run.bat` script file (**Windows** ONLY) inside the `/java-code` folder to start the application.
+
+Users can also use Gradle (both **Linux** and **Windows**) to set up and initiate the program build and run using the following command in the outermost directory:
+```
+$ gradle clean run
+```
 
 ## Application Features
 
