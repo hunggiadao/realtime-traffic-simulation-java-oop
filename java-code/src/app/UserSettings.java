@@ -36,9 +36,8 @@ public final class UserSettings {
     }
 
     private static Path defaultSettingsPath() {
-        // Keep runtime-generated files out of src/.
-        // Always write settings under bin/settings.
-        return Paths.get("bin", "settings", "user.properties");
+        // Runtime-generated settings live.
+        return Paths.get("settings", "user.properties");
     }
 
     /**
