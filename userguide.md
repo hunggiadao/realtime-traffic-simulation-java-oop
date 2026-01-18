@@ -93,7 +93,7 @@ In the ***Traffic Lights*** tab, users can select which traffic light to view an
 In the ***Filters*** tab, users can toggle to show only certain types of vehicles that meet specific criteria. Filtering criteria include speed, color, and congestion heuristics.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/ui_filter.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/ui_filter.png" alt="Image 2" style="height: 250px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 5: Filter Menu
 	</p>
@@ -102,15 +102,15 @@ In the ***Filters*** tab, users can toggle to show only certain types of vehicle
 ### Map interactions with mouse
 
 In the central map view, users can:
-- Click and drag with **LEFT MOUSE BUTTON** to pan the camera to a different part of the map
-- Scroll up and down with **SCROLL WHEEL** to zoom in and out of the map
+- Click and drag with ***LEFT MOUSE BUTTON*** to pan the camera to a different part of the map
+- Scroll up and down with ***SCROLL WHEEL*** to zoom in and out of the map
 
 ### Metrics panels
 
 In the ***Map Overview*** tab of the right panel, users can inspect different metrics for the running simulation. These include vehicle count, average speed, and speed distribution.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/map_overview.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/map_overview.png" alt="Image 2" style="height: 500px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 6: Map Overview Menu
 	</p>
@@ -119,7 +119,7 @@ In the ***Map Overview*** tab of the right panel, users can inspect different me
 In the ***Vehicles Data*** tab, users can inspect all metadata and metrics of all vehicle instances in the simulation in tabular form or pie chart form.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/vehicles_data_table.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/vehicles_data_table.png" alt="Image 2" style="height: 500px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 7: Vehicles Data Menu
 	</p>
@@ -129,18 +129,18 @@ In the ***Vehicles Data*** tab, users can inspect all metadata and metrics of al
 
 There are several keyboard inputs users can press to initiate certain actions quickly, without having to use their cursor or switch to a different UI tab. They can press:
 
-- **LEFT** arrow key to cycle to the previous traffic light
-- **RIGHT** arrow key to cycle to the next traffic light
-- **UP** arrow key to immediately transition the current traffic light to the next phase
-- **DOWN** arrow key to transition the current traffic light to the previous phase
-- **P** to toggle Play/Pause for the simulation
+- ***LEFT*** arrow key to cycle to the previous traffic light
+- ***RIGHT*** arrow key to cycle to the next traffic light
+- ***UP*** arrow key to immediately transition the current traffic light to the next phase
+- ***DOWN*** arrow key to transition the current traffic light to the previous phase
+- ***P*** to toggle Play/Pause for the simulation
 
 ### Exporting results
 
-In the top right corner of the application window, there is an **Export** dropdown menu that allows users to export the current simulation state as either a portable document format (PDF) or comma separated values (CSV) file.
+In the top right corner of the application window, there is an ***Export*** dropdown menu that allows users to export the current simulation state as either a portable document format (PDF) or comma separated values (CSV) file.
 
 <div style="flex: 1 1 0; max-width: 100%;">
-	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/export_menu.png" alt="Image 2" style="height: 300px; width: auto; max-width: 100%;">
+	<img src="https://github.com/hunggiadao/realtime-traffic-simulation-java-oop/blob/main/assets/export_menu.png" alt="Image 2" style="height: 150px; width: auto; max-width: 100%;">
 	<p style="text-align: center; font-style: italic; font-size: 1em;">
 		Figure 8: Export Dropdown Menu
 	</p>
