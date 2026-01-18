@@ -1,5 +1,5 @@
-\chapter*{Conclusion}
-\addcontentsline{toc}{chapter}{Conclusion and Future Work}
+\chapter{Conclusion}
+\label{ch:Conclusion}
 
 \section{Conclusion}
 \noindent
@@ -14,9 +14,9 @@ We have also addressed performance challenges presented during Milestone 2. The 
 For a performant application, we relied primarily on the built-in SUMO libraries, which provide efficient and easy to use value retrievals and setting methods. We also eliminated most performance issues encountered in Milestone 2 by employing lazy updates or caching of commonly used values. Overall, our application is significantly more responsive than before. As a result, this allowed for more fine-tuned rendering and a smaller \texttt{step-length} for smooth animation.
 \medskip
 
-\subsection{Performance Evaluation}
+\section{Performance Evaluation}
 \noindent
-To address the bottlenecks identified during stress testing, we plan to:
+To address the bottlenecks identified during stress testing, we have:
 \medskip
 
 \begin{itemize}
@@ -27,7 +27,7 @@ To address the bottlenecks identified during stress testing, we plan to:
     \item \textbf{Throttled UI updates}: Decouple the data fetch rate from the render rate to ensure the UI remains responsive even when the simulation is running at high speeds.
 \end{itemize}
 
-\subsection{Advanced Traffic Control}
+\section{Advanced Traffic Control}
 \noindent
 We have extended the current manual control capabilities with automated logic:
 \medskip
@@ -38,7 +38,7 @@ We have extended the current manual control capabilities with automated logic:
     \item \textbf{Vehicle Grouping}: Allow users to define groups of vehicles and apply batch commands (e.g., "reroute all buses").
 \end{itemize}
 
-\subsection{Team Reflection}
+\section{Team Reflection}
 \noindent
 In retrospective, there were clear challenges for us during the duration of this project. Over time, we had worked continuously to improve our work and productivity, though some difficulties were solved and others were not.
 \medskip
@@ -51,7 +51,7 @@ Our group formed later than other groups in the project, so we were initially be
 During the later parts of our project, there was a shift in participation among some team members. Some members who had been active in the beginning did not participate in the final stage, and some contributed significantly more than they had done previously. This did not drastically affect our code production or productivity, but it shifted our communication to other team members. We have tried to contact the non-participating members via group messaging and direct messaging, but they did not respond timely or help in committing new code to the repository. Despite this difficult, we managed to complete the application with a sophisticated set of features and absence of most bugs.
 \medskip
 
-\subsection{Reporting and Analytics}
+\section{Reporting and Analytics}
 \noindent
 The final application will include comprehensive reporting tools:
 
