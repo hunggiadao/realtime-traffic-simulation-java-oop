@@ -1,47 +1,80 @@
-\chapter*{Conclusion and Future Work}
+\chapter*{Conclusion}
 \addcontentsline{toc}{chapter}{Conclusion and Future Work}
 
 \section{Conclusion}
 \noindent
-By Milestone~2, we delivered a functional prototype of the real-time traffic simulation application. The system can connect to a live SUMO simulation via TraCI, run or step the simulation, and visualize the network and moving vehicles directly in the JavaFX GUI. Core interactive features—vehicle injection and manual traffic light control—are implemented, enabling users to actively influence traffic flow during runtime.
+By the final milestone, we have delivered a fully functional realtime traffic simulation application. The system can connect to a live SUMO simulation via TraCI, run or step the simulation, visualize the network and moving vehicles directly in the JavaFX GUI, and export simulation data for further inspection and fine tuning. Core interactive features are implemented, enabling users to actively influence traffic flow during runtime.
 \medskip
 
 \noindent
-The main challenges identified at this stage are performance and update-frequency trade-offs when handling large vehicle counts, particularly during stress testing. These findings guide the next development steps: improving rendering efficiency, reducing unnecessary UI refresh work, and extending the control logic. Overall, Milestone~2 establishes a solid, end-to-end pipeline from SUMO to a responsive GUI with tangible control capabilities.
+We have also addressed performance challenges presented during Milestone 2. The main challenges identified are performance and update-frequency trade-offs when handling large vehicle counts, particularly during stress testing. These findings guide the next development steps: improving rendering efficiency, reducing unnecessary UI refresh work, and extending the control logic. By employing lazy updates and utilizing as many dedicated SUMO function calls as possible to reduce computing overhead, we achieved better running performance and less lag time than we had had in Milestone 2.
+\medskip
 
-\section{Future Work}
 \noindent
-Building on the functional prototype, the final phase of development will focus on optimization, advanced features, and user experience refinements.
+For a performant application, we relied primarily on the built-in SUMO libraries, which provide efficient and easy to use value retrievals and setting methods. We also eliminated most performance issues encountered in Milestone 2 by employing lazy updates or caching of commonly used values. Overall, our application is significantly more responsive than before. As a result, this allowed for more fine-tuned rendering and a smaller \texttt{step-length} for smooth animation.
+\medskip
 
-\subsection{Performance Optimization}
+\subsection{Performance Evaluation}
 \noindent
 To address the bottlenecks identified during stress testing, we plan to:
+\medskip
+
 \begin{itemize}
-    \item \textbf{Optimize Map Rendering:} Implement spatial partitioning (e.g., QuadTree) to only render vehicles and map elements currently within the viewport.
-    \item \textbf{Throttle UI Updates:} Decouple the data fetch rate from the render rate to ensure the UI remains responsive even when the simulation is running at high speeds.
+    \item \textbf{Optimized map rendering}: Implement spatial partitioning (e.g., QuadTree) to only render vehicles and map elements currently within the viewport.
+    
+    \item \textbf{Separated the threads between map simulation and UI rendering}: to maintain simulation as fast as possible, and only update the UI when needed.
+    
+    \item \textbf{Throttled UI updates}: Decouple the data fetch rate from the render rate to ensure the UI remains responsive even when the simulation is running at high speeds.
 \end{itemize}
 
 \subsection{Advanced Traffic Control}
 \noindent
-We will extend the current manual control capabilities with automated logic:
+We have extended the current manual control capabilities with automated logic:
+\medskip
+
 \begin{itemize}
-    \item \textbf{Automated Traffic Light Management:} Implement algorithms that dynamically adjust signal phases based on real-time queue lengths detected by the simulation.
-    \item \textbf{Vehicle Grouping:} Allow users to define groups of vehicles and apply batch commands (e.g., "reroute all buses").
+    \item \textbf{Automated Traffic Light Management}: Implement algorithms that dynamically adjust signal phases based on real-time queue lengths detected by the simulation.
+    
+    \item \textbf{Vehicle Grouping}: Allow users to define groups of vehicles and apply batch commands (e.g., "reroute all buses").
 \end{itemize}
+
+\subsection{Team Reflection}
+\noindent
+In retrospective, there were clear challenges for us during the duration of this project. Over time, we had worked continuously to improve our work and productivity, though some difficulties were solved and others were not.
+\medskip
+
+\noindent
+Our group formed later than other groups in the project, so we were initially behind in terms of progress, but still managed to achieve all requirements for each milestone. We also had a good starting structure, by organizing our Github repository to be robust and modular. In this manner, we could maximize the amount of work being done simultaneously by assigning each member a separate non-overlapping part of the project. We maintained a commit history in detail and employed good coding practice (branching from main, pulling and pushing) so that we could minimize time spent to debug, fix errors, and resolve Git merge conflicts.
+\medskip
+
+\noindent
+During the later parts of our project, there was a shift in participation among some team members. Some members who had been active in the beginning did not participate in the final stage, and some contributed significantly more than they had done previously. This did not drastically affect our code production or productivity, but it shifted our communication to other team members. We have tried to contact the non-participating members via group messaging and direct messaging, but they did not respond timely or help in committing new code to the repository. Despite this difficult, we managed to complete the application with a sophisticated set of features and absence of most bugs.
+\medskip
 
 \subsection{Reporting and Analytics}
 \noindent
 The final application will include comprehensive reporting tools:
+
 \begin{itemize}
-    \item \textbf{Data Export:} Functionality to export simulation statistics (travel times, congestion levels) to CSV or PDF formats.
-    \item \textbf{Enhanced Dashboard:} A more detailed statistics view including average waiting times and CO2 emission estimates.
+    \item \textbf{Data Export}: Functionality to export simulation statistics (travel times, congestion levels) to CSV or PDF formats.
+    
+    \item \textbf{Enhanced Dashboard}: A more detailed statistics view including average waiting times and other estimates.
 \end{itemize}
 \medskip
 
-\noindent
-\begin{figure}[!ht]
-    \centering
-    \includegraphics[width=0.9\textwidth]{../assets/main_ui_milestone_2.png}
-    \caption{Proposed layout for the advanced analytics dashboard. Note the 'Export' button (top right) and the expandable 'Charts' pane, which will be fully implemented in Milestone 3.}
-    \label{fig:future-dashboard}
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.4\textwidth}
+		\includegraphics[width=\textwidth]{Figures/map_overview.png}
+		\caption{Map Overview metrics panel}
+		\label{fig:metrics-dashboard-1}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.4\textwidth}
+		\includegraphics[width=\textwidth]{Figures/vehicles_data_table.png}
+		\caption{Vehicles Data metrics panel}
+		\label{fig:metrics-dashboard-2}
+	\end{subfigure}
+	\caption{Layout for the advanced analytics dashboard}
+	\label{fig:metrics-dashboard}
 \end{figure}

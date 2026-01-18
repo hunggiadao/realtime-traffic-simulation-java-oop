@@ -84,8 +84,11 @@
 \renewcommand*\familydefault{\sfdefault} %% Base font of the document is to be sans serif
 
 %%%%%% Grafiken einbinden
+\usepackage{subcaption}
 \usepackage{graphicx}
 % https://golatex.de//wiki/%5cincludegraphics
+
+\usepackage{float}
 
 %%%%%% Mathematik-Paket AMSMath:
 \usepackage[fleqn,reqno]{amsmath}
@@ -352,7 +355,7 @@
 %\end{appendix}
 
 %\clearpage
-
+%
 %\ifdefined\ThesisLanguageIsEnglish
 %\printglossary[type=\acronymtype, title=List of Abbreviations, toctitle=List of Abbreviations]
 %\else
@@ -374,14 +377,14 @@
 %\renewcommand*{\refname}{Literaturverzeichnis}
 
 %\bibliographystyle{plain} % Nummern in eckigen Klammern
-%%\bibliographystyle{alpha} % Anfangsbuchstaben Erstautor und Jahr
+%\bibliographystyle{alpha} % Anfangsbuchstaben Erstautor und Jahr
 
 % Wenn man folgenden Stil verwenden will, dann muss
 % \usepackage{harvard} vor \begin{document} aktiviert werden:
 %\bibliographystyle{agsm} % (Autoren in runden Klammern)
 %\newpage
-\clearpage
+%\clearpage
 %\phantomsection % Da sonst falsche Verlinkung im Inhaltsverzeichnis
-\printbibliography[heading=bibintoc]    % Ohne Kapitelnummer /-buchstabe
+%\printbibliography[heading=bibintoc]    % Ohne Kapitelnummer /-buchstabe
 %\printbibliography[heading=bibnumbered]    % Mit Kapitelnummer /-buchstabe
 \end{document}

@@ -3,74 +3,127 @@
 
 %%%%%%%%%%%%%
 \section{Timeline}
-\subsection{Milestone 2 Status}
+\subsection{Final Milestone Status}
 
 \noindent
-Milestone~2 focused on delivering a functional prototype with core features implemented. The current status is summarized below.
+The final milestone focused on delivering a fully fletched application with fully functional features. In addition, the application must run without non-reproducible errors. The application also logs all runtime information and saves it into a log file for later inspection. The status is summarized below.
 \medskip
 
 \begin{itemize}
-    \item \textbf{Working Application:} Live SUMO connection, map visualization inside the GUI, vehicle injection, and traffic light control are implemented.
-    \item \textbf{Code Documentation:} Core classes contain Javadoc and inline comments (e.g., connection, vehicle, and map rendering components).
-    \item \textbf{User Guide Draft:} A draft user guide is provided (\texttt{userguide.md}) describing setup and basic usage.
+    \item \textbf{Final Application}: Full GUI with map, controls, statistics; Vehicle grouping/filtering; Traffic light adaptation (manual or rule-based); Exportable reports (CSV and/or PDF).
+    
+    \item \textbf{Final Documentation}: Updated user guide; Final code documentation; Summary of enhancements and design decisions.
+    
+    \item \textbf{Presentation}: Live demo; Architecture and feature explanation o Performance evaluation; Team reflection.
+    
     \item \textbf{Test Scenario:} A stress scenario configuration (\texttt{Stress.sumocfg}) is provided to test high vehicle counts.
-    \item \textbf{Continuous Integration:} A CI pipeline was established to automate build and test processes, ensuring code stability.
-    \item \textbf{Progress Summary:} Performance and UI-update frequency were identified as key bottlenecks under heavy load.
+    
+    \item \textbf{Final Retrospective}
+    
+    \item \textbf{Clean Git Repository}
+    
+    \item \textbf{Sample Exported Reports}
+    
+    \item \textbf{Progress Summary}: Performance and UI-update frequency were identified as key bottlenecks under heavy load.
 \end{itemize}
 
 \subsection{Timeline for Final Application}
 \begin{itemize}
-    \item \textbf{Full GUI Implementation:} Complete map visualization, controls, and statistics dashboard by 5th January
-    \item \textbf{Vehicle Grouping/Filtering:} Implement filtering and categorization features by 31st December
-    \item \textbf{Traffic Light Adaptation:} Manual and rule-based control system by 31st December
-    \item \textbf{Exportable Reports:} CSV and PDF export functionality by 31st December
-    \item \textbf{Final Documentation:} Updated user guide and comprehensive code documentation by 10th January
-    \item \textbf{Project Summary:} Enhancements overview and design decisions report by 10th January
+    \item \textbf{Full GUI Implementation}: Complete map visualization, controls, and statistics dashboard by 5th January
+    
+    \item \textbf{Vehicle Grouping/Filtering}: Implement filtering and categorization features by 5th January
+    
+    \item \textbf{Traffic Light Adaptation}: Manual and rule-based control system by 8th January
+    
+    \item \textbf{Exportable Reports}: CSV and PDF export functionality by 10th January
+    
+    \item \textbf{Final Documentation}: Updated user guide and comprehensive code documentation by 18th January
+    
+    \item \textbf{Project Summary}: Enhancements overview and design decisions report by 18th January
+    
+    \item \textbf{Presentation}:
+    	\subitem Live demo 19th January
+    	
+    	\subitem Architecture and feature explanation by 18th January
+    	
+    	\subitem Performance evaluation by 12th January
+    	
+    	\subitem Team reflection by 18th January
+    	
+    \item \textbf{Final Retrospective} by 18th January
+    
+    \item \textbf{Clean Git Repository} by 18th January
+    
+    \item \textbf{Sample Exported Reports} by 18th January
 \end{itemize}
 
 %%%%%%%%%%%%%
 \section{Task Distribution}
 
 \noindent
-Team roles were revisited and refined during Milestone~2 to match the implemented components.
+Team roles for the entire project are as follows:
 \medskip
 
 \begin{itemize}
-    \item \textbf{Traffic Network Files:} Raees Ashraf Shah
-    \item \textbf{TraCI Connector + SUMO Integration:} Gia Hung Dao
-    \item \textbf{Traffic Light Control (wrapper + UI):} Gia Hung Dao, Raees Ashraf Shah
-    \item \textbf{Vehicle Wrapper + Vehicle Injection:} Khac Uy Pham, Gia Hung Dao
-    \item \textbf{GUI Implementation (JavaFX):} Huu Trung Son Dang
-    \item \textbf{Infrastructure Wrapper Classes:} Huy Hoang Bui
-    \item \textbf{Logger + Run Scripts:} Huu Trung Son Dang
-    \item \textbf{Architecture and UML Diagrams:} Khac Uy Pham
+    \item \textbf{Traffic Network Files}: Raees Ashraf Shah
+    
+    \item \textbf{TraCI Connector + SUMO Integration}: Gia Hung Dao
+    
+    \item \textbf{Traffic Light Control (wrapper + UI)}: Gia Hung Dao, Raees Ashraf Shah
+    
+    \item \textbf{Hotkey Functionality}: Raees Ashraf Shah
+    
+    \item \textbf{Vehicle Wrapper + Vehicle Injection}: Huu Trung Son Dang
+    
+    \item \textbf{GUI Implementation (JavaFX)}: Huu Trung Son Dang
+    
+    \item \textbf{Infrastructure Wrapper Classes}: Huy Hoang Bui, Gia Hung Dao
+    
+    \item \textbf{Logger + Run Scripts}: Huu Trung Son Dang
+    
+    \item \textbf{Exception handler}: Huu Trung Son Dang
+    
+    \item \textbf{CSV and PDF Exporter}: Raees Ashraf Shah, Gia Hung Dao
+    
+    \item \textbf{Architecture and UML Diagrams}: Khac Uy Pham, Huu Trung Son Dang
 \end{itemize}
 
 \section{Challenges and Risks}
 
 \begin{itemize}
-    \item \textbf{Performance under load:} With many vehicles, frequent UI refreshes (map + table) can become CPU-intensive.
-    \item \textbf{Update frequency trade-offs:} Increasing simulation step length or throttling table/map updates reduces load but lowers UI responsiveness.
-    \item \textbf{Robust TraCI lifecycle:} SUMO may terminate or close the socket when a scenario ends; the application must handle disconnects gracefully.
+    \item \textbf{Performance under load}: With many vehicles, frequent UI refreshes (map + table) can become CPU-intensive.
+    
+    \item Some network-wide function calls used to gather entire information take longer than do function calls with specific Object ID.
+    
+    \item \textbf{Update frequency trade-offs}: Increasing simulation step length or throttling table/map updates reduces load but lowers UI responsiveness.
+    
+    \item \textbf{Robust TraCI lifecycle}: SUMO may terminate or close the socket when a scenario ends; the application must handle disconnects gracefully.
+    
+    \item Some metric functions in \texttt{EdgeWrapper} class took longer than other functions, since their runtime complexity grows exponentially with the number of edges and vehicles.
 \end{itemize}
 
-\section{Milestone 2 Progress Summary}
+\section{Project Progress Summary}
 
 \noindent
-Milestone~2 focused on converting the Milestone~1 UI into a functional prototype with end-to-end SUMO integration. The following summary highlights the status and main outcomes.
+The final milestone focused on finishing ongoing features from Milestone 2, adding final features, and fixing all runtime bugs. The following summary highlights the status and main outcomes.
 \medskip
 
 \begin{itemize}
-    \item \textbf{Status:} Core prototype features completed (live SUMO connection, in-app map rendering with moving vehicles, vehicle injection, and traffic light control).
-    \item \textbf{Key changes:} Added a real-time stepping loop, integrated vehicle state retrieval for the table and map, added injection controls (count/speed/color), and implemented traffic light phase switching and duration adjustments.
-    \item \textbf{Stress testing:} Used a dedicated stress configuration (\texttt{Stress.sumocfg}) to validate behavior at higher vehicle counts and to observe performance bottlenecks.
-    \item \textbf{Challenges:} Under load, UI updates (map redraw + table refresh) can be expensive; practical mitigation is to reduce refresh frequency or increase step length.
+    \item \textbf{Status}: All features completed (live SUMO connection, in-app map rendering with moving vehicles, vehicle injection, filtering views, traffic light control, hotkeys, statistics recording, and file exports).
+    
+    \item \textbf{Key changes}: integrated vehicle state and edge state retrieval for the table and map, added traffic light phase control, added metrics charts and diagrams, implemented CSV and PDF export features.
+    
+    \item \textbf{Stress testing}: Used a dedicated stress configuration (\texttt{Stress.sumocfg}) to validate behavior at higher vehicle counts and to observe performance bottlenecks.
+    
+    \item \textbf{Challenges}: Under load, UI updates (map redraw + table refresh) can be expensive; practical mitigation is to reduce refresh frequency or increase \texttt{step-length}.
 \end{itemize}
 
-\subsection{Software Engineering Practices (Git)}
+\section{Software Engineering Practices (Git)}
 
 \begin{itemize}
-    \item \textbf{Branching + PRs:} Development was performed on feature branches and merged via pull requests (e.g., simulation classes, traffic light wrapper updates, UI fixes).
-    \item \textbf{Commit messages:} Commits generally use action-oriented prefixes (e.g., \textit{feat}, \textit{fix}, \textit{update}) and describe the affected subsystem (UI, simulation, wrappers, build).
-    \item \textbf{Traceability:} Milestone~2 work is visible through incremental commits that introduce the simulator loop and vehicle-management abstractions, followed by bug fixes and UI integration improvements.
+    \item \textbf{Branching + Pull Requests}: The main branch is push protected. Development must be performed on feature branches and merged into main via pull requests (e.g., simulation classes, traffic light wrapper updates, UI fixes).
+    
+    \item \textbf{Commit messages}: Commits generally use action-oriented prefixes (e.g., \textit{feat}, \textit{fix}, \textit{update}, \textit{add}, \textit{remove}, etc.) and describe the affected subsystem (UI, simulation, wrappers, build).
+    
+    \item \textbf{Traceability}: the project work is visibly traceable through incremental commits that introduce the simulator loop and vehicle-management abstractions, followed by bug fixes and UI integration improvements. Commit history can be viewed in the Github repository.
 \end{itemize}
